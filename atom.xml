@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>D</title>
+  
+  <subtitle>While there is life there is hope</subtitle>
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://yoursite.com/"/>
+  <updated>2019-05-14T10:24:35.779Z</updated>
+  <id>http://yoursite.com/</id>
+  
+  <author>
+    <name>BiYJ</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title></title>
+    <link href="http://yoursite.com/2019/05/14/haha/"/>
+    <id>http://yoursite.com/2019/05/14/haha/</id>
+    <published>2019-05-14T07:42:50.947Z</published>
+    <updated>2019-05-14T10:24:35.779Z</updated>
+    
+    <content type="html"><![CDATA[<p><a href="https://blog.csdn.net/sinat_37781304/article/details/82729029" target="_blank" rel="noopener">hexo史上最全搭建教程</a></p><p><a href="https://blog.csdn.net/Greenovia/article/details/60576985" target="_blank" rel="noopener">解决用Hexo和GitHub搭建博客时hexo d命令报错问题</a></p><p><a href="https://blog.csdn.net/weixin_36401046/article/details/52940313" target="_blank" rel="noopener">hexo d后 ERROR Deployer not found: git</a></p><p><a href="https://www.cnblogs.com/ldq2016/p/7418206.html" target="_blank" rel="noopener">git-ssh 配置和使用</a></p><p><a href="https://www.jianshu.com/p/c08f4e8127a5" target="_blank" rel="noopener">给博客添加文章目录</a></p><p><a href="https://hexo.io/zh-cn/" target="_blank" rel="noopener">https://hexo.io/zh-cn/</a></p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;&lt;a href=&quot;https://blog.csdn.net/sinat_37781304/article/details/82729029&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;hexo史上最全搭建教程&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;h
+      
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title></title>
+    <link href="http://yoursite.com/2019/05/14/AA/haha/"/>
+    <id>http://yoursite.com/2019/05/14/AA/haha/</id>
+    <published>2019-05-14T07:42:50.947Z</published>
+    <updated>2019-05-14T07:42:50.947Z</updated>
+    
+    <content type="html"><![CDATA[<p>ahah</p><p>ahgi</p><p>###hahhg###</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;ahah&lt;/p&gt;
+&lt;p&gt;ahgi&lt;/p&gt;
+&lt;p&gt;###hahhg###&lt;/p&gt;
+
+      
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="http://yoursite.com/2019/05/08/hello-world/"/>
+    <id>http://yoursite.com/2019/05/08/hello-world/</id>
+    <published>2019-05-08T05:51:30.352Z</published>
+    <updated>2019-05-08T05:51:30.352Z</updated>
+    
+    <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p><h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p><h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p><h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p><h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.
+      
+    
+    </summary>
+    
+    
+  </entry>
+  
+</feed>
