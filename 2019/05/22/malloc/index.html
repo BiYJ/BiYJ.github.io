@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>malloc | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">malloc</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">malloc</h1><div class="post-meta"><a href="/2019/05/22/malloc/#comments" class="comment-count"></a><p><span class="date">May 22, 2019</span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="https://yq.aliyun.com/articles/3065" target="_blank" rel="noopener">iOS内存管理和malloc源码解读</a></p>
+<p>在内存管理方面，iOS 和其它操作系统总体上来说是大同小异的：大的框架原理基本相似，小的细节有所创新和不同。</p>
+<p>与其它操作系统上运行的进程类似，iOS app 进程的地址空间也分为代码区、数据区、栈区和堆区等。进程开始时，会把 mach-o文件中的各部分按需加载到内存当中。而对于一般的 iPhone，实际物理内存都在 1G 左右，对于超大的内存需求怎么办呢？</p>
+<p>和其它操作系统一样，都由系统内核维护一套虚拟内存系统，但需要注意的是 iOS 的虚存系统原则略有不同。最截然不同的地方就是当物理内存紧张情况时的处理。当物理内存紧张时，iOS 会把可以通过重新映射来加载的内容直接清理出内存；对于不可再生的数据，iOS 需要 app 进程配合处理，向各进程发送内存警告，要求配合释放内存。对于不能及时释放足够内存的，直接杀掉进程，必要时甚至是前台运行的 app。</p>
+<p>如上所述，iOS 在外存没有交换区，没有内存页换出的过程。</p>
+<h2 id="一、malloc-基本原理"><a href="#一、malloc-基本原理" class="headerlink" title="一、malloc 基本原理"></a>一、malloc 基本原理</h2><p>在 iOS app 进程地址空间的各个区域中，堆区最灵活，它为进程动态分配内存，也是开发人员经常和内存打交道的地方。</p>
+<ul>
+<li>创建新对象    [NSObject alloc];</li>
+<li>释放对象       [Object release];</li>
+</ul>
+<p>而这些 alloc、release 方法的调用，通常最终都会走到 libsystem_malloc.dylib 的 malloc() 和 free() 函数这里。libsystem_malloc.dylib 是 iOS 内核之外的一个内存库，app 进程需要的内存会先请求到这里，但最终它也会向 iOS 的系统内核发起申请，映射实际内存到 app 进程的地址空间上。</p>
+<p>从苹果公开的 malloc 源码上来看，它的原理大致如下：</p>
+<ul>
+<li>malloc 内存分配基于 malloc zone，并将内存分配按大小分为 nano、tiny、small、large 几种类型，申请时按需进行最适分配。</li>
+<li>malloc 在首次调用时，初始化 default zone。在 64 位环境下，会初始化 default zone 为 nano zone，同时初始化一个 scalable zone 作为 helper zone。nano zone 负责 nano 大小的分配，scalable zone 则负责 tiny、small 和 large内存的分配。</li>
+<li>每次 malloc 时，根据传入的 size 参数，优先交给 nano zone 做分配处理，如果大小不在 nano 范围，则转交给 helper zone 处理。</li>
+</ul>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-58b5a941da813178.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="malloc"></p>
+<p>由于苹果 Open Source 的代码是针对 OS X 的特定版本，具体细节可能与 iOS 上有所不同，如地址空间分布。</p>
+<h2 id="二、nano-malloc"><a href="#二、nano-malloc" class="headerlink" title="二、nano malloc"></a>二、nano malloc</h2><p>在支持 64 位的条件按下，malloc 优先考虑 nano malloc，负责对 256B 以下小内存分配，单位是 16B。</p>
+<p>nano zone 分配内存的地址空间范围是 0x00006nnnnnnnnnnn（OSX 上 64 位情况），将地址空间从大到小依次分为Magazine、Band 和 Slot 几个级别。</p>
+<ul>
+<li>Magazine 范围对应于 CPU，CPU0 对应 Mag0，CPU1 对应 Mag1，依次类推</li>
+<li>Band 范围为 2M，连续内存分配当内存不够时以 Band 为单位向内核请求</li>
+<li>Slot 则对应于每个 Band 中 128K 大小的范围，每个 Band 都分为 16 个 Slot，分别对应于 16B、32B、…256B大小，支持它们的内存分配</li>
+</ul>
+<p>分配过程：</p>
+<ul>
+<li>确定当前 cpu 对应的 mag 和通过 size 参数计算出来的 slot，去对应 metadata 的链表中取已经被释放过的内存区块缓存，如果取到，检查指针地址是否有问题，没有问题就直接返回。</li>
+<li>初次进行 nano malloc 时，nano zone 并没有缓存，会直接在 nano zone 范围的地址空间上直接分配连续地址内存。</li>
+<li>如当前 Band 中当前 Slot 耗尽则向系统申请新的 Band(每个 Band 固定大小 2M，容纳了 16 个 128k 的槽)，连续地址分配内存的基地址、limit 地址以及当前分配到的地址由 meta data 结构维护起来，而这些 meta data 则以 Mag、Slot 为维度(Mag 个数是处理器个数，Slot 是 16 个)的二维数组形式，放在 nanozone_t 的 meta_data 字段中。</li>
+</ul>
+<p>当 app 通过 free() 释放内存时：malloc 库会检查指针地址，如果没有问题，则以链表的形式将这些区块按大小存储起来。这些链表的头部放在 meta data 数组中对应的 [mag][slot] 元素中。</p>
+<p>其实从缓存获取空余内存和释放内存时，都会对指向这片内存区域的指针进行检查，如果有类似地址不对齐、未释放/多次释放、所属地址与预期的 mag、slot 不匹配等情况都会以报错结束。</p>
+<p>下图是个人理解(原文作者)梳理出来的一个关系图，图中标出了 nanozone_t、meta_data_t 等相关结构的关键字段画了出来(OSX)。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-b41dd6a71ee927ee.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="malloc"></p>
+<p>除了分配和释放，系统内存吃紧时，nano zone 需将 cache 的内存区块还给系统，这主要是通过对各个 slot 对应的 meta data上挂着的空闲链表上内存区块回收来完成。</p>
+<h2 id="三、scalable-zone-上内存分配简要分析"><a href="#三、scalable-zone-上内存分配简要分析" class="headerlink" title="三、scalable zone 上内存分配简要分析"></a>三、scalable zone 上内存分配简要分析</h2><p>对于超出 nano 大小范围或者不支持 nano 分配的，直接会在 scalable zone(下文简称 szone)上分配内存。由于 szone 上的内存分配比起 nano 分配要更为复杂，细节繁多，下面仅作简要介绍。</p>
+<p>在 szone 上分配的内存包括 tiny、small 和 large 三大类，其中 tiny 和 small 的分配、释放过程大致相同，large 类型有自己的方式管理。</p>
+<p>tiny、small 的方式也依然遵循 nano 分配中的原则，新内存从系统申请并分配，free 后按照大小以特定的形式缓存起来，供后续分配使用。这里的分配在 region 上进行，region 和 nano malloc 里的 band 概念极为相似，但不同的是地址空间未必连续，而且每个 region 都有自己的位图等描述信息。和 nano 一样，每个 cpu 有一个 magazine，除此之外还分配了一个 index 为-1 的 magazine 作为后备之用。</p>
+<p>下面是一个简图。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-10c246c2019af0d9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="malloc"></p>
+<p>分配时(以 tiny 的情况为例)：</p>
+<ol>
+<li>确定当前线程所在处理器的 magazine index，找到对应的 magazine 结构。</li>
+<li>优先查看上次最后释放的区块是否和此次请求的大小刚好相等(都是对齐之后的 slot 大小)，如果是则直接返回。</li>
+<li>如果不是，则查找 free list 中当前请求大小区块的空闲缓存列表，如果有返回，并整理列表。</li>
+<li>如果没有，则在 free list 找比当前申请区块大的，而且最接近的缓存，如果有返回，并把剩余大小放到 free list 中另外的链表上。这里需要注意的是，在一般情况下 free list 分为 64 个槽，0-62 上挂载区块的大小都是按 16B 为单位递增，63 为所有更大的内存区块挂载的地方。</li>
+<li>上面几项都不行，就在最后一个 region 的尾部或者首部(如果支持内部 ALSR)找空闲区域分配。</li>
+<li>如果还是不行，说明所有现有 region 都没空间可用了，那么从一个后备 magazine 中取出一个可用 region，完整地拿过来放到当前 magazine，再走一遍上面的步骤。</li>
+<li>如果这都不成，那只能向内核申请一块新的 region 区域，挂载到当前的 magazine 下并分配内存。</li>
+<li>要是再不行就没招了，系统也给不到内存，就报错返回。</li>
+</ol>
+<p>free 时：</p>
+<ol>
+<li>检查指针指向地址是否有问题。</li>
+<li>如果 last free 指针上没有挂载内存区块，则放到 last free 上就 OK 了。</li>
+<li>如果有 last free，置换内存，并把 last free 原有内存区块挂载到 free list 上(在挂载的 free list 前，会先根据 region 位图检查前后区块是否能合并成更大区块，如果能会合并成一个)。</li>
+<li>合并后所在的 region 如果空闲字节超过一定条件，则将把此 region 放到后备的 magazine 中(-1)。</li>
+<li>如果整个 region 都是空的，则直接还给系统内核，一了百了。</li>
+</ol>
+<p>而 large 的情况，malloc 以页为单位申请和分配内存，不区分 magazine，szone 统一维护一个 hash table 管理已申请的内存。而且由于内存区域都比较庞大，只缓存总量 2G 的区块，分为 16 个元素，每个最大为 128M。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/05/22/malloc/">http://yoursite.com/2019/05/22/malloc/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/05/22/atomic/" class="pre">atomic</a><a href="/2019/05/22/iOS 证书/" class="next">iOS 证书</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、malloc-基本原理"><span class="toc-text">一、malloc 基本原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二、nano-malloc"><span class="toc-text">二、nano malloc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三、scalable-zone-上内存分配简要分析"><span class="toc-text">三、scalable zone 上内存分配简要分析</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/22/深拷贝和浅拷贝/">深拷贝和浅拷贝</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/22/String/">String</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/22/atomic/">atomic</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/22/malloc/">malloc</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/22/iOS 证书/">iOS 证书</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/22/iOS Push/">iOS Push</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/21/iOS 时间/">iOS 时间</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/14/hexo+pages建站/">hexo+pages建站</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="http://www.example3.com/" title="site-name3" target="_blank">site-name3</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>
