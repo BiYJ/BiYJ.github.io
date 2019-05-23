@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>http://yoursite.com/2019/05/23/property/</loc>
+    <lastmod>2019-05-23</lastmod>
+  </url>  <url>
+    <loc>http://yoursite.com/2019/05/23/iOS%20%E7%BC%96%E8%AF%91%E8%BF%87%E7%A8%8B%E5%8E%9F%E7%90%86(2)/</loc>
+    <lastmod>2019-05-23</lastmod>
+  </url>  <url>
+    <loc>http://yoursite.com/2019/05/23/iOS%20%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%EF%BC%9AMRC%E3%80%81ARC/</loc>
+    <lastmod>2019-05-23</lastmod>
+  </url>  <url>
+    <loc>http://yoursite.com/2019/05/23/iOS%20%E5%86%85%E5%AD%98%E7%9B%91%E6%8E%A7/</loc>
+    <lastmod>2019-05-23</lastmod>
+  </url>  <url>
     <loc>http://yoursite.com/2019/05/23/ARC/</loc>
     <lastmod>2019-05-23</lastmod>
   </url>  <url>
@@ -14,9 +26,6 @@
     <lastmod>2019-05-22</lastmod>
   </url>  <url>
     <loc>http://yoursite.com/2019/05/22/String/</loc>
-    <lastmod>2019-05-22</lastmod>
-  </url>  <url>
-    <loc>http://yoursite.com/2019/05/22/atomic/</loc>
     <lastmod>2019-05-22</lastmod>
   </url>  <url>
     <loc>http://yoursite.com/2019/05/22/malloc/</loc>
