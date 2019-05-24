@@ -1,0 +1,476 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> LC 2		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> LC 2		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> LC 2		</h1><div class="post-meta"><a href="/2019/03/05/lc-2/#comments" class="comment-count"></a><p><span class="date">Mar 05, 2019</span><span><a href="/categories/Leetcode/" class="category">Leetcode</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h5 id="十一、Container-With-Most-Water（盛最多水的容器）"><a href="#十一、Container-With-Most-Water（盛最多水的容器）" class="headerlink" title="十一、Container With Most Water（盛最多水的容器）"></a><a href="https://leetcode-cn.com/problems/container-with-most-water/" target="_blank" rel="noopener">十一、Container With Most Water（盛最多水的容器）</a></h5><p>1、<strong>问题描述</strong></p>
+<p>给定 n 个非负整数 a1、a2、…、an，每个数代表坐标中的一个点 (i, ai) 。在坐标内画 n 条垂直线，垂直线 i 的两个端点分别为 (i, ai) 和 (i, 0)。找出其中的两条线，使得它们与 x 轴共同构成的容器可以容纳最多的水。</p>
+<p>说明：不能倾斜容器，且 n 的值至少为 2。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-652ff824886a50e7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>2、<strong>算法分析</strong></p>
+<p>定义两个指针 i、j 分别指向数组的左右两端，然后两个指针向中间搜索，每移动一次算一个值和结果比较取较大的，容器装水量的算法是找出左右两个边缘中较小的那个乘以两边缘的距离。</p>
+<p>3、<strong>算法实现</strong></p>
+<p>#define MAX(a, b)  ((a) &lt; (b) ? (b) : (a))</p>
+<p>#define MIN(a, b)  ((a) &lt; (b) ? (a) : (b))</p>
+<p>int maxArea(int* height, int heightSize) {</p>
+<pre><code>int i = 0;
+int j = heightSize - 1;
+int max = 0;
+
+while(i &lt; j) {
+    max = MAX(max, (j - i) * MIN(height\[i\], height\[j\]));
+    height\[i\] &lt; height\[j\] ? ++i : --j;
+}
+
+return max;
+</code></pre><p>}</p>
+<p>4ms 代码。减少了多余的 height[i] 和 height[j] 比较。</p>
+<p>int maxArea(int* height, int heightSize)<br>{<br>    int maxarea = 0, left = 0, right = heightSize - 1;<br>    int area = 0;</p>
+<pre><code>while(left &lt; right) {
+
+    if(height\[left\]&lt;height\[right\]) {  
+
+         area = height\[left\]*(right-left);
+         left++;
+         if(area &gt; maxarea)
+             maxarea = area;
+    }
+    else {
+        area = height\[right\]*(right-left);
+        right--;
+        if(area &gt; maxarea)
+            maxarea = area;
+    }
+}
+return maxarea;
+</code></pre><p>}</p>
+<h5 id="十二、Integer-to-Roman（整数转罗马数字）"><a href="#十二、Integer-to-Roman（整数转罗马数字）" class="headerlink" title="十二、Integer to Roman（整数转罗马数字）"></a><a href="https://leetcode-cn.com/problems/integer-to-roman/" target="_blank" rel="noopener">十二、Integer to Roman（整数转罗马数字）</a></h5><p>1、<strong>算法分析</strong></p>
+<p>字符          数值<br>I             1<br>V             5<br>X             10<br>L             50<br>C             100<br>D             500<br>M             1000</p>
+<p>寻找 I、V、X、L、C、D、M 与数字位数的关系。</p>
+<p>①、当 0 &lt; n &lt;= 10，只需要 I、V、X；</p>
+<p>②、当 10 &lt; n &lt;= 100，只需要 X、L、C；</p>
+<p>②、当 100 &lt; n &lt;= 1000，只需要 C、D、M；</p>
+<p>③、当 1000 &lt; n &lt;= 3000，只需要 M。</p>
+<p>由上可得：每进一位 -》idx += 2。</p>
+<p>2、<strong>算法实现</strong></p>
+<p>char* intToRoman(int num)<br>{<br>    int size = -1;</p>
+<pre><code>// int 转为 int\[\]
+int* a = calloc(sizeof(int), 4);
+while (num &gt; 0) {
+    a\[++size\] = num % 10;
+    num /= 10;
+}
+
+/*
+  字符           数值
+   I             1
+   V             5
+   X             10
+   L             50
+   C             100
+   D             500
+   M             1000
+ */
+char r\[7\] = { &apos;I&apos;, &apos;V&apos;, &apos;X&apos;, &apos;L&apos;, &apos;C&apos;, &apos;D&apos;, &apos;M&apos; };
+int rIdx = size * 2;
+
+char * s = malloc(sizeof(char) * 20);
+for (int j = 0; j &lt; 20; j++)
+    s\[j\] = &apos;\\0&apos;;
+int sIdx = -1;
+
+int temp = 0;
+
+while (size &gt;= 0) {
+
+    temp = a\[size\];
+
+    // 4
+    if (temp == 4) {
+        s\[++sIdx\] = r\[rIdx\];
+        s\[++sIdx\] = r\[rIdx + 1\];
+    }
+    // 9
+    else if (temp == 9) {
+        s\[++sIdx\] = r\[rIdx\];
+        s\[++sIdx\] = r\[rIdx + 2\];
+    }
+    // \[0, 4)
+    else if (temp &lt; 4) {
+        for (int j = 0; j &lt; temp; j++)
+            s\[++sIdx\] = r\[rIdx\];
+    }
+    // \[5, 9)
+    else {
+        s\[++sIdx\] = r\[rIdx + 1\];
+
+        for (int j = 0; j &lt; temp - 5; j++)
+            s\[++sIdx\] = r\[rIdx\];
+    }
+
+    size--;
+    rIdx -= 2;
+}
+
+return s;
+</code></pre><p>}</p>
+<p>24ms 代码。</p>
+<p>char* intToRoman(int num) {<br>    static char temp[16];<br>    int n=0;<br>    int i=0;<br>    int j=0;<br>    if(num&lt;1||num&gt;3999)<br>    {<br>        //printf(“The num is overflow!”);<br>        return 0;<br>    }<br>       // int i=0;<br>        n=num/1000;<br>    if(n&gt;0){<br>        for(i;i&lt;n;i++)<br>        {<br>            temp[i]=’M’;<br>        }<br>    }<br>        n=num%1000;<br>        n=n/100;<br>        if(n&gt;0){<br>        if(n==9)<br>        {<br>            temp[i]=’C’;<br>            temp[++i]=’M’;<br>            ++i;<br>        }else if(n==4)<br>        {<br>            temp[i]=’C’;<br>            temp[++i]=’D’;<br>            ++i;<br>        }else if(n&gt;=5)<br>        {<br>            temp[i]=’D’;<br>            for(j=++i;j&lt;i+n-5;j++)<br>            {<br>                temp[j]=’C’;<br>            }<br>            i=j;<br>        }else<br>        {<br>           for(j=i;j&lt;i+n;j++)<br>           {<br>               temp[j]=’C’;<br>           }<br>            i=j;<br>        }<br>        }<br>        n=num%100;<br>        n=n/10;<br>        if(n&gt;0)<br>        {<br>        if(n==9)<br>        {<br>            temp[i]=’X’;<br>            temp[++i]=’C’;<br>            ++i;<br>        }<br>        else if(n==4)<br>        {<br>            temp[i]=’X’;<br>            temp[++i]=’L’;<br>            ++i;<br>        }<br>        else if(n&gt;=5)<br>        {<br>            temp[i]=’L’;<br>            for(j=++i;j&lt;i+n-5;j++)<br>            {<br>                temp[j]=’X’;<br>            }<br>            i=j;<br>        }<br>        else<br>        {<br>            for(j=i;j&lt;i+n;j++)<br>           {<br>               temp[j]=’X’;<br>           }<br>            i=j;<br>        }<br>        }<br>        n=num%10;<br>        if(n&gt;0){<br>        if(n==9)<br>        {<br>            temp[i]=’I’;<br>            temp[++i]=’X’;<br>            ++i;<br>        }<br>        else if(n==4)<br>        {<br>            temp[i]=’I’;<br>            temp[++i]=’V’;<br>            ++i;<br>        }<br>        else if(n&gt;=5)<br>        {<br>            temp[i]=’V’;<br>            for(j=++i;j&lt;i+n-5;j++)<br>            {<br>                temp[j]=’I’;<br>            }<br>            i=j;<br>        }<br>        else<br>        {<br>            for(j=i;j&lt;i+n;j++)<br>           {<br>               temp[j]=’I’;<br>           }<br>            i=j;<br>        }<br>        }<br>        temp[i]=’\0’;</p>
+<pre><code>return temp;
+</code></pre><p>}</p>
+<h5 id="十三、Roman-to-Integer（罗马数字转整数）"><a href="#十三、Roman-to-Integer（罗马数字转整数）" class="headerlink" title="十三、Roman to Integer（罗马数字转整数）"></a><a href="https://leetcode-cn.com/problems/roman-to-integer/" target="_blank" rel="noopener">十三、Roman to Integer（罗马数字转整数）</a></h5><p>1、<strong>算法分析</strong></p>
+<p>从低位向高位转换，当 ‘I’ 的右侧小于或等于 ‘I’ 时 +1，否则 -1，因为在一个更大的数的左边不会同时有两个 ‘I’，如 ‘IIV’ 是错误的；当 ‘V’ 的右侧小于或等于 ‘V’ 时 +10，否则 -10，依此规律类推。</p>
+<p>2、<strong>算法实现</strong></p>
+<p>int romanToInt(char<em> s)<br>{<br>    /</em><br>       I            1<br>       V            5<br>       X            10<br>       L            50<br>       C            100<br>       D            500<br>       M            1000<br>     */<br>    int len = (int)strlen(s);<br>    int i = len - 1;<br>    int sum = 0;</p>
+<pre><code>char lastC = &apos;I&apos;;
+
+while (i &gt;= 0) {
+    // &apos;I&apos; 的右侧为 &apos;I&apos; 才能 + 1，否则 - 1
+    if (s\[i\] == &apos;I&apos;) {
+        sum += (lastC == &apos;I&apos;) ? 1 : -1;
+    }
+    // &apos;V&apos; 不能在任何人的左边
+    else if (s\[i\] == &apos;V&apos;) {
+        sum += 5;
+    }
+    // &apos;X&apos; 的右侧为 &apos;I&apos;、&apos;V&apos;、&apos;X&apos; 才能 + 10，否则 - 10。
+    else if (s\[i\] == &apos;X&apos;) {
+        sum += (lastC == &apos;I&apos; || lastC == &apos;V&apos; || lastC == &apos;X&apos;) ? 10 : -10;
+    }
+    // &apos;L&apos; 不能在任何人的左边
+    else if (s\[i\] == &apos;L&apos;) {
+        sum += 50;
+    }
+    // &apos;C&apos; 的右侧为 &apos;I&apos;、&apos;V&apos;、&apos;X&apos;、&apos;L&apos;、&apos;C&apos; 才能 + 10，否则 - 10。
+    else if (s\[i\] == &apos;C&apos;) {
+        sum += (lastC == &apos;D&apos; || lastC == &apos;M&apos;) ? -100 : 100;
+    }
+    // &apos;D&apos; 不能在任何人的左边
+    else if (s\[i\] == &apos;D&apos;) {
+        sum += 500;
+    }
+    // &apos;M&apos; 不能在任何人的左边
+    else if (s\[i\] == &apos;M&apos;) {
+        sum += 1000;
+    }
+
+    lastC = s\[i\];
+    i--;
+}
+
+return sum;
+</code></pre><p>}</p>
+<p>28ms 代码（实际运行 100ms）。</p>
+<p>int romanToInt(char<em> s) {<br>    char</em> p = s;<br>    int r = 0;<br>    while(<em>p){<br>        int n = \</em>p,post = *(p+1);<br>        if(n == ‘I’){<br>            if(post == ‘V’){<br>                r+=4;<br>                p++;<br>            }else if(post == ‘X’){<br>                r+=9;<br>                p++;<br>            }else{<br>                r+=1;<br>            }<br>        }else if(n == ‘V’){<br>            r+=5;<br>        }else if(n == ‘X’){<br>            if(post == ‘L’){<br>                r+=40;<br>                p++;<br>            }else if(post == ‘C’){<br>                r+=90;<br>                p++;<br>            }else{<br>                r+=10;<br>            }<br>        }else if(n == ‘L’){<br>            r+=50;<br>        }else if(n == ‘C’){<br>            if(post == ‘D’){<br>                r+=400;<br>                p++;<br>            }else if(post == ‘M’){<br>                r+=900;<br>                p++;<br>            }else{<br>                r+=100;<br>            }<br>        }else if(n == ‘D’){<br>            r+=500;<br>        }else if(n == ‘M’){<br>            r+=1000;<br>        }<br>        p++;<br>    }<br>    return r;<br>}</p>
+<h5 id="十四、Longest-Common-Prefix（最长公共前缀）"><a href="#十四、Longest-Common-Prefix（最长公共前缀）" class="headerlink" title="十四、Longest Common Prefix（最长公共前缀）"></a><a href="https://leetcode-cn.com/problems/longest-common-prefix/" target="_blank" rel="noopener">十四、Longest Common Prefix（最长公共前缀）</a></h5><p>1、<strong>算法分析</strong></p>
+<p>先确定返回空字符串的情况，①、数组为空；②、有字符串为空；③、没有共同前缀。</p>
+<p>然后用 minLen 保存数组内元素最短字符串的长度，用于 while 循环的退出条件，循环比较每个字符串的同一索引下的字符，设定一个索引值为 index，那么每个比较的字符为 ((char *)strs[i])[index]，i 表示第几个字符串。</p>
+<p>2、<strong>算法实现</strong></p>
+<p>#define INTMAX  10000</p>
+<p>#define MIN(a, b)  ((a) &lt; (b) ? (a) : (b))</p>
+<p>char* longestCommonPrefix(char** strs, int strsSize) {</p>
+<pre><code>// 外层数组为空
+if (strsSize == 0) return &quot;&quot;;
+
+int minLen = INTMAX; // 数组内字符串的最短长度
+for (int i = 0; i &lt; strsSize; i++) {
+    minLen = MIN(minLen, (int)strlen(strs\[i\]));
+}
+
+// 有字符串为空
+if (minLen == 0)  return &quot;&quot;;
+
+int index  = -1;  // 指向当前比较字符的索引
+char curC  = &apos;\\0&apos;;
+
+while (index &lt; minLen) {
+
+    ++index;
+
+    for (int i = 0; i &lt; strsSize; i++) {
+
+        if (i == 0) {
+            curC = ((char *)strs\[i\])\[index\];
+        }
+        else if (curC != ((char *)strs\[i\])\[index\]){
+            index -= 1;  // 退回 1，因为当前不是公共字符
+            minLen = -1; // 退出 while 循环
+            break;   // 退出 for 循环
+        }
+    }
+}
+
+// 没有共同前缀
+if (index &lt; 0) {
+    return &quot;&quot;;
+}
+
+char * sub = malloc(sizeof(char) * (index + 2));
+
+for (int i = 0; i &lt;= index; i++) {
+    sub\[i\] = ((char *)strs\[0\])\[i\];
+}
+sub\[index + 1\] = &apos;\\0&apos;; // 结束符
+
+return sub;
+</code></pre><p>}</p>
+<h5 id="十五、3Sum（三数之和）"><a href="#十五、3Sum（三数之和）" class="headerlink" title="十五、3Sum（三数之和）"></a><a href="https://leetcode-cn.com/problems/3sum/" target="_blank" rel="noopener">十五、3Sum（三数之和）</a></h5><p>1、<strong>算法分析</strong></p>
+<p>首先对数组从小到大排序。用 i 索引循环遍历数组，范围 [0, numSize - 2]，i 位置的值分为三种情况：</p>
+<p>①、nums[i] &gt; 0，直接结束，因为在它后面数都 > 0；</p>
+<p>②、nums[i] ≤ 0，分别设置两个指针 j、k，j 指向 i + 1 的位置，k 指向数组末尾的位置。然后三个位置的数值相加，如果 = 0，即找到一组，保存起来；如果 &lt; 0，说明需要一个值增加，因为 i 不能移动，所以 j 向右移一位，因为 nums[j + 1] ≥ nums[j]；如果 > 0，说明需要一个值减少，同样 i 不能一定，所以 k 向左移动，因为 nums[j - 1] ≤ nums[j]。</p>
+<p>③、nums[i] == nums[i - 1]，因为 nums[i] 的结果是 nums[i - 1] 的子集，所以跳过这一次循环；</p>
+<p>2<strong>、算法实现</strong></p>
+<p>自实现归并排序。</p>
+<p>/**<br> *  @param   SR   两个有序序列构成的序列<br> *  @param   TR   一个空数组，用来存放排序好之后的数字<br> *  @param   left   起始位置<br> *  @param   mid   两个序列的分解位置<br> *  @param   right   结束位置<br> */</p>
+<p>#define MAXSIZE 100000<br>int SR[MAXSIZE], TR[MAXSIZE];</p>
+<p>int merge(int SR[], int TR[], int left, int mid, int right)<br>{<br>    int i = left, j = mid + 1, k = left;  // k 是 TR 当前存入数字的下标</p>
+<pre><code>while(i &lt;= mid &amp;&amp; j &lt;= right) {
+
+    if(SR\[i\] &lt; SR\[j\]) {
+        TR\[k++\] = SR\[i++\];
+    }
+    else {
+        TR\[k++\] = SR\[j++\];
+    }
+}
+
+while(i &lt;= mid) {
+    TR\[k++\] = SR\[i++\];  // 当前面一个序列有剩余的时候，直接把剩余数字放在 TR 的后面
+}
+
+while(j &lt;= right) {
+    TR\[k++\] = SR\[j++\];  // 当后面一个序列有剩余的时候，直接把剩余数字放在 TR 的后面
+}
+
+return 0;
+</code></pre><p>}<br>void copy(int SR[], int TR[], int s, int t)<br>{<br>    for(int i = s; i &lt;= t; i++) {<br>        SR[i] = TR[i];  // TR -》 SR，相当于 TR 所在的区间有序<br>    }<br>}<br>int mergesort2(int SR[], int left, int right)<br>{<br>    if(left &lt; right) {</p>
+<pre><code>    int mid = (left + right) &gt;&gt; 1;
+
+    mergesort2(SR, left, mid);    // 前一半序列继续进行归并排序
+    mergesort2(SR, mid+1, right); // 后一半序列同时进行归并排序
+
+    // 以上递归调用的结束条件是 left ≥ right，也就是分到只有一个数字进行归并排序的时候，一个序列只有一个数字，那么这个序列肯定是有序的
+    // 以上都是属于“分”的阶段，目的是获得两个有序的数列。
+    int TR\[MAXSIZE\] = { 0 };
+    merge(SR, TR, left, mid, right);  // 对这两个有序的数列，进行排序，变成一个同样大小但是有序的数列
+
+    copy(SR, TR, left, right); //将在TR中排序好的数列给SR，方便SR递归调用归并排序，因为每次两个归并排序的结果都是保存在TR中的，现在要进行下一步就必须在TR数列的基础上面=进行，所以我们把TR给SR
+}
+else {
+    ;
+}
+return 0;
+</code></pre><p>}</p>
+<p>/**<br> * Return an array of arrays of size <em>returnSize.<br> \</em> Note: The returned array must be malloced, assume caller calls free().<br> <em>/<br>int** threeSum(int</em> nums, int numsSize, int<em> returnSize) {<br>    if (numsSize &lt; 3) {
+        </em>returnSize = 0;<br>        return NULL;<br>    }</p>
+<pre><code>mergesort2(nums, 0, numsSize - 1);
+
+*returnSize = 0;
+int \*\*result = malloc(sizeof(int\[3\]) \* MAXSIZE);
+
+for (int i = 0; i &lt; numsSize - 2; i++) {
+    // 当前为正数，说明后面都是正数
+    if (nums\[i\] &gt; 0)
+        break;
+
+    // 当前数 = 上一个数，跳过。因为上一个数的集合肯定包括当前的
+    if (i &gt; 0 &amp;&amp; nums\[i\] == nums\[i-1\])
+        continue;
+
+    int j = i + 1;
+    int k = numsSize - 1;
+
+    while (j &lt; k) {
+
+        // 如果当前值 = 上一个值，说明重复计算了
+        if (j &gt; i + 1 &amp;&amp; nums\[j\] == nums\[j - 1\]) {
+            j++;
+            continue;
+        }
+
+        int sum = nums\[i\] + nums\[j\] + nums\[k\];
+
+        if (sum == 0) {
+            int* arr = (int *)malloc(sizeof(int) * 3);
+            arr\[0\] = nums\[i\];
+            arr\[1\] = nums\[j\];
+            arr\[2\] = nums\[k\];
+            result\[*returnSize\] = arr;
+            (*returnSize)++;
+            j++;
+        }
+        else if (sum &gt; 0){
+            k--;
+        }
+        else {
+            j++;
+        }
+    }
+}
+
+return result;
+</code></pre><p>}</p>
+<p>52ms 代码。</p>
+<p>/**<br> * Return an array of arrays of size <em>returnSize.<br> \</em> Note: The returned array must be malloced, assume caller calls free().<br> */<br>typedef struct{<br>    int num;<br>}table;</p>
+<p>typedef struct{<br>    int *table;<br>    int size;<br>}hash;</p>
+<p>hash <em> creatHash(int m){<br>    int n = abs(m);<br>    hash </em>p;</p>
+<pre><code>p = calloc(1, sizeof(hash));
+p-&gt;table = calloc(n + 1, sizeof(int));
+p-&gt;size = n + 1;
+return p;
+</code></pre><p>}</p>
+<p>void deletHash(hash <em>h){<br>    free(h-&gt;table);<br>    free(h);<br>    return;<br>}<br>void putHash(hash </em>h, int x)<br>{<br>    int n = abs(x);</p>
+<pre><code>if(n &lt; h-&gt;size) {
+    h-&gt;table\[n\] = 1;
+}
+return;
+</code></pre><p>}<br>int getHash(hash *h,int x)<br>{<br>    int n = abs(x);</p>
+<pre><code>if(n &lt; h-&gt;size) return h-&gt;table\[n\];
+else return 0;
+</code></pre><p>}</p>
+<p>int searchHash(hash *map, int target, int limit)<br>{<br>    if(abs(target) &lt;= abs(limit))<br>        return getHash(map,target);<br>    else<br>        return 0;<br>}</p>
+<p>/**<br> * 排序规则<br> <em>/<br>int cmp( const void \</em>a , const void *b ){<br>    return ((table <em>)a)-&gt;num - ((table </em>)b)-&gt;num;<br>}</p>
+<p>int*<em> threeSum(int</em> nums, int numsSize, int* returnSize) {</p>
+<pre><code>int i = 0, n = numsSize;
+
+if(n &lt; 3 || !nums) return NULL;
+
+table \*pTable, \*pWalk, \*pA, \*pB, *pC, Target;
+hash \*NegMap, \*PosMap;
+
+// sort
+pTable = malloc(20000 * sizeof(table));
+memcpy(pTable, nums, n * sizeof(int));
+qsort(pTable, n, sizeof(table), cmp);
+
+// 排序后，数组数值全部 \&gt; 0，或者全部 &lt; 0，直接返回 null
+if(pTable\[0\].num &gt; 0) return NULL;
+if(pTable\[n-1\].num &lt; 0) return NULL;
+
+// two hash table
+NegMap = creatHash(pTable\[0\].num);
+PosMap = creatHash(pTable\[n-1\].num);
+for(pWalk = &amp;pTable\[0\]; pWalk-&gt;num &lt;= 0; pWalk++) {
+    putHash(NegMap, pWalk-&gt;num);
+}
+for(pWalk = &amp;pTable\[n-1\]; pWalk-&gt;num &gt;= 0; pWalk--) {
+    putHash(PosMap, pWalk-&gt;num);
+}
+
+// C(1 n) + C(2 n) = n(n+1)/2
+int find, limit, \*\*p = malloc(n\*(n+1)/2\*sizeof(int\*));
+pA = &amp;pTable\[0\];
+pB = &amp;Target;
+pC = &amp;pTable\[n - 1\];
+for(; pA-&gt;num &lt; 0; pA++) {
+    for(pC = &amp;pTable\[n-1\]; pC-&gt;num &gt; 0; pC--) {
+        pB-&gt;num = -(pA-&gt;num + pC-&gt;num);
+        if(pB-&gt;num &lt; 0) {
+            limit = (pA+1)-&gt;num&gt;0? 0: (pA+1)-&gt;num;
+            find=searchHash(NegMap,pB-&gt;num,limit);
+        }
+        else{
+            limit=(pC-1)-&gt;num&lt;0? 0: (pC-1)-&gt;num;
+            find=searchHash(PosMap,pB-&gt;num,limit);
+        }
+
+        if(find){
+            p\[i\]=malloc(3*sizeof(int));
+            p\[i\]\[0\]=pA-&gt;num;
+            p\[i\]\[1\]=pB-&gt;num;
+            p\[i\]\[2\]=pC-&gt;num;i++;
+
+            while(pA-&gt;num==(pA+1)-&gt;num) pA++;
+            while(pC-&gt;num==(pC-1)-&gt;num) pC--;
+        }
+
+    }
+}
+
+if(!pA-&gt;num &amp;&amp; !pC-&gt;num &amp;&amp; pA+1 &lt;= pC-1){
+    p\[i\] = malloc(3*sizeof(int));
+    p\[i\]\[0\] = 0;
+    p\[i\]\[1\] = 0;
+    p\[i\]\[2\] = 0; 
+    i++;
+}
+
+*returnSize = i;
+free(pTable);
+deletHash(NegMap);
+deletHash(PosMap);
+
+return p;
+</code></pre><p>}</p>
+<h5 id="十六、3Sum-Closest最接近的三数之和"><a href="#十六、3Sum-Closest最接近的三数之和" class="headerlink" title="十六、3Sum Closest最接近的三数之和"></a><a href="https://leetcode-cn.com/problems/3sum-closest/" target="_blank" rel="noopener">十六、3Sum Closest最接近的三数之和</a></h5><p>1、算法分析</p>
+<p>与 3Sum 的思路差不多，先排序，后通过比较查找最接近的三数之和，处理的关键在于当前三个数之和与之前最接近的和的比较。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-abb16ca003dc2bcf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>C 表示当前三数之和，L 表示上一次三数之和，T 表示目标值。</p>
+<p>2、<strong>算法实现</strong></p>
+<p>注意 qsort 排序方法。</p>
+<p>#define MAXINT  100000</p>
+<p>int compare(const void *a, const void *b) {<br>    return (<em>(int </em>)a - <em>(int </em>)b);<br>}</p>
+<p>int threeSumClosest(int* nums, int numsSize, int target) {</p>
+<pre><code>if (numsSize &lt; 3 || !nums) return 0;
+
+qsort(nums, numsSize, sizeof(int), compare);
+
+int nearly = MAXINT;
+int sum = 0;
+
+for (int i = 0; i &lt; numsSize - 2; i++) {
+
+    int j = i + 1;
+    int k = numsSize - 1;
+
+    while (j &lt; k) {
+
+        if (j &gt; i+1 &amp;&amp; nums\[j\] == nums\[j-1\]) {
+            j++;
+            continue;
+        }
+
+        sum = nums\[i\] + nums\[j\] + nums\[k\];
+
+        if (sum == target) {
+            return sum;
+        }
+        else if (sum &gt; target) {
+
+            if ((nearly &gt; target &amp;&amp; sum &lt; nearly) || (nearly &lt; target &amp;&amp; sum - target &lt; target - nearly)) {
+                nearly = sum;
+            }
+            k--;
+        }
+        else {
+            if ((nearly &lt; target &amp;&amp; sum &gt; nearly) || (nearly &gt; target &amp;&amp; target - sum &lt; nearly - target)) {
+                nearly = sum;
+            }
+            j++;
+        }
+    }
+}
+
+return nearly;
+</code></pre><p>}</p>
+<p>4ms 代码。</p>
+<p>int compare(const void *a, const void *b)<br>{<br>    return (<em>(int </em>)a-<em>(int </em>)b);<br>}</p>
+<p>int threeSumClosest(int* nums, int numsSize, int target) {<br>    int closest, num1, num2, num3, sum;</p>
+<pre><code>qsort(nums, numsSize, sizeof(int), compare);
+closest = nums\[0\] + nums\[1\] + nums\[2\];
+
+for(num1 = 0; num1 &lt; numsSize; num1++) {
+    if(num1 == 0 || nums\[num1\] != nums\[num1-1\]) {
+        num2 = num1 + 1;
+        num3 = numsSize - 1;
+
+        while(num2 &lt; num3) {
+            sum = nums\[num1\] + nums\[num2\] + nums\[num3\];
+
+            // 重点
+            closest = abs(sum-target) &lt; abs(closest-target) ? sum : closest; 
+
+            if(sum == target) return target;
+            else if(sum &gt; target) num3--;
+            else num2++;
+        }
+    }
+}
+return closest;
+</code></pre><p>}</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/05/lc-2/">http://yoursite.com/2019/03/05/lc-2/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/06/e5-9b-be-e7-89-87-e5-8a-a0-e8-bd-bd-e5-92-8c-e5-a4-84-e7-90-86/" class="pre"> 图片加载和处理		</a><a href="/2019/03/04/pthread-e7-9a-84-e5-90-8c-e6-ad-a5-e6-9c-ba-e5-88-b6/" class="next"> pthread 的同步机制		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#十一、Container-With-Most-Water（盛最多水的容器）"><span class="toc-text">十一、Container With Most Water（盛最多水的容器）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十二、Integer-to-Roman（整数转罗马数字）"><span class="toc-text">十二、Integer to Roman（整数转罗马数字）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十三、Roman-to-Integer（罗马数字转整数）"><span class="toc-text">十三、Roman to Integer（罗马数字转整数）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十四、Longest-Common-Prefix（最长公共前缀）"><span class="toc-text">十四、Longest Common Prefix（最长公共前缀）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十五、3Sum（三数之和）"><span class="toc-text">十五、3Sum（三数之和）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十六、3Sum-Closest最接近的三数之和"><span class="toc-text">十六、3Sum Closest最接近的三数之和</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

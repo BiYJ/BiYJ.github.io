@@ -1,0 +1,240 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> AOMultiproxier、HJProtocolDispatcher		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> AOMultiproxier、HJProtocolDispatcher		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> AOMultiproxier、HJProtocolDispatcher		</h1><div class="post-meta"><a href="/2019/03/18/aomultiproxier-e3-80-81hjprotocoldispatcher/#comments" class="comment-count"></a><p><span class="date">Mar 18, 2019</span><span><a href="/categories/阅读源码/" class="category">阅读源码</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>Github：<a href="https://github.com/alessandroorru/AOMultiproxier" target="_blank" rel="noopener">AOMultiproxier</a>、<a href="https://github.com/panghaijiao/HJProtocolDispatcher" target="_blank" rel="noopener">HJProtocolDispatcher</a></p>
+<p>协议实现分发器，能够轻易实现将协议事件分发给多个实现者。</p>
+<h5 id="一、AOMultiproxier-h"><a href="#一、AOMultiproxier-h" class="headerlink" title="一、AOMultiproxier.h"></a>一、AOMultiproxier.h</h5><p>#define AOMultiproxierForProtocol(__protocol__, …) ((AOMultiproxier &lt;__protocol__&gt; <em>)[AOMultiproxier multiproxierForProtocol:@protocol(__protocol__) withObjects:((NSArray </em>)[NSArray arrayWithObjects:__VA_ARGS__,nil])])</p>
+<p>调用类方法的宏定义。</p>
+<p>@interface AOMultiproxier : NSProxy</p>
+<p>@property (nonatomic, strong, readonly) Protocol <em> protocol;  // 协议<br>@property (nonatomic, strong, readonly) NSArray </em> attachedObjects;  // 协议方法实现者</p>
+<p>+ (instancetype)multiproxierForProtocol:(Protocol<em>)protocol withObjects:(NSArray</em>)objects;<br>@end</p>
+<p>AOMultiproxier 继承自 NSProxy 类，声明了两个只读属性和一个初始化方法。</p>
+<p>NS_ROOT_CLASS<br>@interface NSProxy <nsobject>{<br>    Class   isa;<br>}</nsobject></p>
+<p>NSProxy 是一个类似于 NSObject 的根类，实现了 NSObject 协议。</p>
+<p>苹果的官方文档是这样描述它的：</p>
+<blockquote>
+<p>Typically, a message to a proxy is forwarded to the real object or causes the proxy to load (or transform itself into) the real object. Subclasses of NSProxy can be used to implement transparent distributed messaging (for example, NSDistantObject) or for lazy instantiation of objects that are expensive to create.</p>
+<p>NSProxy implements the basic methods required of a root class, including those defined in the NSObject protocol. However, as an abstract class it doesn’t provide an initialization method, and it raises an exception upon receiving any message it doesn’t respond to. A concrete subclass must therefore provide an initialization or creation method and override the forwardInvocation: and methodSignatureForSelector: methods to handle messages that it doesn’t implement itself. A subclass’s implementation of forwardInvocation: should do whatever is needed to process the invocation, such as forwarding the invocation over the network or loading the real object and passing it the invocation. methodSignatureForSelector: is required to provide argument type information for a given message; a subclass’s implementation should be able to determine the argument types for the messages it needs to forward and should construct an NSMethodSignature object accordingly. See the NSDistantObject, NSInvocation, and NSMethodSignature class specifications for more information.</p>
+</blockquote>
+<p>相信看了这些描述应该能对 NSProxy 有个初步印象，它仅仅是个转发消息的场所，至于如何转发，取决于派生类到底如何实现。比如可以在内部 hold 住（或创建）一个对象，然后把消息转发给该对象。那我们就可以在转发的过程中做些手脚了，甚至可以不去创建这些对象，去做任何你想做的事情，但是必须要实现他的 forwardInvocation: 和 methodSignatureForSelector: 方法。</p>
+<h5 id="二、AOMultiproxier-m"><a href="#二、AOMultiproxier-m" class="headerlink" title="二、AOMultiproxier.m"></a>二、AOMultiproxier.m</h5><p>@interface AOMultiproxier()<br>@property (nonatomic, strong) Protocol <em> protocol;<br>@property (nonatomic, strong) NSOrderedSet </em> objects;<br>@end</p>
+<p>私有 readwrite 属性。</p>
+<p>+ (instancetype)multiproxierForProtocol:(Protocol<em>)protocol withObjects:(NSArray</em>)objects<br>{<br>    // 调用实例方法<br>    return [[super alloc] initWithProtocol:protocol objects:objects];;<br>}</p>
+<p>- (instancetype)initWithProtocol:(Protocol<em>)protocol objects:(NSArray</em>)objects<br>{<br>    // 保存协议<br>    _protocol = protocol;</p>
+<pre><code>NSMutableArray * validObjects = \[NSMutableArray array\];
+
+BOOL oneConforms = NO;
+for (id object in objects) {
+
+    // 判断 object 是否遵守了 protocol 协议
+    if (\[object conformsToProtocol:protocol\]) {
+        oneConforms = YES;
+    }
+
+    // 判断 object 是否遵守了 protocol 协议或者 protocol 的父协议
+    if (\[self _object:object inheritsProtocolOrAncestorOfProtocol:protocol\]) {
+        \[validObjects addObject:object\];
+    }
+}
+
+// 没有任何对象遵守协议，触发断言
+NSAssert(oneConforms, @&quot;You didn&apos;t attach any object that declares itself conforming to %@. At least one is needed.&quot;, NSStringFromProtocol(protocol));
+
+_objects = \[NSOrderedSet orderedSetWithArray:validObjects\];
+
+if (_objects.count &lt;= 0 || !oneConforms) return nil;
+
+return self;
+</code></pre><p>}</p>
+<p>初始化方法，给属性赋值。判断对象数组 objects 里的对象是否能够遵守了协议。</p>
+<p>+ (BOOL)conformsToProtocol:(Protocol*)protocol<br>{<br>    return YES;<br>}</p>
+<p>- (BOOL)conformsToProtocol:(Protocol *)aProtocol {<br>    return protocol_conformsToProtocol(self.protocol, aProtocol);<br>}</p>
+<p>重写方法。在此处一直返回 YES，且未调用。</p>
+<p>- (NSArray *)attachedObjects<br>{<br>    return [self.objects array];<br>}</p>
+<p>NSSet -》NSArray。</p>
+<p>/**<br> * 是否能够响应 selector 方法。<br> */<br>- (BOOL)respondsToSelector:(SEL)selector<br>{<br>    BOOL responds = NO;</p>
+<pre><code>// 是否是必须实现的协议方法（required）
+BOOL isMandatory = NO;
+
+// 获取方法描述
+struct objc\_method\_description methodDescription = \[self _methodDescriptionForSelector:selector
+                                                                           isMandatory:&amp;isMandatory\];
+
+if (isMandatory) {
+    responds = YES;
+}
+else if (methodDescription.name != NULL) {
+    // 非必须实现的再检查 object 是否实现了协议方法
+    responds = \[self _checkIfAttachedObjectsRespondToSelector:selector\];
+}
+
+return responds;
+</code></pre><p>}</p>
+<p>/**<br> * 转发消息<br> */<br>- (void)forwardInvocation:(NSInvocation *)anInvocation<br>{<br>    SEL selector = [anInvocation selector];</p>
+<pre><code>BOOL isMandatory = NO;
+
+struct objc\_method\_description methodDescription = \[self _methodDescriptionForSelector:selector 
+                                                                           isMandatory:&amp;isMandatory\];
+// 方法描述获取失败，调用 super 触发 crash
+if (methodDescription.name == NULL) {
+    \[super forwardInvocation:anInvocation\];
+    return;
+}
+
+BOOL someoneResponded = NO;
+for (id object in self.objects) {
+
+    // 可以响应，由 object 调用协议方法
+    if (\[object respondsToSelector:selector\]) {
+        \[anInvocation invokeWithTarget:object\];
+        someoneResponded = YES;
+    }
+}
+
+// If a mandatory method has not been implemented by any attached object, this would provoke a crash
+// 如果没有 required 方法没有被实现，调用 super 触发 crash
+if (isMandatory &amp;&amp; !someoneResponded) {
+    \[super forwardInvocation:anInvocation\];
+}
+</code></pre><p>}</p>
+<p>/**<br> * 获取方法签名，包含参数类型、返回值类型等信息。<br> */<br>- (NSMethodSignature <em>)methodSignatureForSelector:(SEL)selector<br>{<br>    NSMethodSignature </em> theMethodSignature;</p>
+<pre><code>BOOL isMandatory = NO;
+struct objc\_method\_description methodDescription = \[self _methodDescriptionForSelector:selector 
+                                                                           isMandatory:&amp;isMandatory\];
+
+if (methodDescription.name == NULL) {
+    return nil;
+}
+// 方法描述 -\&gt; 方法签名    
+theMethodSignature = \[NSMethodSignature signatureWithObjCTypes:methodDescription.types\];
+
+return theMethodSignature;
+</code></pre><p>}</p>
+<p>消息转发核心方法。检查 selector 对应的方法描述是否正确，并对 required 方法未实现的情况做出处理。</p>
+<p>/**<br> * 返回方法描述<br> */<br>- (struct objc_method_description)_methodDescriptionForSelector:(SEL)selector isMandatory:(BOOL *)isMandatory<br>{<br>    struct objc_method_description method = {NULL, NULL};</p>
+<pre><code>// First check on main protocol. 当前协议查找
+method = \[self _methodDescriptionInProtocol:self.protocol selector:selector isMandatory:isMandatory\];
+
+// If no method is known on main protocol, try on ancestor protocols. 在父协议查找
+if (method.name == NULL) {
+    unsigned int count = 0;
+    Protocol * \_\_unsafe\_unretained * list = protocol_copyProtocolList(self.protocol, &amp;count);
+    for (NSUInteger i = 0; i &lt; count; i++) {
+        Protocol * aProtocol = list\[i\];
+
+        // Skip root protocol
+        if (\[NSStringFromProtocol(aProtocol) isEqualToString:@&quot;NSObject&quot;\]) continue;
+
+        method = \[self _methodDescriptionInProtocol:aProtocol selector:selector isMandatory:isMandatory\];
+        // 找到了
+        if (method.name != NULL) {
+            break;
+        }
+    }
+    free(list);
+}
+
+return method;
+</code></pre><p>}</p>
+<p>/**<br> * 获取方法描述<br> */<br>- (struct objc_method_description)_methodDescriptionInProtocol:(Protocol <em>)protocol selector:(SEL)selector isMandatory:(BOOL </em>)isMandatory<br>{<br>    struct objc_method_description method = {NULL, NULL};</p>
+<pre><code>// 使用 runtime 方法获取
+method = protocol_getMethodDescription(protocol, selector, YES, YES);
+if (method.name != NULL) {
+    *isMandatory = YES;
+    return method;
+}
+
+method = protocol_getMethodDescription(protocol, selector, NO, YES);
+if (method.name != NULL) {
+    *isMandatory = NO;
+}
+
+return method;
+</code></pre><p>}</p>
+<p>实际获取方法是 _methodDescriptionInProtocol:selector: isMandatory:，在方法内调用运行时方法  protocol_getMethodDescription，这个方法有四个参数，来看看各代表了什么。</p>
+<p>/**<br> * Returns a method description structure for a specified method of a given protocol.<br> *<br> * @param proto A protocol.<br> * @param aSel A selector.<br> * @param isRequiredMethod A Boolean value that indicates whether aSel is a required method. 标识是否是必须实现的<br> * @param isInstanceMethod A Boolean value that indicates whether aSel is an instance method. 标识是否是实例方法<br> *<br> * @return An \c objc_method_description structure that describes the method specified by \e aSel,<br> *  \e isRequiredMethod, and \e isInstanceMethod for the protocol \e p.<br> *  If the protocol does not contain the specified method, returns an \c objc_method_description structure<br> *  with the value \c {NULL, \c NULL}.<br> *<br> * @note This function recursively searches any protocols that this protocol conforms to.<br> <em>/<br>OBJC_EXPORT struct objc_method_description<br>protocol_getMethodDescription(Protocol </em> _Nonnull proto, SEL _Nonnull aSel,<br>                              BOOL isRequiredMethod, BOOL isInstanceMethod)<br>    OBJC_AVAILABLE(10.5, 2.0, 9.0, 1.0, 2.0);</p>
+<p>注意第三、四个参数即可。</p>
+<p>- (BOOL)_checkIfAttachedObjectsRespondToSelector:(SEL)selector<br>{<br>    for (id object in self.objects) {<br>        if ([object respondsToSelector:selector]) {<br>            return YES;<br>        }<br>    }</p>
+<pre><code>return NO;
+</code></pre><p>}</p>
+<p>检查 object 对象是否能够响应 selector 方法。</p>
+<p>- (BOOL)_object:(id)object inheritsProtocolOrAncestorOfProtocol:(Protocol*)protocol<br>{<br>    // 在当前协议中查找<br>    if ([object conformsToProtocol:protocol]) {<br>        return YES;<br>    }</p>
+<pre><code>BOOL conforms = NO;
+
+unsigned int count = 0;
+Protocol * \_\_unsafe\_unretained * list = protocol_copyProtocolList(protocol, &amp;count);
+
+// 在查找父协议中查找
+for (NSUInteger i = 0; i &lt; count; i++) {
+    Protocol * aProtocol = list\[i\];
+
+    // Skip root protocol. 如果查找到了 NSObject 协议，结束查找
+    if (\[NSStringFromProtocol(aProtocol) isEqualToString:@&quot;NSObject&quot;\]) continue;
+
+    // 递归调用
+    if (\[self _object:object inheritsProtocolOrAncestorOfProtocol:aProtocol\]) {
+        conforms = YES;
+        break;
+    }
+}
+free(list);
+
+return conforms;
+</code></pre><p>}</p>
+<p>查找 object 是否实现了协议方法。</p>
+<h5 id="三、HJProtocolDispatcher-h"><a href="#三、HJProtocolDispatcher-h" class="headerlink" title="三、HJProtocolDispatcher.h"></a>三、<strong>HJProtocolDispatcher.h</strong></h5><p>#define AOProtocolDispatcher(__protocol__, …)  \<br>    [ProtocolDispatcher dispatcherProtocol:@protocol(__protocol__)  \<br>                            toImplemertors:[NSArray arrayWithObjects:__VA_ARGS__, nil]]</p>
+<p>同样的宏定义，这里用了 \ 换行，更适合阅读。__VA_ARGS__ 是新的 C99 规范中新增的一个可变参数的宏，目前似乎只有 gcc 支持（<a href="https://www.baidu.com/s?wd=VC6.0&amp;tn=24004469_oem_dg&amp;rsv_dl=gh_pl_sl_csd" target="_blank" rel="noopener">VC6.0</a>的编译器不支持），实现思想就是宏定义中参数列表的最后一个参数为 …。</p>
+<h5 id="四、HJProtocolDispatcher-m"><a href="#四、HJProtocolDispatcher-m" class="headerlink" title="四、HJProtocolDispatcher.m"></a>四、<strong>HJProtocolDispatcher.m</strong></h5><p>/**<br> * 返回方法描述<br> <em>/<br>struct objc_method_description MethodDescriptionForSELInProtocol(Protocol </em>protocol, SEL sel) {</p>
+<pre><code>// required 方法
+
+struct objc\_method\_description description = protocol_getMethodDescription(protocol, sel, YES, YES);
+if (description.types) {
+    return description;
+}
+
+// optional 方法
+description = protocol_getMethodDescription(protocol, sel, NO, YES);
+if (description.types) {
+    return description;
+}
+
+// 未找到
+return (struct objc\_method\_description){NULL, NULL};
+</code></pre><p>}</p>
+<p>/**<br> * 判断 protocol 是否包含 sel 方法<br> <em>/<br>BOOL ProtocolContainSel(Protocol </em>protocol, SEL sel) {<br>    return MethodDescriptionForSELInProtocol(protocol, sel).types ? YES: NO;<br>}</p>
+<p>私有方法。</p>
+<p>@interface ImplemertorContext : NSObject<br>@property (nonatomic, weak) id implemertor;  // 方法实现者，即最后调用方法的对象<br>@end</p>
+<p>@implementation ImplemertorContext<br>@end</p>
+<p>ImplemertorContext 是每个实现者的封装。</p>
+<p>@interface ProtocolDispatcher ()</p>
+<p>@property (nonatomic, strong) Protocol <em> prococol;    // 协议<br>@property (nonatomic, strong) NSArray </em> implemertors; // 实现者数组</p>
+<p>@end</p>
+<p>@implementation ProtocolDispatcher</p>
+<p>+ (id)dispatcherProtocol:(Protocol <em>)protocol toImplemertors:(NSArray </em>)implemertors<br>{<br>    return [[ProtocolDispatcher alloc] initWithProtocol:protocol toImplemertors:implemertors];<br>}</p>
+<p>- (instancetype)initWithProtocol:(Protocol <em>)protocol toImplemertors:(NSArray </em>)implemertors<br>{<br>    if (self = [super init]) {<br>        self.prococol = protocol;<br>        NSMutableArray <em>implemertorContexts = [NSMutableArray arrayWithCapacity:implemertors.count];<br>        [implemertors enumerateObjectsUsingBlock:^(id implemertor, NSUInteger idx, BOOL </em> _Nonnull stop) {<br>            ImplemertorContext *implemertorContext = [ImplemertorContext new];<br>            implemertorContext.implemertor = implemertor;<br>            [implemertorContexts addObject:implemertorContext];<br>            objc_setAssociatedObject(implemertor, _cmd, self, OBJC_ASSOCIATION_RETAIN_NONATOMIC);<br>        }];<br>        self.implemertors = [implemertorContexts copy];<br>    }<br>    return self;<br>}</p>
+<p>- (BOOL)respondsToSelector:(SEL)aSelector<br>{<br>    // 如果协议未包含方法，直接调用 super<br>    if (!ProtocolContainSel(self.prococol, aSelector)) {<br>        return [super respondsToSelector:aSelector];<br>    }</p>
+<pre><code>for (ImplemertorContext *implemertorContext in self.implemertors) {
+    if (\[implemertorContext.implemertor respondsToSelector:aSelector\]) {
+        return YES;
+    }
+}
+return NO;
+</code></pre><p>}</p>
+<p>- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector<br>{<br>    // 如果协议未包含方法，直接调用 super<br>    if (!ProtocolContainSel(self.prococol, aSelector)) {<br>        return [super methodSignatureForSelector:aSelector];<br>    }</p>
+<pre><code>struct objc\_method\_description methodDescription = MethodDescriptionForSELInProtocol(self.prococol, aSelector);
+return \[NSMethodSignature signatureWithObjCTypes:methodDescription.types\];
+</code></pre><p>}</p>
+<p>- (void)forwardInvocation:(NSInvocation *)anInvocation<br>{<br>    SEL aSelector = anInvocation.selector;</p>
+<pre><code>// 如果协议未包含方法，直接调用 super 
+if (!ProtocolContainSel(self.prococol, aSelector)) {
+    \[super forwardInvocation:anInvocation\];
+    return;
+}
+
+for (ImplemertorContext *implemertorContext in self.implemertors) {
+    if (\[implemertorContext.implemertor respondsToSelector:aSelector\]) {
+        \[anInvocation invokeWithTarget:implemertorContext.implemertor\];
+    }
+}
+</code></pre><p>}</p>
+<h5 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h5><p>HJProtocolDispatcher 与 AOMultiproxier 的思想和功能大体相同。</p>
+<p>AO 功能更齐全，它会去父协议中检查方法是否存在，且对 required 方法添加了逻辑判断。</p>
+<p>AO 继承自 NSProxy，HJ 继承自 NSObject。NSObject 寻找方法顺序：本类-&gt;父类-&gt;动态方法解析-&gt;消息转发；NSproxy 顺序：本类-&gt;消息转发，同样做“消息转发”，NSObject 会比 NSProxy 多做好多事，也就意味着耽误很多时间，所以 NSProxy 效率更高。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/18/aomultiproxier-e3-80-81hjprotocoldispatcher/">http://yoursite.com/2019/03/18/aomultiproxier-e3-80-81hjprotocoldispatcher/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/18/nsproxy/" class="pre"> NSProxy		</a><a href="/2019/03/17/e6-b6-88-e6-81-af-e8-bd-ac-e5-8f-91/" class="next"> 消息转发		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、AOMultiproxier-h"><span class="toc-text">一、AOMultiproxier.h</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、AOMultiproxier-m"><span class="toc-text">二、AOMultiproxier.m</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、HJProtocolDispatcher-h"><span class="toc-text">三、HJProtocolDispatcher.h</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、HJProtocolDispatcher-m"><span class="toc-text">四、HJProtocolDispatcher.m</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、总结"><span class="toc-text">五、总结</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

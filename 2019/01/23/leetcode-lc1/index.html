@@ -1,0 +1,733 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> LC 1		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> LC 1		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> LC 1		</h1><div class="post-meta"><a href="/2019/01/23/leetcode-lc1/#comments" class="comment-count"></a><p><span class="date">Jan 23, 2019</span><span><a href="/categories/Leetcode/" class="category">Leetcode</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h5 id="交换两个数字"><a href="#交换两个数字" class="headerlink" title="交换两个数字"></a>交换两个数字</h5><p>思路：当 a 变成原来 b 的值时，需要 b 中含有原来 a 的部分。a = a + b, b = a - b</p>
+<p>- (void)swapAB:(int)a b:(int)b<br>{<br>    a = a + b;<br>    b = a - 2 <em> b;   // a - b<br>    a = (a - b) / 2; // (a - a + 2 </em> b)/2<br>    b = a + b;<br>}</p>
+<h5 id="一、Two-Sum（两数之和）"><a href="#一、Two-Sum（两数之和）" class="headerlink" title="一、Two Sum（两数之和）"></a><a href="https://leetcode-cn.com/problems/two-sum/comments/" target="_blank" rel="noopener">一、Two Sum（两数之和）</a></h5><p><strong>1、问题描述</strong></p>
+<p>给定一个整数数组 nums 和一个目标值 target，在该数组中找出和为目标值的那两个整数，并返回它们的数组下标。</p>
+<p>你可以假设每种输入只会对应一个答案。但是，你不能重复利用这个数组中同样的元素。</p>
+<p>示例：nums = [2, 7, 11, 15], target = 9 因为nums[0] + nums[1] = 2 + 7 = 9 所以返回 [0, 1]</p>
+<p><strong>2、算法分析</strong></p>
+<p>①、直接遍历两遍数组，外层循环 nums[i]，内层循环找 nums 数组中是否存在  k = target - nums[i] 这个数字，找到就返回两个数字的索引组成的数组，这个方法时间复杂度为 O(n²)。</p>
+<p>②、用哈希表先把数组中的数字和对应的下标存储一遍，即数字作为键，下标作为值，存储。当前值为 nums[i]，当遍历数组时计算 k = target - nums[i]，然后在 map 中找是否存在 k，找到即返回 k 所对应的 value，也就是所对应的数组下标。这样时间复杂度就为 O(n)，空间复杂度 O(n)。</p>
+<p><strong>3、代码实现</strong></p>
+<p>#include &lt;stdio.h&gt;</p>
+<p>#include &lt;stdlib.h&gt;</p>
+<p>int<em> twoSum(int</em> nums, int numsSize, int target)<br>{<br>    int min = nums[0];<br>    int i = 0;</p>
+<pre><code>// 不能用 while (!num++)，会导致指针位置不对
+for (i = 0; i &lt; numsSize; i++)
+    if (min &gt; nums\[i\])
+        min = nums\[i\];
+
+int max = target - min; // 允许的最大值
+int length = max - min + 1;
+
+int* result = (int *)malloc(sizeof(int) * 2); // 存储索引值
+int* hashTable = (int *)malloc(sizeof(int) * length); // 下标 = 值   内容 = 索引
+
+for (i = 0; i &lt; length; i++) {
+    hashTable\[i\] = -1;  // hash 初始化
+}
+
+for (i = 0; i &lt; numsSize; i++) {
+
+    // 当前的值不大于最大值
+    if (nums\[i\] &lt;= max) {
+
+        if (hashTable\[target - min - nums\[i\]\] != -1) {
+            result\[0\] = hashTable\[target - min - nums\[i\]\];
+            result\[1\] = i;
+            return result;
+        }
+        hashTable\[nums\[i\] - min\] = i;
+    }
+}
+
+free(hashTable);
+
+return result;
+</code></pre><p>}</p>
+<p>int main()<br>{<br>    int nums[] = { 2, 3, 7, 11, 15 };</p>
+<pre><code>int * p = twoSum(nums, 5, 10);
+
+for (int i = 0; i &lt; 2; i++) {
+    printf(&quot;%d   &quot;, p\[i\]);
+}
+
+return 0;
+</code></pre><p>}</p>
+<p>4、学习文章</p>
+<p><a href="https://blog.csdn.net/qq_38595487/article/details/79556658" target="_blank" rel="noopener">LeetCode1两数之和</a></p>
+<p><a href="https://blog.csdn.net/jack_c_monkey/article/details/80429717" target="_blank" rel="noopener">Leet_code—1两数之和—C语言版</a></p>
+<p><a href="https://www.cnblogs.com/eudiwffe/p/6282635.html" target="_blank" rel="noopener">LintCode/LeetCode–两数和、三数和、四数和</a></p>
+<h5 id="二、Add-Two-Numbers（两数相加）"><a href="#二、Add-Two-Numbers（两数相加）" class="headerlink" title="二、Add Two Numbers（两数相加）"></a><a href="https://leetcode-cn.com/problems/add-two-numbers/" target="_blank" rel="noopener">二、Add Two Numbers（两数相加）</a></h5><p><strong>1、问题描述</strong></p>
+<p>给出两个非空的链表用来表示两个非负的整数。其中，它们各自的位数是按照逆序的方式存储的，并且它们的每个节点只能存储 一位数字。如果，我们将这两个数相加起来，则会返回一个新的链表来表示它们的和。</p>
+<p>示例：(2 -&gt; 4 -&gt; 3) + (5 -&gt; 6 -&gt; 4) -》(7 -&gt; 0 -&gt; 8)</p>
+<p>原因：342 + 465 = 807</p>
+<p><strong>2、算法分析</strong></p>
+<p>简单的链表操作，同时移位两个链表。</p>
+<p><strong>3、代码实现</strong></p>
+<p>#include &lt;stdio.h&gt;</p>
+<p>#include &lt;stdlib.h&gt;</p>
+<p>struct ListNode {<br>    int val;<br>    struct ListNode *next;<br>};</p>
+<p>struct ListNode<em> addTwoNumbers(struct ListNode</em> l1, struct ListNode* l2) {</p>
+<pre><code>int carry = 0;
+int value1 = 0;
+int value2 = 0;
+
+struct ListNode * result = (struct ListNode *)malloc(sizeof(struct ListNode));
+struct ListNode * temp = result;
+
+while (l1 || l2 || carry &gt; 0) {
+
+    // 获取第一个链表的内容
+    if (l1) {
+        value1 = l1-&gt;val;
+        l1 = l1-&gt;next;
+    }
+    else {
+        value1 = 0;
+    }
+
+    // 获取第 2 个链表的内容
+    if (l2) {
+        value2 = l2-&gt;val;
+        l2 = l2-&gt;next;
+    }
+    else {
+        value2 = 0;
+    }
+
+    int sum = value1 + value2 + carry;
+
+    struct ListNode * node = (struct ListNode *)malloc(sizeof(struct ListNode));
+    node-&gt;next = NULL;
+
+    if (sum &gt; 9) {
+        node-&gt;val = sum - 10;
+        carry = 1;
+    }
+    else {
+        node-&gt;val = sum;
+        carry = 0;
+    }
+
+    temp-&gt;next = node;
+    temp = node;
+}
+
+return result-&gt;next;
+</code></pre><p>}</p>
+<p>int main()<br>{<br>    // (2 -&gt; 4 -&gt; 3) + (5 -&gt; 6 -&gt; 4)<br>    struct ListNode <em> a = (struct ListNode </em>)malloc(sizeof(struct ListNode));<br>    a-&gt;next = NULL;</p>
+<pre><code>struct ListNode * b = (struct ListNode *)malloc(sizeof(struct ListNode));
+b-&gt;next = NULL;
+
+struct ListNode * temp = a;
+
+int arr1\[\] = {5};
+int arr2\[\] = {5};
+int size1 = sizeof(arr1) / sizeof(int);
+int size2 = sizeof(arr2) / sizeof(int);
+
+// 初始化链表 1
+for (int i = 0; i &lt; size1; i++) {
+
+    struct ListNode * node = (struct ListNode *)malloc(sizeof(struct ListNode));
+    node-&gt;val = arr1\[i\];
+    node-&gt;next = NULL;
+
+    temp-&gt;next = node;
+    temp = node;
+}
+
+temp = b;
+
+// 初始化链表 2
+for (int i = 0; i &lt; size2; i++) {
+    struct ListNode * node = (struct ListNode *)malloc(sizeof(struct ListNode));
+    node-&gt;val = arr2\[i\];
+    node-&gt;next = NULL;
+
+    temp-&gt;next = node;
+    temp = node;
+}
+
+// 跳过开头 val = 0 的链表
+struct ListNode * node = addTwoNumbers(a-&gt;next, b-&gt;next);
+
+// 输出
+while (node) {
+    printf(&quot;%d &quot;, node-&gt;val);
+    node = node-&gt;next;
+}
+
+return 0;
+</code></pre><p>}</p>
+<p>0 1</p>
+<h5 id="三、Longest-Substring-Without-Repeating-Characters（无重复字符的最长子串）"><a href="#三、Longest-Substring-Without-Repeating-Characters（无重复字符的最长子串）" class="headerlink" title="三、Longest Substring Without Repeating Characters（无重复字符的最长子串）"></a><a href="https://leetcode-cn.com/problems/longest-substring-without-repeating-characters/" target="_blank" rel="noopener">三、Longest Substring Without Repeating Characters（无重复字符的最长子串）</a></h5><p><strong>1、问题描述</strong></p>
+<p>给定一个字符串，找出其中不含有重复字符的<strong>最长连续子串</strong>的长度。</p>
+<p><strong>2、算法分析</strong></p>
+<p>①、暴力法</p>
+<p>用两层循环找出子串，用一层循环查看子串是否有重复字符。</p>
+<p>for (int i = 0; i &lt; n; i++) </p>
+<p>for(int j = i+1; j &lt; n; j++)</p>
+<p>for(int k = i; k &lt; j; k++)</p>
+<p>要验证索引范围在 [i, j) 内的字符是否无重复，需要将花费 O(j - i) 的时间。</p>
+<p>对于给定的 i，对于所有 j∈[i+1, n] 所耗费的时间总和为：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-5bbf6a1113c777b8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>因此，执行所有步骤耗去的时间总和为：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-284033175adbfe5b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt>②、滑动窗口</p>
+<p>开辟 hashMap[256] 的空间，索引是字符对应的 ASCII 码值，元素内容是它在字符串的位置。</p>
+<p>当找到重复的字符时，立即滑动窗口。如果 s[i] 在 [start, i-1] 范围内有重复的字符 s[i’]，我们不需要逐渐增加 start。 可以直接跳过 [start，i’] 范围内的所有元素，并将 start 变为 i’ + 1。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-8af963c80500723f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>时间复杂度：O(n)</p>
+<p><strong>3、代码实现</strong></p>
+<p>int lengthOfLongestSubstring(char* s)<br>{<br>    int count = (int)strlen(s);</p>
+<pre><code>if (count == 0) return 0;
+
+int* code= (int *)malloc(sizeof(int) * 256);
+int start = 0;
+int len   = 0;
+
+for (int i = 0; i &lt; 256; i++) {
+    code\[i\] = -1;
+}
+
+for (int i = 0; i &lt; count; i++) {
+
+    int c = (int)s\[i\];
+
+    // 用 Unicode 码作为下标访问
+    if (code\[c\] &gt; -1 &amp;&amp; code\[c\] &gt;= start) {
+
+        // 最长子串长度
+        if (len &lt; i - 1 - start) {
+            len = i - 1 - start;
+        }
+
+        if (code\[c\] + 1 == i) {
+            start = i;
+        }
+        else {
+            start = code\[c\] + 1;
+        }
+    }
+    code\[c\] = i;
+}
+
+// 最长子串长度
+if (len &lt; count - 1 - start) {
+    len = count - 1 - start;
+}
+
+return len + 1;
+</code></pre><p>}</p>
+<h5 id="四、Median-of-Two-Sorted-Arrays（寻找两个有序数组的中位数）"><a href="#四、Median-of-Two-Sorted-Arrays（寻找两个有序数组的中位数）" class="headerlink" title="四、Median of Two Sorted Arrays（寻找两个有序数组的中位数）"></a><a href="https://leetcode-cn.com/problems/median-of-two-sorted-arrays/" target="_blank" rel="noopener">四、Median of Two Sorted Arrays（寻找两个有序数组的中位数）</a></h5><p><strong>1、问题描述</strong></p>
+<p>给定两个大小为 m 和 n 的有序数组 nums1 和 nums2，m 和n 不能同时为0。请找出这两个有序数组的中位数，并且要求算法的时间复杂度为 O(log(m + n))。</p>
+<p><strong>2、算法分析</strong></p>
+<p>①、O(m+n) </p>
+<p>开辟一个 (m + n)/2 + 1 长度的数组来存储两个数组排序后处于前半段的数据，通过一层循环从 nums1 和 nums2 中找出前半段的数，最后根据 n + m 是奇数还是偶数来确定是直接取值还是平均值。  </p>
+<p>空间复杂度：O(n+m)</p>
+<p>②、O(log(m+n))</p>
+<p>递归分治法：<a href="http://www.dzliving.com/2019/02/22/kmaximumnumber/" target="_blank" rel="noopener">http://www.dzliving.com/2019/02/22/kmaximumnumber/</a></p>
+<p><strong>3、代码实现</strong></p>
+<p>double findMedianSortedArrays(int<em> nums1, int nums1Size, int</em> nums2, int nums2Size)<br>{<br>    // 存储前半段的数组<br>    int len = (nums1Size + nums2Size) / 2 + 1;<br>    int<em> result = (int </em>)calloc(len, sizeof(int));<br>    int idx = 0;</p>
+<pre><code>int i = 0;
+int j = 0;
+
+while (idx &lt; len) {
+    // 未遍历完两个数组
+    if (i &lt; nums1Size &amp;&amp; j &lt; nums2Size) {
+
+        if (nums1\[i\] &lt;= nums2\[j\]) {
+            result\[idx\] = nums1\[i\];
+            i++;
+        }
+        else {
+            result\[idx\] = nums2\[j\];
+            j++;
+        }
+    }
+    // nums2 已遍历完
+    else if (i &lt; nums1Size) {
+        result\[idx\] = nums1\[i\];
+        i++;
+    }
+    // nums1 已遍历完
+    else {
+        result\[idx\] = nums2\[j\];
+        j++;
+    }
+    idx++;
+}
+
+int mid = (nums1Size + nums2Size) / 2;
+if ((nums1Size + nums2Size) % 2 || mid == 0) {  // 当 nums1 = { }, nums2 = { 1 } 时，mid == 0 不能 - 1 
+    return result\[mid\];
+}
+return (result\[mid\] + result\[mid -1\]) / 2.0;
+</code></pre><p>}</p>
+<h5 id="五、Longest-Palindromic-Substring（最长回文子串）"><a href="#五、Longest-Palindromic-Substring（最长回文子串）" class="headerlink" title="五、Longest Palindromic Substring（最长回文子串）"></a><a href="https://leetcode-cn.com/problems/longest-palindromic-substring/" target="_blank" rel="noopener">五、Longest Palindromic Substring（最长回文子串）</a></h5><p>1、<strong>问题描述</strong></p>
+<p>给定一个字符串 s，找到 s 中最长的回文子串。如：字符串 “abcb”，最长回文子串是 “bcb”。</p>
+<p>2、<strong>算法分析</strong></p>
+<p>①、蛮力法    O(n3)</p>
+<p>②、<a href="http://www.dzliving.com/2019/02/19/longestpalindromicsubstring/" target="_blank" rel="noopener">动态规划法   O(n2)</a></p>
+<p>③、<a href="http://www.dzliving.com/2019/02/19/manachers-algorithm/" target="_blank" rel="noopener">马拉车（</a><a href="http://www.dzliving.com/2019/02/19/manachers-algorithm/" target="_blank" rel="noopener">Manacher</a><a href="http://www.dzliving.com/2019/02/19/manachers-algorithm/" target="_blank" rel="noopener">）算法  O(n)</a></p>
+<p>④、<a href="https://www.cnblogs.com/leavescy/p/5878336.html" target="_blank" rel="noopener">中心扩展法  O(n2)</a></p>
+<p>这里给出中心扩展法。</p>
+<blockquote>
+<p>中心扩展法就是把给定的字符串的每一个字母当做中心，向两边扩展，找出最长的子回文串。</p>
+</blockquote>
+<p>需要考虑两种情况：</p>
+<p>①、回文长度为奇数    aba</p>
+<p>②、回文长度为偶数  abba</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-f5dae669c7d1f826.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Longest Palindromic Substring"></p>
+<p>3、<strong>代码实现</strong></p>
+<p>#include &lt;stdio.h&gt;</p>
+<p>#include &lt;stdlib.h&gt;</p>
+<p>#include &lt;string.h&gt;</p>
+<p>char<em> longestPalindrome(char</em> s) {</p>
+<pre><code>if (strlen(s) &lt; 2) return s;
+
+int start = 0;
+int end   = 0;
+int tempStart1 = 0;
+int tempEnd1   = 0;
+int tempStart2 = 0;
+int tempEnd2   = 0;
+
+for (int i = 1; i &lt; strlen(s); i++) {
+
+    tempStart1 = 0;
+    tempEnd1   = 0;
+    tempStart2 = 0;
+    tempEnd2   = 0;
+
+    // 与左边的值相等
+    if (s\[i-1\] == s\[i\]) {
+        tempStart1 = i - 1;
+        tempEnd1   = i;
+    }
+
+    // 当前位置的两边相等
+    if (s\[i-1\] == s\[i+1\]) {
+        tempStart2 = i - 1;
+        tempEnd2   = i + 1;
+    }
+
+
+    // start 向左移动   end 向右移动
+    while (tempStart1 &gt; 0 &amp;&amp; tempEnd1 &lt; strlen(s) - 1 &amp;&amp; s\[tempStart1 - 1\] == s\[tempEnd1 + 1\]) {
+        tempStart1--;
+        tempEnd1++;
+    }
+
+    // start 向左移动   end 向右移动
+    while (tempStart2 &gt; 0 &amp;&amp; tempEnd2 &lt; strlen(s) - 1 &amp;&amp; s\[tempStart2 - 1\] == s\[tempEnd2 + 1\]) {
+        tempStart2--;
+        tempEnd2++;
+    }
+
+    // 比较当前是不是最长回文字符串
+    if (end - start &lt; tempEnd1 - tempStart1) {
+        start = tempStart1;
+        end   = tempEnd1;
+    }
+
+    if (end - start &lt; tempEnd2 - tempStart2) {
+        start = tempStart2;
+        end   = tempEnd2;
+    }
+}
+
+int length = end - start + 1;
+char* result = (char *)malloc(sizeof(char) * (length + 1));
+result\[length\] = &apos;\\0&apos;;  // 字符串以 \\0 结束
+
+// 存在长度超过 1 的回文字符串
+if (length &gt; 1) {
+    for (int i = start; i &lt;= end; i++) {
+        result\[i-start\] = s\[i\];
+    }
+}
+else {
+    result\[0\] = s\[0\];
+}
+return result;
+</code></pre><p>}</p>
+<p>int main()<br>{<br>    printf(“%s”, longestPalindrome(“ccccc”));</p>
+<pre><code>return 0;
+</code></pre><p>}</p>
+<h5 id="六、zigzag-conversion（Z-字形变换）"><a href="#六、zigzag-conversion（Z-字形变换）" class="headerlink" title="六、zigzag conversion（Z 字形变换）"></a><a href="https://leetcode-cn.com/problems/zigzag-conversion/" target="_blank" rel="noopener">六、zigzag conversion（</a><a href="https://leetcode-cn.com/problems/zigzag-conversion/" target="_blank" rel="noopener">Z 字形变换）</a></h5><p>1、<strong>问题描述</strong></p>
+<p>将一个字符串根据给定的行数，以从上往下、从左到右进行 Z 字形排列。如字符串 “LEETCODEISHIRING” 在行数为 3 时如下：</p>
+<p>L     C     I     R</p>
+<p>E  T  O  E  S  I  I  G</p>
+<p>E     D     H     N</p>
+<p> <img src="https://upload-images.jianshu.io/upload_images/5294842-6a2d86b29905e87f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>之后的输出需要从左往右逐行读取，产生出一个新的字符串，比如：”LCIRETOESIIGEDHN”。</p>
+<p>2、<strong>算法分析</strong></p>
+<p>这道题就是看坐标的变化。并且需要分块处理。</p>
+<p> n = 2 时，字符串坐标变成 zigzag 的走法就是：</p>
+<p>0  2  4  6</p>
+<p>1  3  5  7</p>
+<p>n = 3：</p>
+<p>0     4     8</p>
+<p>1  3  5  7  9</p>
+<p>2     6     10 </p>
+<p>n = 4：</p>
+<p>0       6         12</p>
+<p>1    5  7     11  13</p>
+<p>2  4    8  10     14</p>
+<p>3       9         15 </p>
+<p>可以发现规律：</p>
+<p>①、画红色的长度永远是 2n - 2 （n 是行数，因为第一行和最后一行比其他行少一个字符）；</p>
+<p>②、斜线上绿色的下标永远是 j + (2n - 2) - 2i（i 是行号，j 是列号）。 </p>
+<p>3、<strong>代码实现</strong></p>
+<p>从左至右、从上至下的扫描</p>
+<p>#include &lt;stdio.h&gt;</p>
+<p>#include &lt;string.h&gt;</p>
+<p>#include &lt;stdlib.h&gt;</p>
+<p>char <em> convert(char</em> s, int numRows)<br>{<br>    if (numRows &lt;= 1) return s;</p>
+<pre><code>int size = 2 * numRows - 2; // 红色的长度
+
+size_t length = strlen(s);  // 数组、指针通过参数传递时，sizeof(s) / sizeof(char) 无效
+
+char* c = (char *)malloc(sizeof(char) * (length + 1)); 
+c\[length\] = &apos;\\0&apos;;  // 字符串以 \\0 结束
+
+int i = 0;
+
+for (int row = 0; row &lt; numRows; row++) {
+    for (int idx = row; idx &lt; length; idx += size) {  // 循环执行的次数 = 红色的次数
+
+        c\[i++\] = s\[idx\];
+</code></pre><p>//            printf(“%c  “, s[idx]);</p>
+<pre><code>if (row != 0 &amp;&amp; row != numRows - 1 &amp;&amp; (idx + size - 2*row &lt; length)) {
+</code></pre><p>//                printf(“%c   “, s[idx + size - 2<em>row]);<br>                c[i++] = s[idx + size - 2</em>row];<br>            }<br>        }<br>    }<br>    return c;<br>}</p>
+<p>int main()<br>{<br>    /<em><br>       h       o       l<br>       e   l   w   r   d<br>       l       o
+     </em>/<br>    char c[] = “gtausokbfugjtfiuqbjclvlazamucimicnewdoxjlfuemdadgkhufsuevjaxrnivcorhfrq”;//“A”; //“LEETCODEISHIRING\0”;//{ ‘h’, ‘e’, ‘l’, ‘l’, ‘o’, ‘w’, ‘o’, ‘r’, ‘l’, ‘d’ };</p>
+<pre><code>char* s = convert(c, 31);//convert(c, 2); // convert(c, 4); // convert(c, 3);
+
+printf(&quot;%s&quot;, s);
+
+return 0;
+</code></pre><p>}</p>
+<p>从上至下、从左至右的扫描</p>
+<p>char <em> convert(char</em> s, int numRows)<br>{<br>    if (numRows &lt;= 1) return s;</p>
+<pre><code>size_t length = strlen(s);
+
+char* c = (char *)malloc(sizeof(char) * (length + 1));
+c\[length\] = &apos;\\0&apos;;
+
+int curRow = 0;
+int goingDown = 0;
+
+for (int i = 0; i &lt; length; i++) {
+
+    // c 语言在某个位置插入元素没有直接的方法，需要移动元素
+
+    if (curRow == 0 || curRow == numRows - 1) {
+        goingDown =  1 - goingDown;
+    }
+    curRow += goingDown ? 1 : -1;
+}
+return c;
+</code></pre><p>}</p>
+<p>4、<strong>学习文章</strong></p>
+<p><a href="https://www.cnblogs.com/springfor/p/3889414.html" target="_blank" rel="noopener">ZigZag Conversion leetcode java</a></p>
+<h5 id="七、Reverse-Integer（整数翻转）"><a href="#七、Reverse-Integer（整数翻转）" class="headerlink" title="七、Reverse Integer（整数翻转）"></a><a href="https://leetcode-cn.com/problems/reverse-integer/" target="_blank" rel="noopener">七、Reverse Integer（整数翻转）</a></h5><p>1、<strong>问题描述</strong></p>
+<p>给出一个 32 位的有符号整数，你需要将这个整数中每位上的数字进行反转。</p>
+<p>示例：输入 123  输出 321；输入  -123  输出 -321；输入 120  输出 21。</p>
+<p>注意：假设环境只能存储得了 32 位的有符号整数，则其数值范围为 [−231,  231−1]。请根据这个假设，如果反转后整数溢出那么就返回 0。</p>
+<p>2、<strong>算法分析</strong></p>
+<p>输入数字的个位数在翻转后将是最高位，十位数是在第二高位，依此类推。所以需要依次获得数字的低位，存入数组中，数组元素的顺序即已达到翻转的效果。</p>
+<p>2147483648  依次获取低位存入数组为 8  4  6  3  8  4  7  4  1  2。 </p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-4ba6b30528dec5ac.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>LeetCode 官方算法的思路也是每次获取数字的末位，但空间复杂度仅为 <strong>O(1)</strong>。 假设 rev 是正数。</p>
+<ol>
+<li>如果 temp = rev*10 + pop 导致溢出，那么一定有 rev≥ INT_MAX​/10。</li>
+<li>如果 rev &gt; INT_MAX/10​，那么 temp = rev*10 + pop 一定会溢出。</li>
+<li>如果 rev == INT_MAX/10​，那么只要 pop &gt; 7，temp = rev*10 + pop 就会溢出。</li>
+</ol>
+<p>当 rev 为负时可以应用类似的逻辑。</p>
+<p>3、<strong>代码实现</strong></p>
+<p>#include &lt;stdio.h&gt;</p>
+<p>#include &lt;math.h&gt;</p>
+<p>int reverse(int x)<br>{<br>    // 32 位的有符号整数最多只有 10 位数<br>    int a[10] = { 0 };</p>
+<pre><code>// 获取到数字的符号
+int sign = (x &lt; 0) ? -1 : 1;
+
+int i = -1;  // 确定数字的最大位数。从 0 开始
+
+while (x != 0) {
+
+    ++i;
+    a\[i\] = x % 10 * sign;  // -9 % 10 = -9
+
+    x /= 10;  // 丢掉&quot;个位数&quot;
+}
+
+long sum = 0;
+// 将数组各个位置的元素组成一个数字
+for (int j = 0; j &lt;= i; j++) {
+    sum += a\[j\] * (long)pow(10, i - j);
+}
+
+sum *= sign;
+
+if (sum &lt; -1 * pow(2, 31) || sum &gt; pow(2, 31) - 1)
+    return 0;
+
+return (int)sum;
+</code></pre><p>}</p>
+<p>int main()<br>{<br>    // -2147483648 -》-8463847412<br>    printf(“%d”, reverse(-2147483648));</p>
+<pre><code>return 0;
+</code></pre><p>}</p>
+<p>下面的算法空间复杂度为 O(1)。</p>
+<p>#include &lt;limits.h&gt;</p>
+<p>int reverse(int x)<br>{<br>    int rev = 0;</p>
+<pre><code>while (x != 0) {
+    int pop = x % 10;
+    x /= 10;
+    // INT\_MAX = 2147483647（末位是 7） ,  INT\_MIN = -2147483648（末位是 -8）
+    if (rev &gt; INT\_MAX/10 || (rev == INT\_MAX / 10 &amp;&amp; pop &gt; 7))  return 0;
+    if (rev &lt; INT\_MIN/10 || (rev == INT\_MIN / 10 &amp;&amp; pop &lt; -8)) return 0;
+    rev = rev * 10 + pop;
+}
+return rev;
+</code></pre><p>}</p>
+<h5 id="八、String-to-Integer（字符串转换整数-atoi-）"><a href="#八、String-to-Integer（字符串转换整数-atoi-）" class="headerlink" title="八、String to Integer（字符串转换整数 (atoi)）"></a><a href="https://leetcode-cn.com/problems/string-to-integer-atoi/" target="_blank" rel="noopener">八、String to Integer（字符串转换整数 (atoi)）</a></h5><p><strong>1、算法分析</strong></p>
+<p>首先对第一个字符进行判断，如果不是数字、空格、+/- 直接返回 0；然后循环获取每个字符，记录符号状态，用双指针跟踪数字头尾，对已经有数字、符号之后再出现的空格、符号直接返回 0；数字后接数字继续执行，移动指针。</p>
+<p><strong>2、代码实现</strong></p>
+<p>#define INT_MAX  2147483647</p>
+<p>#define INT_MIN  -2147483648</p>
+<p>int isVaildCharacter(char c) {<br>    return (c - 43 == 0 || c - 45 == 0 || c - 32 == 0 || (0 &lt;= c - 48 &amp;&amp; c - 48 &lt;= 9));<br>}</p>
+<p>int isNumber(char c) {<br>    return (0 &lt;= c - 48 &amp;&amp; c - 48 &lt;= 9);<br>}</p>
+<p>int isWhiteCharacter(char c) {<br>    return c - 32 == 0;<br>}</p>
+<p>int isSignedCharacter(char c) {<br>    return c - 43 == 0 || c - 45 == 0;<br>}</p>
+<p>int myAtoi(char* str)<br>{<br>    if (strlen(str) == 0 || (isVaildCharacter(str[0]) == 0))  return 0;</p>
+<pre><code>int start = 0;
+int end   = -1;
+int hasSign = 0;
+int positive = 1;
+int sum = 0;
+
+while (1) {
+
+    char c = str\[end + 1\];
+
+    // 已经有符号
+    if (hasSign) {
+        // 空白符 || 符号
+        if (isWhiteCharacter(c) || isSignedCharacter(c)) {
+            break;
+        }
+        // 数字
+        else if(isNumber(c)) {
+            end++;
+
+            int pop = (c - 48) * positive;
+
+            if (sum &gt; INT\_MAX/10 || (sum == INT\_MAX / 10 &amp;&amp; pop &gt; 7))  return INT_MAX;
+            if (sum &lt; INT\_MIN/10 || (sum == INT\_MIN / 10 &amp;&amp; pop &lt; -8)) return INT_MIN;
+
+            sum = sum * 10 + pop;
+        }
+        else {
+            break;
+        }
+    }
+    // 当前无符号
+    else {
+        // 空格 &amp; 无数字
+        if (isWhiteCharacter(c) &amp;&amp; end - start &lt; 0) {
+            start++;
+            end++;
+        }
+        // 符号 &amp; 无数字
+        else if (isSignedCharacter(c) &amp;&amp; end - start &lt; 0) {
+            hasSign = 1;
+            positive = (str\[start\] - 43 == 0) ? 1 : -1;
+            end++;
+        }
+        // 当前是数字
+        else if (isNumber(c)) {
+            end++;
+
+            int pop = (c - 48) * positive;
+
+            if (sum &gt; INT\_MAX/10 || (sum == INT\_MAX / 10 &amp;&amp; pop &gt; 7))  return INT_MAX;
+            if (sum &lt; INT\_MIN/10 || (sum == INT\_MIN / 10 &amp;&amp; pop &lt; -8)) return INT_MIN;
+
+            sum = sum * 10 + pop;
+        }
+        else {
+            break;
+        }
+    }
+}
+
+return sum;
+</code></pre><p>}</p>
+<p>以上代码表现了对 c 语言的不熟悉，下面的代码为 LeetCode 短耗时的代码。</p>
+<p>#include &lt;string.h&gt;</p>
+<p>/**<br> *  @brief  从字符串 s 的开头计算连续的字符，而这些字符都完全是 accept 所指字符串中的字符。简单的说，若 strspn() 返回的数值为 n，则代表字符串 s 开头连续有 n 个字符都是属于字符串accept内的字符。<br> *  @return  返回字符串 s 开头连续包含字符串 accept 内的字符数目。<br> <em>/<br>size_t strspn (const char \</em>s,const char * accept);</p>
+<p>char *str = “Linux was first developed for 386/486-based pcs.”;<br>printf(“%d\n”, strspn(str, “Linux”));</p>
+<p>百度百科：<a href="https://baike.baidu.com/item/strspn/6272048?fr=aladdin" target="_blank" rel="noopener">strspn</a></p>
+<p>#define INT_MAX  2147483647</p>
+<p>#define INT_MIN  -2147483648</p>
+<p>int myAtoi(char * str)<br>{<br>    int StrOffset = (int)strspn(str, “ “);</p>
+<pre><code>int Polarity = 1;
+
+// 负数
+if (*(str + StrOffset) == 45) {
+
+    Polarity = 0;
+    str++;
+}
+// 正数
+else if (*(str + StrOffset) == 43) {
+    str++;
+}
+
+int rtNumber = 0;
+int iCur = 0;
+
+// 第一次 iCur = 0，不影响 rtNumber * 10 + iCur 的计算
+while (iCur &gt;= 0 &amp;&amp; iCur &lt;= 9)
+{
+    // 计算是否超出
+    if (rtNumber &gt; INT\_MAX / 10 || (rtNumber == INT\_MAX / 10 &amp;&amp; iCur &gt; 7))
+        return INT_MAX;
+    if (rtNumber &lt; INT\_MIN / 10 || (rtNumber == INT\_MIN / 10 &amp;&amp; iCur &gt; 8))
+        return INT_MIN;
+
+    // 确定符号
+    if(Polarity)
+        rtNumber = rtNumber * 10 + iCur;
+    else
+        rtNumber = rtNumber * 10 - iCur;
+
+    // 到了末尾结束
+    if (*(str + StrOffset) == &apos;\\0&apos;)
+        break;
+
+    // 获取下一个值
+    iCur = *(str++ + StrOffset) - 48;
+}
+return rtNumber;
+</code></pre><p>}</p>
+<h5 id="九、Palindrome-Number（回文数）"><a href="#九、Palindrome-Number（回文数）" class="headerlink" title="九、Palindrome Number（回文数）"></a><a href="https://leetcode-cn.com/problems/palindrome-number/" target="_blank" rel="noopener">九、Palindrome Number（回文数）</a></h5><p><strong>1、算法分析</strong></p>
+<p>采用第七题整数翻转算法，然后比较数字是否一样大。</p>
+<p><strong>2、代码实现</strong></p>
+<p>bool isPalindrome(int x)<br>{<br>    if (x &lt; 0 || (x != 0 &amp;&amp; x % 10 == 0))  return 0;</p>
+<pre><code>int temp = x;
+int sum  = 0;
+int pop  = 0;
+
+while (temp != 0) {
+
+    pop = temp % 10;
+
+    if (sum &gt; INT\_MAX/10 || (sum == INT\_MAX / 10 &amp;&amp; pop &gt; 7))  return 0;
+    if (sum &lt; INT\_MIN/10 || (sum == INT\_MIN / 10 &amp;&amp; pop &lt; -8)) return 0;
+
+    sum = sum * 10 + pop;
+    temp = temp / 10;
+}
+
+return x == sum;
+</code></pre><p>}</p>
+<h5 id="十、Regular-Expression-Matching（正则表达式匹配）"><a href="#十、Regular-Expression-Matching（正则表达式匹配）" class="headerlink" title="十、Regular Expression Matching（正则表达式匹配）"></a><a href="https://leetcode-cn.com/problems/regular-expression-matching/" target="_blank" rel="noopener">十、Regular Expression Matching（正则表达式匹配）</a></h5><p>1、问题描述</p>
+<p>实现 . 和 <em> 匹配，</em> 表示前面字符 0~∞，. 表示任意一个字符。要求全部匹配，不是部分匹配。</p>
+<p>2、算法分析</p>
+<p>思路类似最长公共子序列。d[i][j] 是状态，d[0][0] 是边界，下面求出状态转换方程。</p>
+<p>①、s[i] == p[j] || p[j] == ‘.’，则 dp[i][j] = dp[i - 1][j - 1]</p>
+<p>②、p[j] == ‘*’ &amp;&amp; s[i] != p[j - 1]，则 dp[i][j] = dp[i][j - 2]</p>
+<p>③、p[j] == ‘*’ &amp;&amp; s[i] == p[j - 1]，则 dp[i][j] = dp[i - 1][j] || dp[i][j - 1] || dp[i - 1][j - 1] || dp[i - 1][j - 2] || dp[i][j - 2]</p>
+<p>对于 s 和 p，设最后一个字符分别为 x、y，p 的倒数第二字符为 z，除此外前面字符设为 S、P，则：</p>
+<p>s = Sx</p>
+<p>p = Pzy</p>
+<p>①、x == y 或 y == ‘.’，则如果 S 和 Pz 匹配，则 s 和 p 匹配，因为最后两个字母是匹配的。这缩减了问题规模。</p>
+<p>②、对于 y == ‘<em>‘ 的情况，p = Pz</em>，即代表是有 0~∞ 个 z。需要考虑 z：</p>
+<p>如果 x != z，则只有在 s 和 P 匹配的情况下，s 和 p 才匹配。</p>
+<p>如果 x == z，设匹配符号为 ~，则如果 S~P、S~Pz、S~Pzy、Sx~P、Sx~Pz，都可得出 s 和 p 匹配。</p>
+<p>3、算法实现</p>
+<p>#define bool int</p>
+<p>bool cmatch(char s, char p) {<br>    return p == ‘*’ || p == ‘.’ || s == p;<br>}</p>
+<p>bool isMatch(char <em> s, char</em> p)<br>{<br>    int m = (int)strlen(s);<br>    int n = (int)strlen(p);</p>
+<pre><code>bool* arr = calloc(sizeof(bool), n+1);
+arr\[0\] = 1;
+
+for (int i = 2; i &lt;= n; ++i)
+    if (p\[i - 1\] == &apos;*&apos; &amp;&amp; arr\[i - 2\] == 1)
+        arr\[i\] = 1;
+
+int j2 = arr\[0\];
+int j1 = arr\[1\];
+int temp = arr\[2\];
+
+for (int i = 1; i &lt;= m; ++i) {
+    for (int j = 0; j &lt;= n; ++j)
+
+        if (j == 0) {
+            j2 = arr\[0\];
+            arr\[0\] = 0;
+        }
+        else if (j == 1) {
+            j1 = arr\[1\];
+            arr\[1\] = i == 1 &amp;&amp; cmatch(s\[0\], p\[0\]);
+        }
+        else {
+            temp = arr\[j\];
+
+            if (p\[j - 1\] == &apos;*&apos;)
+                // x == z &amp;&amp; ...，因为 &amp;&amp; 操作在第一个条件为假的情况下，会停止判断第二条件
+                arr\[j\] = cmatch(s\[i - 1\], p\[j - 2\]) &amp;&amp; (arr\[j\] || arr\[j - 1\] || j1 || j2 || arr\[j - 2\]) ? 1 : arr\[j - 2\];
+            else
+                // x == y || y == &apos;.&apos; || y = &apos;*&apos;
+                arr\[j\] = cmatch(s\[i - 1\], p\[j - 1\]) ? j1 : 0;
+
+            j2 = j1;
+            j1 = temp;
+        }
+}
+return arr\[n\];
+</code></pre><p>}</p>
+<p>int main()<br>{<br>//    printf(“%d\n”, isMatch(“aaa”, “a<em>a”));     // 1<br>//    printf(“%d\n”, isMatch(“aaa”, “ab\</em>ac*a”));  // 1<br>//    printf(“%d\n”, isMatch(“ab”, “.<em>“));       // 1<br>//    printf(“%d\n”, isMatch(“a”, “.</em>..a<em>“));      // 0<br>//    printf(“%d\n”, isMatch(“aa”, “a”));        // 0<br>//    printf(“%d\n”, isMatch(“aa”, “a</em>“));       // 1<br>//    printf(“%d\n”, isMatch(“mississippi”, “mis*is*p<em>.”));  // 0<br>    printf(“%d\n”, isMatch(“ppi”, “ppic</em>“));  // 1<br>//    printf(“%d\n”, isMatch(“aaa”, “aaaa”));    // 0<br>//    printf(“%d\n”, isMatch(“aaa”, “ab*a*c*a”)); // 1</p>
+<pre><code>return 0;
+</code></pre><p>}</p>
+<p>动态归划缩减版，只用一个数组和一些 temp 变量。</p>
+<p>bool isMatch(const char<em> s,const char</em> p) {</p>
+<pre><code>size_t m = strlen(s);
+size_t n = strlen(p);
+
+bool* cur = calloc(sizeof(bool), n + 1);
+bool temp, pre;
+
+for (int i = 0; i &lt;= m; i++) {
+
+    pre = cur\[0\];
+    cur\[0\] = (i == 0);
+
+    printf(&quot;%d   &quot;, cur\[0\]);
+
+    for (int j = 1; j &lt;= n; j++) {
+
+        temp = cur\[j\];
+
+        if (p\[j - 1\] == &apos;*&apos;) {
+            cur\[j\] = cur\[j - 2\] || (i &gt; 0 &amp;&amp; cur\[j\] &amp;&amp; (s\[i - 1\] == p\[j - 2\] || p\[j - 2\] == &apos;.&apos;));
+        }
+        else {
+            cur\[j\] = i &gt; 0 &amp;&amp; pre &amp;&amp; (s\[i - 1\] == p\[j - 1\] || p\[j - 1\] == &apos;.&apos;);
+        }
+        pre = temp;
+
+        printf(&quot;%d   &quot;, cur\[j\]);
+    }
+    printf(&quot;\\n&quot;);
+}
+temp = cur\[n\];
+free(cur);
+
+return temp;
+</code></pre><p>}</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/01/23/leetcode-lc1/">http://yoursite.com/2019/01/23/leetcode-lc1/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/01/23/e5-86-92-e6-b3-a1-e6-8e-92-e5-ba-8f/" class="pre"> 冒泡排序		</a><a href="/2019/01/22/init-e3-80-81initwithcapacity/" class="next"> init、initWithCapacity		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#交换两个数字"><span class="toc-text">交换两个数字</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#一、Two-Sum（两数之和）"><span class="toc-text">一、Two Sum（两数之和）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、Add-Two-Numbers（两数相加）"><span class="toc-text">二、Add Two Numbers（两数相加）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、Longest-Substring-Without-Repeating-Characters（无重复字符的最长子串）"><span class="toc-text">三、Longest Substring Without Repeating Characters（无重复字符的最长子串）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、Median-of-Two-Sorted-Arrays（寻找两个有序数组的中位数）"><span class="toc-text">四、Median of Two Sorted Arrays（寻找两个有序数组的中位数）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、Longest-Palindromic-Substring（最长回文子串）"><span class="toc-text">五、Longest Palindromic Substring（最长回文子串）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、zigzag-conversion（Z-字形变换）"><span class="toc-text">六、zigzag conversion（Z 字形变换）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#七、Reverse-Integer（整数翻转）"><span class="toc-text">七、Reverse Integer（整数翻转）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#八、String-to-Integer（字符串转换整数-atoi-）"><span class="toc-text">八、String to Integer（字符串转换整数 (atoi)）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#九、Palindrome-Number（回文数）"><span class="toc-text">九、Palindrome Number（回文数）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十、Regular-Expression-Matching（正则表达式匹配）"><span class="toc-text">十、Regular Expression Matching（正则表达式匹配）</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

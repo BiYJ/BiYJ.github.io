@@ -1,0 +1,215 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> Block		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> Block		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> Block		</h1><div class="post-meta"><a href="/2018/12/03/block/#comments" class="comment-count"></a><p><span class="date">Dec 03, 2018</span><span><a href="/categories/底层原理/" class="category">底层原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h5 id="一、什么是闭包"><a href="#一、什么是闭包" class="headerlink" title="一、什么是闭包"></a>一、什么是闭包</h5><p>在 wikipedia 上，闭包的定义是:</p>
+<blockquote>
+<p>In programming languages, a closure is a function or reference to a function together with a referencing environment—a table storing a reference to each of the non-local variables (also called free variables or upvalues) of that function.</p>
+</blockquote>
+<p>翻译过来，闭包是一个函数（或指向函数的指针），再加上该函数执行的外部的上下文变量（有时候也称作自由变量）。</p>
+<p>block 实际上就是 Objective-C 语言对于闭包的实现。 block 配合上 dispatch_queue，可以方便地实现简单的多线程编程和异步编程，<a href="http://blog.devtang.com/blog/2012/02/22/use-gcd/" target="_blank" rel="noopener">《使用GCD》</a>。</p>
+<p>本文主要介绍 Objective-C 语言的 block 在编译器中的实现方式。主要包括：</p>
+<ol>
+<li>block 的内部实现数据结构介绍</li>
+<li>block 的三种类型及其相关的内存管理方式</li>
+<li>block 如何通过 capture 变量来达到访问函数外的变量</li>
+</ol>
+<h5 id="二、实现方式"><a href="#二、实现方式" class="headerlink" title="二、实现方式"></a>二、实现方式</h5><ol>
+<li>block 本身也是一个 OC 对象，它里面也有 isa 指针</li>
+<li>block 是封装了函数调用（存储函数调用地址，函数访问变量）和函数调用环境的 OC 对象</li>
+</ol>
+<p>在 main.m 中写入一个 block：  </p>
+<p>int main(int argc, char * argv[]) {<br>    @autoreleasepool {</p>
+<pre><code>    int a = 15;
+    void (^ block)(int, int) = ^ (int b, int c) {
+        NSLog(@&quot;%d&quot;, a);
+    };
+    block(10, 10);
+
+    return UIApplicationMain(argc, argv, nil, NSStringFromClass(\[AppDelegate class\]));
+}
+</code></pre><p>}</p>
+<p>终端进到项目 main.m 的目录下通过反编译成 c++ 文件：</p>
+<p>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o mian.cpp</p>
+<p> 得到 main.cpp，找到这个 block 对象的底层结构：</p>
+<p>int main(int argc, char <em> argv[]) {<br>    /\</em> @autoreleasepool <em>/ { __AtAutoreleasePool __autoreleasepool;<br>        int a = 15;<br>        void (</em> block)(int, int) = ((void (<em>)(int, int))&amp;__main_block_impl_0((void </em>)__main_block_func_0, &amp;__main_block_desc_0_DATA, a));<br>        ((void (<em>)(__block_impl </em>, int, int))((__block_impl <em>)block)-&gt;FuncPtr)((__block_impl </em>)block, 10, 10);</p>
+<pre><code>    return UIApplicationMain(argc, argv, \_\_null, NSStringFromClass(((Class (*)(id, SEL))(void *)objc\_msgSend)((id)objc\_getClass(&quot;AppDelegate&quot;), sel\_registerName(&quot;class&quot;))));
+}
+</code></pre><p>}</p>
+<p>实际上 block 在底层对应的就是 __main_block_impl_0：</p>
+<p>struct __main_block_impl_0 {<br>  struct __block_impl impl;<br>  struct __main_block_desc_0<em> Desc;<br>  int a;<br>  __main_block_impl_0(void \</em>fp, struct __main_block_desc_0 *desc, int _a, int flags=0) : a(_a) {<br>    impl.isa = &amp;_NSConcreteStackBlock;<br>    impl.Flags = flags;<br>    impl.FuncPtr = fp;<br>    Desc = desc;<br>  }<br>};</p>
+<p>里面存储着 __block_impl 的结构体 impl，以及 __main_block_desc_0 的结构体指针 Desc. 搜索对象的内容我们可以找到:</p>
+<p>struct __block_impl {<br>  void <em>isa;<br>  int Flags;<br>  int Reserved;<br>  void </em>FuncPtr;<br>};</p>
+<p>static struct __main_block_desc_0 {<br>  size_t reserved;<br>  size_t Block_size;<br>} __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0)};</p>
+<p>这里可以看到 __block_impl 包含着 isa 指针，以及 FuncPtr。FuncPtr 就是 block 的调用地址，是在声明 block 的时候初始化传递进来的。以及 __main_block_desc_0 包含着的 Block_size 为 block 的内存大小。还有 int a 也封装到了Block 内部，我们知道 OC 对象的特征就是 isa 指针，所以，block 就是封装了函数调用、以及函数调用环境的 OC 对象。</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/12/BlockStructImage.jpg" alt></p>
+<p>反编译成 C 文件：</p>
+<p>xcrun -sdk iphoneos clang -arch arm64 -rewrite-objc main.m -o main.c</p>
+<p>block 的数据结构定义如下：</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/12/BlockStruct.jpg" alt></p>
+<p>对应的结构体定义如下： </p>
+<p>struct Block_descriptor {<br>    unsigned long int reserved;<br>    unsigned long int size;<br>    void (*copy)(void *dst, void <em>src);<br>    void (\</em>dispose)(void *);<br>}; </p>
+<p>struct Block_layout {<br>    void <em>isa;<br>    int flags;<br>    int reserved;<br>    void (\</em>invoke)(void *, …);<br>    struct Block_descriptor <em>descriptor;<br>    /</em> Imported variables. */<br>}; </p>
+<p>通过该图，我们可以知道，一个 block 实例实际上由 6 部分构成：</p>
+<ol>
+<li>isa 指针，所有对象都有该指针，用于实现对象相关的功能。</li>
+<li>flags，用于按 bit 位表示一些 block 的附加信息，本文后面介绍 block copy 的实现代码可以看到对该变量的使用。</li>
+<li>reserved，保留变量。</li>
+<li>invoke，函数指针，指向具体的 block 实现的函数调用地址。</li>
+<li>descriptor， 表示该 block 的附加描述信息，主要是 size 大小，以及 copy 和 dispose 函数的指针。</li>
+<li>variables，capture 过来的变量，block 能够访问它外部的局部变量，就是因为将这些变量（或变量的地址）复制到了结构体中。</li>
+</ol>
+<h5 id="三、Capture-捕获"><a href="#三、Capture-捕获" class="headerlink" title="三、Capture (捕获)"></a>三、Capture (捕获)</h5><p>对于局部变量：值传递，Block 只是把局部变量的值捕获存储在了 block 的结构体内存储。</p>
+<p>int a = 10;<br>void (^block)(void) = ^{<br>    NSLog(@”%d”, a);<br>};<br>a = 20;<br>block(); // 输出 10</p>
+<p>对于 Static：指针传递，Block 把 static 的变量的指针存储在 block 的结构体内，所以取值的话就是取对应最后的赋值。</p>
+<p>static int a = 10;<br>void (^block)(void) = ^{<br>    NSLog(@”%d”, a);<br>};<br>a = 20;<br>block();  // 输出 20</p>
+<p>全局变量：直接访问</p>
+<p>static int a = 20;<br>int b = 15;</p>
+<p>int main(int argc, const char * argv[]) {<br>    @autoreleasepool {</p>
+<pre><code>    void (^block)(void) = ^{
+        NSLog(@&quot;%d&quot;, a);
+        NSLog(@&quot;%d&quot;, b);
+    };
+    a = 25;
+    b = 10;
+    block();  // 输出 25 10
+}
+return 0;
+</code></pre><p>}</p>
+<h5 id="四、block-的类型"><a href="#四、block-的类型" class="headerlink" title="四、block 的类型"></a>四、block 的类型</h5><p>block 分为 3 种类型，但是最终都是继承自 NSObject。</p>
+<ul>
+<li><p>_NSConcreteGlobalBlock   全局的静态 block，内部没有访问 auto 变量，不会访问任何外部变量。</p>
+</li>
+<li><p>_NSConcreteStackBlock     保存在栈中的 block，内部访问了 auto 变量，当函数返回时会被销毁。</p>
+</li>
+<li><p>_NSConcreteMallocBlock   保存在堆中的 block，当引用计数为 0 时会被销毁。</p>
+</li>
+</ul>
+<p>Tip：stack block 存放在栈内存，如果 block 存放在函数内，一旦函数作用域结束，则 block 内容则会被清除，如果存放在堆内存（调用 copy），就会变成 malloc block，则不会自动清除，这也是为什么 block 需要用 copy 修饰的原因。 <img src="http://www.dzliving.com/wp-content/uploads/2018/12/BlockTypes.jpg" alt></p>
+<p><strong>1、NSConcreteGlobalBlock 类型的 block 的实现</strong></p>
+<p>#include &lt;stdio.h&gt;</p>
+<p>int main()<br>{<br>    ^{ printf(“Hello, World!\n”); } (); </p>
+<pre><code>return 0; 
+</code></pre><p>}</p>
+<p>在终端命令行中输入 clang -rewrite-objc block.cpp(文件名) 即可在目录中看到 clang 输出了一个名为 block.cpp 的文件。该文件就是 block 在 c 语言实现，将 block.cpp 中一些无关的代码去掉，将关键代码引用如下：</p>
+<p>struct __block_impl {<br>    void <em>isa;<br>    int Flags;<br>    int Reserved;<br>    void </em>FuncPtr;<br>}; </p>
+<p>struct __main_block_impl_0 {<br>    struct __block_impl impl;<br>    struct __main_block_desc_0<em> Desc;<br>    __main_block_impl_0(void \</em>fp, struct __main_block_desc_0 *desc, int flags=0) {<br>        impl.isa = &amp;_NSConcreteStackBlock;<br>        impl.Flags = flags;<br>        impl.FuncPtr = fp;<br>        Desc = desc;<br>    }<br>}; </p>
+<p>static void __main_block_func_0(struct __main_block_impl_0 *__cself) {<br>    printf(“Hello, World!\n”);<br>} </p>
+<p>static struct __main_block_desc_0 {<br>    size_t reserved;<br>    size_t Block_size;<br>}__main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0) }; </p>
+<p>int main()<br>{<br>    (void (<em>)())&amp;__main_block_impl_0((void </em>)__main_block_func_0, &amp;__main_block_desc_0_DATA) ();<br>    return 0;<br>} </p>
+<p>具体看一下是如何实现的。__main_block_impl_0 就是该 block 的实现，从中可以看出：</p>
+<p>①、一个 block 实际是一个对象，它主要由一个 isa 和一个 impl 和一个 descriptor 组成。</p>
+<p>②、在本例中，isa 指向 _NSConcreteGlobalBlock，主要是为了实现对象的所有特性，在此我们就不展开讨论了。</p>
+<p>③、impl 是实际的函数指针，本例中，它指向 __main_block_func_0。这里的 impl 相当于之前提到的 invoke 变量，只是clang 编译器对变量的命名不一样而已。</p>
+<p>④、descriptor 是用于描述当前这个 block 的附加信息的，包括结构体的大小，需要 capture 和 dispose 的变量列表等。结构体大小需要保存是因为，每个 block 因为会 capture 一些变量，这些变量会加到 __main_block_impl_0 这个结构体中，使其体积变大。在该例子中我们还看不到相关 capture 的代码，后面将会看到。</p>
+<p><strong>2、NSConcreteStackBlock 类型的block的实现</strong></p>
+<p>#include &lt;stdio.h&gt; </p>
+<p>int main()<br>{<br>    int a = 100;<br>    void (^block)(void) = ^{<br>        printf(“%d\n”, a);<br>    };<br>    block(); </p>
+<pre><code>return 0; 
+</code></pre><p>}</p>
+<p>反编译之后：</p>
+<p>struct __main_block_impl_0 {<br>    struct __block_impl impl;<br>    struct __main_block_desc_0<em> Desc;<br>    int a;<br>    __main_block_impl_0(void \</em>fp, struct __main_block_desc_0 *desc, int _a, int flags=0) : a(_a) {<br>        impl.isa = &amp;<em>NSConcreteStackBlock;<br>        impl.Flags = flags;<br>        impl.FuncPtr = fp;<br>        Desc = desc;<br>    }<br>};<br>static void \</em>_main_block_func_0(struct __main_block_impl_0 *<strong>cself) {<br>    int a = </strong>cself-&gt;a; // bound by copy<br>    printf(“%d\n”, a);<br>} </p>
+<p>static struct __main_block_desc_0 {<br>    size_t reserved;<br>    size_t Block_size;<br>} __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0)}; </p>
+<p>int main()<br>{<br>    int a = 100;<br>    void (*block)(void) = (void (*)())&amp;__main_block_impl_0((void <em>)__main_block_func_0, &amp;__main_block_desc_0_DATA, a);<br>    ((void (</em>)(__block_impl <em>))((__block_impl </em>)block)-&gt;FuncPtr)((__block_impl *)block); </p>
+<pre><code>return 0; 
+</code></pre><p>} </p>
+<p>在本例中，我们可以看到：</p>
+<p>①、本例中，isa 指向 _NSConcreteStackBlock，说明这是一个分配在栈上的实例。</p>
+<p>②、main_block_impl_0 中增加了一个变量 a，在 block 中引用的变量 a 实际是在申明 block 时，被复制到 main_block_impl_0 结构体中的那个变量 a。因为这样，我们就能理解，在 block 内部修改变量 a 的内容，不会影响外部的实际变量 a。</p>
+<p>③、main_block_impl_0 中由于增加了一个变量 a，所以结构体的大小变大了，该结构体大小被写在了 main_block_desc_0 中。</p>
+<p>3、<strong>NSConcreteMallocBlock 类型的block的实现</strong></p>
+<p>NSConcreteMallocBlock 类型的 block 通常不会在源码中直接出现，因为默认它是当一个 block 被 copy 的时候，才会将这个 block 复制到堆中。以下是一个 block 被 copy 时的示例代码（来自<a href="http://www.galloway.me.uk/2013/05/a-look-inside-blocks-episode-3-block-copy/" target="_blank" rel="noopener">这里</a>），可以看到，在第 8 步，目标的 block 类型被修改为 _NSConcreteMallocBlock。</p>
+<p>static void *_Block_copy_internal(const void *arg, const int flags) {<br>    struct Block_layout *aBlock;<br>    const bool wantsOne = (WANTS_ONE &amp; flags) == WANTS_ONE;</p>
+<pre><code>// 1
+if (!arg) return NULL;
+
+// 2
+aBlock = (struct Block_layout *)arg;
+
+// 3
+if (aBlock-&gt;flags &amp; BLOCK\_NEEDS\_FREE) {
+    // latches on high
+    latching\_incr\_int(&amp;aBlock-&gt;flags);
+    return aBlock;
+}
+
+// 4
+else if (aBlock-&gt;flags &amp; BLOCK\_IS\_GLOBAL) {
+    return aBlock;
+}
+
+// 5
+struct Block_layout *result = malloc(aBlock-&gt;descriptor-&gt;size);
+if (!result) return (void *)0;
+
+// 6
+memmove(result, aBlock, aBlock-&gt;descriptor-&gt;size); // bitcopy first
+
+// 7
+result-&gt;flags &amp;= ~(BLOCK\_REFCOUNT\_MASK);    // XXX not needed
+result-&gt;flags |= BLOCK\_NEEDS\_FREE | 1;
+
+// 8
+result-&gt;isa = _NSConcreteMallocBlock;
+
+// 9
+if (result-&gt;flags &amp; BLOCK\_HAS\_COPY_DISPOSE) {
+    (*aBlock-&gt;descriptor-&gt;copy)(result, aBlock); // do fixup
+}
+
+return result;
+</code></pre><p>}</p>
+<h5 id="五、变量的复制"><a href="#五、变量的复制" class="headerlink" title="五、变量的复制"></a>五、变量的复制</h5><p>block 内部默认是无法修改 auto 变量的，因为在 block 底部的话执行 block、声明局部变量 a（main 函数）的地方分别是两个不同的函数，并没有办法从一个函数去修改另一个函数的局部变量，而如果使用 static 或者使用全局变量是可以的，因为block 在底层存储 static 变量是存储它的指针地址，全局变量就全部都可以访问。</p>
+<p>如果要修改 auto 变量的话，则需要使用 __block。</p>
+<p>对于 block 外的变量引用，block 默认是将其复制到其数据结构中来实现访问的：</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/12/2Q.jpg" alt></p>
+<p>对于用 __block 修饰的外部变量引用，block 是复制其引用地址来实现访问的：</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/12/9k.jpg" alt></p>
+<p>修改上面的源码，在变量前面增加 __block 关键字：</p>
+<p>#include &lt;stdio.h&gt; </p>
+<p>int main()<br>{<br>    __block int i = 1024;<br>    void (^block)(void) = ^{<br>        printf(“%d\n”, i);<br>        i = 1023;<br>    };<br>    block();<br>    return 0;<br>}</p>
+<p>生成的关键代码如下，可以看到，差异相当大：</p>
+<p>struct __Block_byref_a_0 {<br>  void <em>__isa;<br>__Block_byref_a_0 </em><strong>forwarding;<br> int </strong>flags;<br> int __size;<br> int a;<br>};</p>
+<p>struct __main_block_impl_0 {<br>  struct __block_impl impl;<br>  struct __main_block_desc_0<em> Desc;<br>  __Block_byref_a_0 </em>a; // by ref<br>  __main_block_impl_0(void *fp, struct __main_block_desc_0 *desc, __Block_byref_a_0 <em>_a, int flags=0) : a(_a-&gt;__forwarding) {<br>    impl.isa = &amp;<em>NSConcreteStackBlock;<br>    impl.Flags = flags;<br>    impl.FuncPtr = fp;<br>    Desc = desc;<br>  }<br>};<br>static void \</em>_main_block_func_0(struct __main_block_impl_0 </em><strong>cself) {<br>  __Block_byref_a_0 *a = </strong>cself-&gt;a; // bound by ref</p>
+<pre><code>    printf(&quot;%d\\n&quot;, (a-&gt;__forwarding-&gt;a));
+    (a-&gt;__forwarding-&gt;a) = 1023;
+}
+</code></pre><p>static void __main_block_copy_0(struct __main_block_impl_0*dst, struct __main_block_impl_0*src) {_Block_object_assign((void<em>)&amp;dst-&gt;a, (void</em>)src-&gt;a, 8/*BLOCK_FIELD_IS_BYREF*/);}</p>
+<p>static void __main_block_dispose_0(struct __main_block_impl_0*src) {_Block_object_dispose((void*)src-&gt;a, 8/*BLOCK_FIELD_IS_BYREF*/);}</p>
+<p>static struct __main_block_desc_0 {<br>  size_t reserved;<br>  size_t Block_size;<br>  void (*copy)(struct __main_block_impl_0*, struct __main_block_impl_0<em>);<br>  void (\</em>dispose)(struct __main_block_impl_0*);<br>} __main_block_desc_0_DATA = { 0, sizeof(struct __main_block_impl_0), __main_block_copy_0, __main_block_dispose_0};</p>
+<p>int main(int argc, char <em> argv[]) {<br>    /\</em> @autoreleasepool <em>/ { __AtAutoreleasePool __autoreleasepool;<br>        __attribute__((__blocks__(byref))) __Block_byref_a_0 a = {(void</em>)0,(__Block_byref_a_0 <em>)&amp;a, 0, sizeof(__Block_byref_a_0), 1024};<br>        void (\</em>block)(void) = ((void (*)())&amp;__main_block_impl_0((void <em>)__main_block_func_0, &amp;__main_block_desc_0_DATA, (__Block_byref_a_0 </em>)&amp;a, 570425344));<br>        ((void (<em>)(__block_impl </em>))((__block_impl <em>)block)-&gt;FuncPtr)((__block_impl </em>)block);</p>
+<pre><code>    return UIApplicationMain(argc, argv, \_\_null, NSStringFromClass(((Class (*)(id, SEL))(void *)objc\_msgSend)((id)objc\_getClass(&quot;AppDelegate&quot;), sel\_registerName(&quot;class&quot;))));
+}
+</code></pre><p>}</p>
+<p>从代码中可以看到：</p>
+<p>①、源码中增加一个名为 __Block_byref_i_0 的结构体，用来保存我们要 capture 并且修改的变量 a。</p>
+<p>②、main_block_impl_0 中引用的是 Block_byref_i_0 的结构体指针，这样就可以达到修改外部变量的作用。</p>
+<p>③、__Block_byref_i_0 结构体中带有 isa、a以及 __forwarding（指向自己的指针）等其他信息，它也是一个对象。</p>
+<p>④、我们需要负责 Block_byref_i_0 结构体相关的内存管理，所以 main_block_desc_0 中增加了 copy 和 dispose 函数指针，对于在调用前后修改相应变量的引用计数。</p>
+<p>__attribute__((__blocks__(byref))) __Block_byref_a_0 a = {(void<em>)0,(__Block_byref_a_0 </em>)&amp;a, 0, sizeof(__Block_byref_a_0), 1024};<br>void (*block)(void) = ((void (*)())&amp;__main_block_impl_0((void <em>)__main_block_func_0, &amp;__main_block_desc_0_DATA, (__Block_byref_a_0 </em>)&amp;a, 570425344));</p>
+<p>这里声明了一个 __Block_byref_a_0 的对象，并把 &amp;a 传递给了 __forwarding，10 传递给了 a。</p>
+<p>static void __main_block_func_0(struct __main_block_impl_0 <em>__cself) {<br>  __Block_byref_a_0 </em>a = __cself-&gt;a; // bound by ref</p>
+<pre><code>    printf(&quot;%d\\n&quot;, (a-&gt;__forwarding-&gt;a));
+    (a-&gt;__forwarding-&gt;a) = 1023;
+}
+</code></pre><p>static void __main_block_copy_0(struct __main_block_impl_0*dst, struct __main_block_impl_0*src) {_Block_object_assign((void<em>)&amp;dst-&gt;a, (void</em>)src-&gt;a, 8/*BLOCK_FIELD_IS_BYREF*/);}</p>
+<p>这里执行 block 时，取出了 __Block_byref_a_0 所存储的 &amp;a（__forwarding：__Block_byref_a_0 的指针地址），再取出 a，最后进行修改/使用。</p>
+<h5 id="六、ARC-对-block-类型的影响"><a href="#六、ARC-对-block-类型的影响" class="headerlink" title="六、ARC 对 block 类型的影响"></a>六、ARC 对 block 类型的影响</h5><p>在 ARC 开启的情况下，将只会有 NSConcreteGlobalBlock 和 NSConcreteMallocBlock 类型的 block。</p>
+<p>原本的 NSConcreteStackBlock 的 block 会被 NSConcreteMallocBlock 类型的 block 替代。在苹果的<a href="http://developer.apple.com/library/ios/#releasenotes/ObjectiveC/RN-TransitioningToARC/Introduction/Introduction.html" target="_blank" rel="noopener">官方文档</a>中也提到，当把栈中的 block 返回时，不需要调用 copy 方法了。</p>
+<p>int main(int argc, char * argv[]) {<br>    @autoreleasepool {<br>        int i = 1024;<br>        void (^block)(void) = ^{<br>            printf(“%d\n”, i);<br>        };<br>        block();<br>        NSLog(@”%@”, block);</p>
+<pre><code>    return UIApplicationMain(argc, argv, nil, NSStringFromClass(\[AppDelegate class\]));
+}
+</code></pre><p>}</p>
+<p>个人认为这么做的原因是，由于 ARC 已经能很好地处理对象的生命周期的管理，这样所有对象都放到堆上管理，对于编译器实现来说，会比较方便。</p>
+<h5 id="七、问题"><a href="#七、问题" class="headerlink" title="七、问题"></a>七、问题</h5><p>1、block 原理是什么？本质是什么？</p>
+<p><strong>封装了函数调用以及调用环境的 OC 对象。</strong></p>
+<p>2、Block 属性的修饰词为什么是 copy？__block 的作用是什么？有什么注意的点？</p>
+<p>一旦没有进行 copy 操作，block 就不会在堆上。__block 能够修改自动变量的值。注意循环引用。</p>
+<p>3、block 修改 NSMutableArray 时，是否需要添加 __block？</p>
+<p>{<br>    NSMutableArray <em> mArr1 = [NSMutableArray arrayWithObjects:@”a”, @”b”, @”abc”, nil];<br>    NSMutableArray </em> mArr2 = [NSMutableArray arrayWithCapacity:mArr1.count];</p>
+<pre><code>\[mArr1 enumerateObjectsUsingBlock: ^(NSString * obj, NSUInteger idx, BOOL *stop){
+    \[mArr2 addObject:@(obj.length)\];
+}\];
+
+NSLog(@&quot;%@&quot;, mArr2);
+</code></pre><p>}</p>
+<p>2018-12-03 00:24:41.754700+0800 Demo[13081:1899280] (<br>    1,<br>    1,<br>    3<br>)</p>
+<p>这里确实没有修改 mArr2 这个局部变量。mArr2 是一个指针，指向一个可变长度的数组。在 block 里面，并没有修改这个指针，而是修改了这个指针指向的数组。换句话说，mArr2 保存的是一块内存区域的地址，在 block 里，并没有改变这个地址，而是读取出这个地址，然后去操作这块地址空间的内容。 因为声明 block 的时候实际上是把当时的临时变量又复制了一份，在 block 里即使修改了这些复制的变量，也不影响外面的原始变量。即所谓的闭包。 但是当变量是一个指针的时候，block 里只是复制了一份这个指针，两个指针指向同一个地址。所以，在 block 里面对指针指向内容做的修改，在 block 外面也一样生效。  </p>
+<h5 id="八、学习文章"><a href="#八、学习文章" class="headerlink" title="八、学习文章"></a>八、学习文章</h5><p><a href="https://www.jianshu.com/u/edda0ce4a193" target="_blank" rel="noopener">宁夏灼雪__</a>  <a href="https://www.jianshu.com/p/460c9f43d20f" target="_blank" rel="noopener">iOS底层day6 - 探索block</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2018/12/03/block/">http://yoursite.com/2018/12/03/block/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2018/12/07/uitableview/" class="pre"> UITableView		</a><a href="/2018/12/02/category/" class="next"> Category		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、什么是闭包"><span class="toc-text">一、什么是闭包</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、实现方式"><span class="toc-text">二、实现方式</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、Capture-捕获"><span class="toc-text">三、Capture (捕获)</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、block-的类型"><span class="toc-text">四、block 的类型</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、变量的复制"><span class="toc-text">五、变量的复制</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、ARC-对-block-类型的影响"><span class="toc-text">六、ARC 对 block 类型的影响</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#七、问题"><span class="toc-text">七、问题</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#八、学习文章"><span class="toc-text">八、学习文章</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

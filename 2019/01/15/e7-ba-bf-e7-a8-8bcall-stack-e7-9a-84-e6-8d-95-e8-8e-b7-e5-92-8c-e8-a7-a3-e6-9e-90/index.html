@@ -1,0 +1,234 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 线程 Call Stack 的捕获和解析		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 线程 Call Stack 的捕获和解析		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 线程 Call Stack 的捕获和解析		</h1><div class="post-meta"><a href="/2019/01/15/e7-ba-bf-e7-a8-8bcall-stack-e7-9a-84-e6-8d-95-e8-8e-b7-e5-92-8c-e8-a7-a3-e6-9e-90/#comments" class="comment-count"></a><p><span class="date">Jan 15, 2019</span><span><a href="/categories/多线程/" class="category">多线程</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>注：文中的 jdy_、BS_ 均是原文作者的资源前缀。</p>
+<h5 id="一、获取任意一个线程的-Call-Stack"><a href="#一、获取任意一个线程的-Call-Stack" class="headerlink" title="一、获取任意一个线程的 Call Stack"></a>一、获取任意一个线程的 Call Stack</h5><p>如果要获取当前线程的调用栈，可以直接使用现有 API:[NSThread callStackSymbols]。</p>
+<p>但是并没有相关 API 支持获取任意线程的调用栈，所以只能自己编码实现。</p>
+<p>1、调用栈</p>
+<p>一个线程的调用栈是什么样的呢？</p>
+<p>“我”的理解是应该包含当前线程的执行地址，并且从这个地址可以一级一级回溯到线程的入口地址，这样就反向构成了一条链：线程入口执行某个方法，然后逐级嵌套调用到当前现场。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-8ff66862ad58cd79.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>如图所示，每一级的方法调用，都对应了一张活动记录，也称为活动帧。也就是说，调用栈是由一张张帧结构组成的，可以称之为栈帧。每个栈帧对应一个函数调用：蓝色的部分是 DrawSquare 函数的栈帧，它在执行的过程中调用了绿色部分的 DrawLine 函数。</p>
+<p>可以看到栈帧由三部分组成：函数参数、返回地址、帧内的变量。首先把函数的参数入栈；随后将返回地址入栈，这表示当前活动记录执行结束后要返回的地址；最后是在函数内部定义的变量。</p>
+<p>Stack Pointer(栈指针)表示当前栈的顶部，由于大部分操作系统的栈向下生长，它其实是栈地址的最小值。根据之前的解释，Frame Pointer 指向的地址中，存储了上一次 Stack Pointer 的值，也就是返回地址。</p>
+<p>在大多数操作系统中，每个栈帧还保存了上一个栈帧的 Frame Pointer，因此只要知道当前栈帧的 Stack Pointer 和 Frame Pointer，就能知道上一个栈帧的 Stack Pointer 和 Frame Pointer，从而递归的获取栈底的帧。形成了一条链。</p>
+<p>显然当一个函数调用结束时，它的栈帧就不存在了。</p>
+<p>因此，调用栈其实是栈的一种抽象概念，它表示了方法之间的调用关系，一般来说从栈中可以解析出调用栈。</p>
+<p>那么，在我们获取到栈帧后，就可以通过返回地址来进行回溯了。</p>
+<p>2、指令指针和基址指针</p>
+<p>我们明确了两个目标：①、当前执行的指令</p>
+<p>   ②、当前栈帧结构。</p>
+<p>以 x86 为例，寄存器用途如下：</p>
+<p>SP/ESP/RSP: Stack pointer for top address of the stack.<br>BP/EBP/RBP: Stack base pointer for holding the address of the current stack frame.<br>IP/EIP/RIP: Instruction pointer. Holds the program counter, the current instruction address.</p>
+<p>可以看到，我们可以通过指令指针来获取当前指令地址，以及通过栈基址指针获取当前栈帧地址。</p>
+<p>那么问题来了，我们怎么获取到相关寄存器呢？</p>
+<p>3、线程执行状态</p>
+<p>考虑到一个线程被挂起时，后续继续执行需要恢复现场，所以在挂起时相关现场需要被保存起来，比如当前执行到哪条指令了。</p>
+<p>那么就要有相关的结构体来为线程保存运行时的状态，经过一番查阅，得到如下信息：</p>
+<blockquote>
+<p>The function thread_get_state returns the execution state (e.g. the machine registers) of target_thread as specified by flavor.</p>
+</blockquote>
+<p>Function - Return the execution statefora thread.</p>
+<p>SYNOPSIS</p>
+<p>kern_return_t thread_get_state<br>(<br>     thread_act_t             target_act,<br>     thread_state_flavor_t        flavor,<br>     thread_state_t            old_state,<br>     mach_msg_type_number_t *old_stateCnt<br>);</p>
+<p>/*<br> * THREAD_STATE_FLAVOR_LIST 0</p>
+<ul>
+<li>these are the supported flavors. 这些枚举值没有找到，可能为作者自定义。<br><em>/<br>#define x86_THREAD_STATE32      1<br>#define x86_FLOAT_STATE32       2<br>#define x86_EXCEPTION_STATE32   3<br>#define x86_THREAD_STATE64      4<br>#define x86_FLOAT_STATE64       5<br>#define x86_EXCEPTION_STATE64   6<br>#define x86_THREAD_STATE        7<br>#define x86_FLOAT_STATE         8<br>#define x86_EXCEPTION_STATE     9<br>#define x86_DEBUG_STATE32       10<br>#define x86_DEBUG_STATE64       11<br>#define x86_DEBUG_STATE         12<br>#define THREAD_STATE_NONE       13<br>/\</em> 14 and 15 are used for the internal x86_SAVED_STATE flavours */<br>#define x86_AVX_STATE32         16<br>#define x86_AVX_STATE64         17<br>#define x86_AVX_STATE           18</li>
+</ul>
+<p>所以我们可以通过这个 API 搭配相关参数来获得想要的寄存器信息：</p>
+<p>bool jdy_fillThreadStateIntoMachineContext(thread_t thread, _STRUCT_MCONTEXT * machineContext) {<br>    mach_msg_type_number_t state_count = x86_THREAD_STATE64_COUNT;<br>    kern_return_t kr = thread_get_state(thread, x86_THREAD_STATE64, (thread_state_t)&amp;machineContext-&gt;__ss, &amp;state_count);<br>    return (kr == KERN_SUCCESS);<br>}</p>
+<p>不同的架构对应的 state_count 不同，所以这里用了宏 x86_THREAD_STATE64_COUNT 来做处理。这里引入了一个结构体叫 _STRUCT_MCONTEXT。</p>
+<p>4、不同平台的寄存器</p>
+<p>_STRUCT_MCONTEXT 在不同平台上的结构不同：</p>
+<p>x86_64，如 iPhone6 模拟器：</p>
+<p>_STRUCT_MCONTEXT64<br>{<br>    _STRUCT_X86_EXCEPTION_STATE64   <strong>es;<br>    _STRUCT_X86_THREAD_STATE64  </strong>ss;<br>    _STRUCT_X86_FLOAT_STATE64   __fs;<br>};</p>
+<p>_STRUCT_X86_THREAD_STATE64<br>{<br>    __uint64_t  <strong>rax;<br>    __uint64_t  </strong>rbx;<br>    __uint64_t  <strong>rcx;<br>    __uint64_t  </strong>rdx;<br>    __uint64_t  <strong>rdi;<br>    __uint64_t  </strong>rsi;<br>    __uint64_t  <strong>rbp;<br>    __uint64_t  </strong>rsp;<br>    __uint64_t  <strong>r8;<br>    __uint64_t  </strong>r9;<br>    __uint64_t  <strong>r10;<br>    __uint64_t  </strong>r11;<br>    __uint64_t  <strong>r12;<br>    __uint64_t  </strong>r13;<br>    __uint64_t  <strong>r14;<br>    __uint64_t  </strong>r15;<br>    __uint64_t  <strong>rip;<br>    __uint64_t  </strong>rflags;<br>    __uint64_t  <strong>cs;<br>    __uint64_t  </strong>fs;<br>    __uint64_t  __gs;<br>};</p>
+<p>x86_32，如 iPhone4s 模拟器：</p>
+<p>_STRUCT_MCONTEXT32<br>{<br>    _STRUCT_X86_EXCEPTION_STATE32   <strong>es;<br>    _STRUCT_X86_THREAD_STATE32  </strong>ss;<br>    _STRUCT_X86_FLOAT_STATE32   __fs;<br>};</p>
+<p>_STRUCT_X86_THREAD_STATE32<br>{<br>   unsignedint    <strong>eax;<br>   unsignedint    </strong>ebx;<br>   unsignedint    <strong>ecx;<br>   unsignedint    </strong>edx;<br>   unsignedint    <strong>edi;<br>   unsignedint    </strong>esi;<br>   unsignedint    <strong>ebp;<br>   unsignedint    </strong>esp;<br>   unsignedint    <strong>ss;<br>   unsignedint    </strong>eflags;<br>   unsignedint    <strong>eip;<br>   unsignedint    </strong>cs;<br>   unsignedint    <strong>ds;<br>   unsignedint    </strong>es;<br>   unsignedint    <strong>fs;<br>   unsignedint    </strong>gs;<br>};</p>
+<p>ARM64，如 iPhone5s：</p>
+<p>_STRUCT_MCONTEXT64<br>{<br>    _STRUCT_ARM_EXCEPTION_STATE64    <strong>es;<br>    _STRUCT_ARM_THREAD_STATE64    </strong>ss;<br>    _STRUCT_ARM_NEON_STATE64    __ns;<br>};</p>
+<p>_STRUCT_ARM_THREAD_STATE64<br>{<br>    __uint64_t    <strong>x[29];    /<em> General purpose registers x0-x28 </em>/<br>    void<em>         __opaque_fp;    /</em> Frame pointer x29 <em>/<br>    void</em>         __opaque_lr;    /<em> Link register x30 </em>/<br>    void<em>         __opaque_sp;    /</em> Stack pointer x31 <em>/<br>    void</em>         __opaque_pc;    /<em> Program counter </em>/<br>    __uint32_t    </strong>cpsr;    /<em> Current program status register </em>/<br>    __uint32_t    __opaque_flags;    /<em> Flags describing structure format </em>/<br>};</p>
+<p>ARMv7/v6，如 iPhone4s：</p>
+<p>_STRUCT_MCONTEXT32<br>{<br>    _STRUCT_ARM_EXCEPTION_STATE    <strong>es;<br>    _STRUCT_ARM_THREAD_STATE    </strong>ss;<br>    _STRUCT_ARM_VFP_STATE        __fs;<br>};</p>
+<p>_STRUCT_ARM_THREAD_STATE<br>{<br>    __uint32_t    <strong>r[13];    /<em> General purpose register r0-r12 </em>/<br>    __uint32_t    </strong>sp;        /<em> Stack pointer r13 </em>/<br>    __uint32_t    <strong>lr;        /<em> Link register r14 </em>/<br>    __uint32_t    </strong>pc;        /<em> Program counter r15 </em>/<br>    __uint32_t    __cpsr;        /<em> Current program status register </em>/<br>};</p>
+<p>可以对照《iOS ABI Function Call Guide》，其中在 ARM64 相关章节中描述到：</p>
+<blockquote>
+<p>The frame pointer register (x29) must always address a valid frame record, although some functions–such as leaf functions or tail calls–may elect not to create an entry in this list. As a result, stack traces will always be meaningful, even without debug information</p>
+</blockquote>
+<p>而在 ARMv7/v6 上描述到：</p>
+<blockquote>
+<p>The function calling conventions used in the ARMv6 environment are the same as those used in the Procedure Call Standard for the ARM Architecture (release 1.07), with the following exceptions:</p>
+<p>*The stack is 4-byte aligned at the point of function calls.</p>
+<p>Large data types (larger than 4 bytes) are 4-byte aligned.</p>
+<p>Register R7 is used as a frame pointer</p>
+<p>Register R9 has special usage.*</p>
+</blockquote>
+<p>所以，通过了解以上不同平台的寄存器结构，我们可以编写出比较通用的回溯功能。</p>
+<p>5、算法实现</p>
+<p>/**<br> * 关于栈帧的布局可以参考：<br> * <a href="https://en.wikipedia.org/wiki/Call_stack" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Call_stack</a><br> * <a href="http://www.cs.cornell.edu/courses/cs412/2008sp/lectures/lec20.pdf" target="_blank" rel="noopener">http://www.cs.cornell.edu/courses/cs412/2008sp/lectures/lec20.pdf</a><br> * <a href="http://eli.thegreenplace.net/2011/09/06/stack-frame-layout-on-x86-64/" target="_blank" rel="noopener">http://eli.thegreenplace.net/2011/09/06/stack-frame-layout-on-x86-64/</a><br> <em>/<br>typedef struct JDYStackFrame {<br>    const struct JDYStackFrame</em> const previous;  // 上一个栈帧<br>    const uintptr_t returnAddress;  // 返回地址：上一个栈帧的地址<br>} JDYStackFrame;</p>
+<p>/// 回溯<br>int jdy_backtraceThread(thread_t thread, uintptr_t *backtraceBuffer, int limit) {<br>    if (limit &lt;= 0) return 0;</p>
+<pre><code>\_STRUCT\_MCONTEXT mcontext;
+// 获取上下文
+if (!jdy_fillThreadStateIntoMachineContext(thread, &amp;mcontext)) {
+    return 0;
+}
+
+int i = 0;
+uintptr\_t pc = jdy\_programCounterOfMachineContext(&amp;mcontext);
+backtraceBuffer\[i++\] = pc;
+if (i == limit) return i;
+
+uintptr\_t lr = jdy\_linkRegisterOfMachineContext(&amp;mcontext);
+if (lr != 0) {
+    /\* 由于lr保存的也是返回地址，所以在lr有效时，应该会产生重复的地址项 */
+    backtraceBuffer\[i++\] = lr;
+    if (i == limit) return i;
+}
+
+JDYStackFrame frame = {0};
+uintptr\_t fp = jdy\_framePointerOfMachineContext(&amp;mcontext);
+if (fp == 0 || jdy\_copyMemory((void *)fp, &amp;frame, sizeof(frame)) != KERN\_SUCCESS) {
+    return i;
+}
+
+while (i &lt; limit) {
+    backtraceBuffer\[i++\] = frame.returnAddress;
+    if (frame.returnAddress == 0
+        || frame.previous == NULL
+        || jdy\_copyMemory((void *)frame.previous, &amp;frame, sizeof(frame)) != KERN\_SUCCESS) {
+        break;
+    }
+}
+
+return i;
+</code></pre><p>}</p>
+<h5 id="二、失败的传统方法"><a href="#二、失败的传统方法" class="headerlink" title="二、失败的传统方法"></a>二、失败的传统方法</h5><p>利用 dispatch_async 或 performSelectorOnMainThread 等方法，结合 callstackSymbols 方法，回到主线程并获取调用栈。这是否可行？</p>
+<p>线程，首先要运行起来，然后(如果有必要)启动 runloop 进行保活。我们知道 runloop 的本质就是一个死循环，在循环中调用多个函数，分别判断 source0、source1、timer、dispatch_queue 等事件源有没有要处理的内容。</p>
+<p>和 UI 相关的事件都是 source0，因此会执行 __CFRunLoopDoSources0，当事件处理完后 runloop 进入休眠状态。</p>
+<p>假设我们使用 dispatch_async，它会唤醒 runloop 并处理事件，但此时 __CFRunLoopDoSources0 已经执行完毕，不可能获取到 viewDidLoad 的调用栈。</p>
+<p>performSelector 系列方法的底层也依赖于 runloop，因此它只是向当前的 runloop 提交了一个任务，但是依然要等待现有任务完成以后才能执行，所以拿不到实时的调用栈。</p>
+<p>总而言之，一切涉及到 runloop，或者需要等待 viewDidLoad 执行完的方案都不可能成功。</p>
+<h5 id="三、Mach-thread"><a href="#三、Mach-thread" class="headerlink" title="三、Mach_thread"></a>三、Mach_thread</h5><p>回忆之前对栈的介绍，只要知道 StackPointer 和 FramePointer 就可以完全确定一个栈的信息，那有没有办法拿到所有线程的 StackPointer 和 FramePointer 呢？</p>
+<p>答案是肯定的，首先系统提供了 task_threads 方法，可以获取到所有的线程，注意这里的线程是最底层的 mach 线程，它和 NSThread 的关系稍后会详细阐述。</p>
+<p>对于每一个线程，可以用 thread_get_state 方法获取它的所有信息，信息填充在 _STRUCT_MCONTEXT 类型的参数中。这个方法中有两个参数随着 CPU 架构的不同而改变，因此定义了 BS_THREAD_STATE_COUNT 和 BS_THREAD_STATE 这两个宏用于屏蔽不同 CPU 之间的区别。</p>
+<p>在 _STRUCT_MCONTEXT 类型的结构体中，存储了当前线程的 Stack Pointer 和最顶部栈帧的 Frame Pointer，从而获取到了整个线程的调用栈。</p>
+<p>在项目中，调用栈存储在 backtraceBuffer 数组中，其中每一个指针对应了一个栈帧，每个栈帧又对应一个函数调用，并且每个函数都有自己的符号名。</p>
+<p>接下来的任务就是根据栈帧的 Frame Pointer 获取到这个函数调用的符号名。</p>
+<h5 id="四、相关-API-和数据结构"><a href="#四、相关-API-和数据结构" class="headerlink" title="四、相关 API 和数据结构"></a>四、相关 API 和数据结构</h5><p>由于在上面回溯线程调用栈拿到的是一组地址，所以这里进行符号化的输入输出应该分别是地址和符号。在实际操作中，我们需要依赖于 dyld 相关方法和数据结构：</p>
+<p>/*<br> * Structure filled in by dladdr().<br> <em>/<br>typedef struct dl_info {<br>        const char      \</em>dli_fname;     /* Pathname of shared object <em>/<br>        void            \</em>dli_fbase;     /* Base address of shared object <em>/<br>        const char      \</em>dli_sname;     /* Name of nearest symbol <em>/<br>        void            \</em>dli_saddr;     /* Address of nearest symbol */<br>} Dl_info;</p>
+<p>extern int dladdr(const void <em>, Dl_info </em>);</p>
+<p>DESCRIPTION<br>     These routines provide additional introspection of dyld beyond that provided by dlopen() and dladdr()</p>
+<pre><code>\_dyld\_image_count() returns the current number of images mapped in by dyld. Note that using this count
+to iterate all images is not thread safe, because another thread may be adding or removing images dur-ing during
+ing the iteration.
+
+\_dyld\_get\_image\_header() returns a pointer to the mach header of the image indexed by image_index.  If
+image_index is out of range, NULL is returned.
+
+\_dyld\_get\_image\_vmaddr_slide() returns the virtural memory address slide amount of the image indexed by
+image\_index. If image\_index is out of range zero is returned.
+
+\_dyld\_get\_image\_name() returns the name of the image indexed by image_index. The C-string continues to
+be owned by dyld and should not deleted.  If image_index is out of range NULL is returned.
+</code></pre><p>又为了要判断此次解析是否成功，所以接口设计为：</p>
+<p>bool jdy_symbolicateAddress(const uintptr_t addr, Dl_info *info)</p>
+<p>Dl_info 用来填充解析的结果。</p>
+<h5 id="五、算法思路"><a href="#五、算法思路" class="headerlink" title="五、算法思路"></a>五、算法思路</h5><p>对一个地址进行符号化解析说起来也是比较直接的，就是找到地址所属的内存镜像，然后定位该镜像中的符号表，最后从符号表中匹配目标地址的符号。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-e6b2c458c01d0390.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>以下思路是描述一个大致的方向，并没有涵盖具体的细节，比如基于 ASLR 的偏移量：</p>
+<p>// 基于 ASLR 的偏移量 <a href="https://en.wikipedia.org/wiki/Address\_space\_layout_randomization" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Address\_space\_layout_randomization</a></p>
+<p>/**<br> * When the dynamic linker loads an image,<br> * the image must be mapped into the virtual address space of the process at an unoccupied address.<br> * The dynamic linker accomplishes this by adding a value “the virtual memory slide amount” to the base address of the image.<br> */</p>
+<p>①、寻找包含地址的目标镜像</p>
+<p>起初看到一个 API 还有点小惊喜，可惜 iPhone 上用不了：</p>
+<p>extern bool _dyld_image_containing_address(const void * address) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_3,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);</p>
+<p>所以得自己来判断。</p>
+<blockquote>
+<p>A segment defines a range of bytes in a Mach-O file and the addresses and memory protection attributes at which those bytes are mapped into virtual memory when the dynamic linker loads the application. As such, segments are always virtual memory page aligned. A segment contains zero or more sections.</p>
+</blockquote>
+<p>通过遍历每个段，判断目标地址是否落在该段包含的范围内：</p>
+<p>/*<br>* The segment load command indicates that a part of this file is to be<br>* mapped into the task’s address space.  The size of this segment in memory,<br>* vmsize, maybe equal to or larger than the amount to map from this file,<br>* filesize.  The file is mapped starting at fileoff to the beginning of<br>* the segment in memory, vmaddr.  The rest of the memory of the segment,<br>* if any, is allocated zero fill on demand.  The segment’s maximum virtual<br>* memory protection and initial virtual memory protection are specified<br>* by the maxprot and initprot fields.  If the segment has sections then the<br>* section structures directly follow the segment command and their size is<br>* reflected in cmdsize.<br><em>/<br>struct segment_command { /</em> for 32-bit architectures <em>/<br>    uint32_t    cmd;        /</em> LC_SEGMENT <em>/<br>    uint32_t    cmdsize;    /</em> includes sizeof section structs <em>/<br>    char        segname[16];    /</em> segment name <em>/<br>    uint32_t    vmaddr;     /</em> memory address of this segment <em>/<br>    uint32_t    vmsize;     /</em> memory size of this segment <em>/<br>    uint32_t    fileoff;    /</em> file offset of this segment <em>/<br>    uint32_t    filesize;   /</em> amount to map from the file <em>/<br>    vm_prot_t   maxprot;    /</em> maximum VM protection <em>/<br>    vm_prot_t   initprot;   /</em> initial VM protection <em>/<br>    uint32_t    nsects;     /</em> number of sections in segment <em>/<br>    uint32_t    flags;      /</em> flags */<br>};</p>
+<p>/**<br> * @brief 判断某个segment_command是否包含addr这个地址，基于segment的虚拟地址和段大小来判断<br> <em>/<br>bool jdy_segmentContainsAddress(const struct load_command </em>cmdPtr, const uintptr_t addr) {<br>    if (cmdPtr-&gt;cmd == LC_SEGMENT) {<br>        struct segment_command *segPtr = (struct segment_command *)cmdPtr;<br>        if (addr &gt;= segPtr-&gt;vmaddr &amp;&amp; addr &lt; (segPtr-&gt;vmaddr + segPtr-&gt;vmsize)) {<br>            return true;<br>        }<br>    }<br>}</p>
+<p>这样一来，我们就可以找到包含目标地址的镜像文件了。</p>
+<p>②、定位目标镜像的符号表</p>
+<p>由于符号的收集和符号表的创建贯穿着编译和链接阶段，这里就不展开了，而是只要确定除了代码段 _TEXT 和数据段 DATA 外，还有个 _LINKEDIT 段包含符号表：</p>
+<blockquote>
+<p>The __LINKEDIT segment contains raw data used by the dynamic linker, such as symbol, string, and relocation table entries.</p>
+</blockquote>
+<p>所以现在我们需要先定位到 __LINKEDIT 段，同样摘自苹果官方文档：</p>
+<blockquote>
+<p>Segments and sections are normally accessed by name. Segments, by convention, are named using all uppercase letters preceded by two underscores (for example, _TEXT); sections should be named using all lowercase letters preceded by two underscores (for example, _text). This naming convention is standard, although not required for the tools to operate correctly.</p>
+</blockquote>
+<p>我们通过遍历每个段，比较段名称是否和 __LINKEDIT 相同：</p>
+<p>usr/include/mach-o/loader.h</p>
+<p>#define SEG_LINKEDIT   “__LINKEDIT”</p>
+<p>接着来找符号表：</p>
+<blockquote>
+<p>摘自《The Mac Hacker’s Handbook》：</p>
+<p>The LC_SYMTAB load command describes where to find the string and symbol tables within the __LINKEDIT segment. The offsets given are file offsets, so you subtract the file offset of the __LINKEDIT segment to obtain the virtual memory offset of the string and symbol tables. Adding the virtual memory offset to the virtual-memory address where the __LINKEDIT segment is loaded will give you the in-memory location of the string and sym- bol tables.</p>
+</blockquote>
+<p>也就是说，我们需要结合 __LINKEDIT segment_command(见上面结构描述)和 LC_SYMTAB load_command(见下面结构描述)来定位符号表：</p>
+<p>/*<br> * The symtab_command contains the offsets and sizes of the link-edit 4.3BSD<br> * “stab” style symbol table information as described in the header files<br> * &lt;nlist.h&gt; and &lt;stab.h&gt;.<br> <em>/<br>struct symtab_command {<br>    uint32_t    cmd;        /</em> LC_SYMTAB <em>/<br>    uint32_t    cmdsize;    /</em> sizeof(struct symtab_command) <em>/<br>    uint32_t    symoff;        /</em> symbol table offset <em>/<br>    uint32_t    nsyms;        /</em> number of symbol table entries <em>/<br>    uint32_t    stroff;        /</em> string table offset <em>/<br>    uint32_t    strsize;    /</em> string table size in bytes */<br>};</p>
+<p>如上述引用描述，LC_SYMTAB 和 _LINKEDIT 中的偏移量都是文件偏移量，所以要获得内存中符号表和字符串表的地址，我们先将 LC_SYMTAB 的 symoff 和 stroff 分别减去 LINKEDIT 的 fileoff 得到虚拟地址偏移量，然后再加上 _LINKEDIT 的vmoffset 得到虚拟地址。当然，要得到最终的实际内存地址，还需要加上基于 ASLR 的偏移量。</p>
+<p>③、在符号表中寻找和目标地址最匹配的符号</p>
+<p>终于找到符号表了，代码：</p>
+<p>/**<br> * @brief 在指定的符号表中为地址匹配最合适的符号，这里的地址需要减去vmaddr_slide<br> <em>/<br>const JDY_SymbolTableEntry </em>jdy_findBestMatchSymbolForAddress(uintptr_t addr,<br>                                                              JDY_SymbolTableEntry *symbolTable,<br>                                                              uint32_t nsyms) {</p>
+<pre><code>// 1\. addr &gt;= symbol.value; 因为addr是某个函数中的一条指令地址，它应该大于等于这个函数的入口地址，也就是对应符号的值；
+// 2\. symbol.value is nearest to addr; 离指令地址addr更近的函数入口地址，才是更准确的匹配项；
+
+const JDY_SymbolTableEntry *nearestSymbol = NULL;
+uintptr\_t currentDistance = UINT32\_MAX;
+
+for (uint32_t symIndex = 0; symIndex &lt; nsyms; symIndex++) {
+    uintptr\_t symbolValue = symbolTable\[symIndex\].n\_value;
+    if (symbolValue &gt; 0) {
+        uintptr_t symbolDistance = addr - symbolValue;
+        if (symbolValue &lt;= addr &amp;&amp; symbolDistance &lt;= currentDistance) {
+            currentDistance = symbolDistance;
+            nearestSymbol = symbolTable + symIndex;
+        }
+    }
+}
+
+return nearestSymbol;
+</code></pre><p>}</p>
+<p>/*<br> * This is the symbol table entry structure for 64-bit architectures.<br> <em>/<br>struct nlist_64 {<br>    union {<br>        uint32_t  n_strx; /</em> index into the string table <em>/<br>    } n_un;<br>    uint8_t n_type;        /</em> type flag, see below <em>/<br>    uint8_t n_sect;        /</em> section number or NO_SECT <em>/<br>    uint16_t n_desc;       /</em> see &lt;mach-o/stab.h&gt; <em>/<br>    uint64_t n_value;      /</em> value of this symbol (or stab offset) */<br>};</p>
+<p>找到匹配的 nlist 结构后，我们可以通过 .n_un.n_strx 来定位字符串表中相应的符号名。</p>
+<h5 id="六、揭秘-NSThread"><a href="#六、揭秘-NSThread" class="headerlink" title="六、揭秘 NSThread"></a>六、揭秘 NSThread</h5><p>我们可以获取到所有线程以及它们的调用堆栈，但如果想单独获取某个线程的堆栈呢？如何建立 NSThread 线程和内核线程之间的联系？</p>
+<p><a href="http://www.gnustep.org/resources/downloads.php" target="_blank" rel="noopener">GNUStep-base</a> 的源码中包含了 Foundation 库的源码，不能确保 NSThread 是否采用它的实现，但至少可以从 NSThread.m 类中挖掘出很多有用信息。</p>
+<p>很多文章都提到了 NSThread 是 pthread 的封装，这就涉及两个问题：</p>
+<ol>
+<li>pthread 是什么？</li>
+<li>NSThread 如何封装 pthread？</li>
+</ol>
+<p>pthread 中的字母 p 是 POSIX 的简写，POSIX 表示”可移植操作系统接口(Portable Operating System Interface)”。</p>
+<p>每个操作系统都有自己的线程模型，它们提供的操作线程的 API 也不一样，这就给跨平台的线程管理带来了问题，而 POSIX 的目的就是提供抽象的 pthread 以及相关 API，这些 API 在不同操作系统中有不同的实现，但是完成的功能一致。</p>
+<p>Unix 系统提供的 thread_get_state 和 task_threads 等方法，操作的都是内核线程，每个内核线程由 thread_t 类型的 id 来唯一标识，pthread 的唯一标识是 pthread_t 类型。</p>
+<p>内核线程和 pthread 的转换(也即是 thread_t 和 pthread_t 互转)很容易，因为 pthread 诞生的目的就是为了抽象内核线程。</p>
+<p>说 NSThread 封装了 pthread 并不是很准确，NSThread 内部只有很少的地方用到了 pthread。NSThread 的 start 方法简化版实现如下:</p>
+<p>- (void) start<br>{<br>     pthread_attr_t attr;<br>     pthread_t thr;<br>     errno = 0;<br>     pthread_attr_init(&amp;attr);<br>     if (pthread_create(&amp;thr, &amp;attr, nsthreadLauncher, self)) {<br>         // Error Handling<br>     }<br>}</p>
+<p>甚至于 NSThread 都没有存储新建 pthread 的 pthread_t 标识。</p>
+<p>另一处用到 pthread 的地方就是 NSThread 在退出时，调用了 pthread_exit()。除此以外就很少感受到 pthread 的存在感了。</p>
+<p>实际上所有的 performSelector 系列最终都会走到下面这个全能函数:</p>
+<p>- (void)performSelector:(SEL)aSelector<br>               onThread:(NSThread <em>)thr<br>             withObject:(nullable id)arg<br>          waitUntilDone:(BOOL)wait<br>                  modes:(nullable NSArray&lt;NSString </em>&gt; *)array API_AVAILABLE(macos(10.5), ios(2.0), watchos(2.0), tvos(9.0));</p>
+<p>而它仅仅是一个封装，根据线程获取到 runloop，真正调用的还是 NSRunloop 的方法:</p>
+<p>- (void) performSelector:(SEL)aSelector<br>                  target:(id)target<br>                argument:(id)argument<br>                   order:(NSUInteger)order<br>                   modes:(NSArray*)modes;</p>
+<p>这些信息将组成一个 Performer 对象放进 runloop 等待执行。</p>
+<h5 id="七、NSThread-转内核-thread"><a href="#七、NSThread-转内核-thread" class="headerlink" title="七、NSThread 转内核 thread"></a>七、NSThread 转内核 thread</h5><p>由于系统没有提供相应的转换方法，而且 NSThread 没有保留线程的 pthread_t，所以常规手段无法满足需求。</p>
+<p>一种思路是利用 performSelector 方法在指定线程执行代码并记录 thread_t，执行代码的时机不能太晚，如果在打印调用栈时才执行就会破坏调用栈。最好的方法是在线程创建时执行，上文提到了利用 pthread_create 方法创建线程，它的回调函数 nsthreadLauncher 实现如下:</p>
+<p>static void *nsthreadLauncher(void* thread)<br>{<br>    NSThread *t = (NSThread*)thread;<br>    [nc postNotificationName: NSThreadDidStartNotification object:t userInfo: nil];<br>    [t _setName: [t name]];<br>    [t main];<br>    [NSThread exit];<br>    return NULL;<br>}</p>
+<p>很神奇的发现系统居然会发送一个通知，通知名不对外提供，但是可以通过监听所有通知名的方法得知它的名字： @”_NSThreadDidStartNotification”，于是我们可以监听这个通知并调用 performSelector 方法。</p>
+<p>一般 NSThread 使用 initWithTarget:Selector:object 方法创建。在 main 方法中 selector 会被执行，main 方法执行结束后线程就会退出。如果想做线程保活，需要在传入的 selector 中开启 runloop，详见我的这篇文章：<a href="https://bestswifter.com/runloop-and-thread/" target="_blank" rel="noopener">深入研究 Runloop 与线程保活</a>。</p>
+<p>可见，这种方案并不现实，因为之前已经解释过，performSelector 依赖于 runloop 开启，而 runloop 直到 main 方法才有可能开启。</p>
+<p>回顾问题发现，我们需要的是一个联系 NSThread 对象和内核 thread 的纽带，也就是说要找到 NSThread 对象的某个唯一值，而且内核 thread 也具有这个唯一值。</p>
+<p>观察一下 NSThread，它的唯一值只有对象地址，对象序列号(Sequence Number) 和线程名称:</p>
+<p>&lt;NSThread: 0x144d095e0&gt;{number = 1, name = main}</p>
+<p>地址分配在堆上，没有使用意义，序列号的计算没有看懂，因此只剩下 name。幸运的是 pthread 也提供了一个方法 pthread_getname_np 来获取线程的名字，两者是一致的，感兴趣的读者可以自行阅读 setName 方法的实现，它调用的就是 pthread 提供的接口。</p>
+<p>这里的 np 表示 not POSIX，也就是说它并不能跨平台使用。</p>
+<p>于是解决方案就很简单了，对于 NSThread 参数，把它的名字改为某个随机数(我选择了时间戳)，然后遍历 pthread 并检查有没有匹配的名字。查找完成后把参数的名字恢复即可。</p>
+<h5 id="八、主线程转内核-thread"><a href="#八、主线程转内核-thread" class="headerlink" title="八、主线程转内核 thread"></a>八、主线程转内核 thread</h5><p>本来以为问题已经圆满解决，不料还有一个坑，主线程设置 name 后无法用 pthread_getname_np 读取到。</p>
+<p>好在我们还可以迂回解决问题：事先获得主线程的 thread_t，然后进行比对。</p>
+<p>上述方案要求我们在主线程中执行代码从而获得 thread_t，显然最好的方案是在 load 方法里：</p>
+<p>static mach_port_t main_thread_id;<br>+ (void)load {<br>    main_thread_id = mach_thread_self();<br>}</p>
+<h5 id="九、学习文章"><a href="#九、学习文章" class="headerlink" title="九、学习文章"></a>九、学习文章</h5><p><a href="https://blog.csdn.net/jasonblog/article/details/49909163" target="_blank" rel="noopener">iOS中线程Call Stack的捕获和解析（一）</a></p>
+<p><a href="https://blog.csdn.net/jasonblog/article/details/49909209" target="_blank" rel="noopener">iOS中线程Call Stack的捕获和解析（二）</a></p>
+<p><a href="https://blog.csdn.net/abc649395594/article/details/52350426" target="_blank" rel="noopener">获取任意线程调用栈的那些事</a></p>
+<p><a href="https://github.com/bestswifter/BSBacktraceLogger" target="_blank" rel="noopener">BSBacktraceLogger</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/01/15/e7-ba-bf-e7-a8-8bcall-stack-e7-9a-84-e6-8d-95-e8-8e-b7-e5-92-8c-e8-a7-a3-e6-9e-90/">http://yoursite.com/2019/01/15/e7-ba-bf-e7-a8-8bcall-stack-e7-9a-84-e6-8d-95-e8-8e-b7-e5-92-8c-e8-a7-a3-e6-9e-90/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/01/15/e7-ac-a6-e5-8f-b7-e8-a1-a8/" class="pre"> 符号表		</a><a href="/2019/01/11/bitcode-ef-bc-882-ef-bc-89/" class="next"> Bitcode（2）		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、获取任意一个线程的-Call-Stack"><span class="toc-text">一、获取任意一个线程的 Call Stack</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、失败的传统方法"><span class="toc-text">二、失败的传统方法</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、Mach-thread"><span class="toc-text">三、Mach_thread</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、相关-API-和数据结构"><span class="toc-text">四、相关 API 和数据结构</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、算法思路"><span class="toc-text">五、算法思路</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、揭秘-NSThread"><span class="toc-text">六、揭秘 NSThread</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#七、NSThread-转内核-thread"><span class="toc-text">七、NSThread 转内核 thread</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#八、主线程转内核-thread"><span class="toc-text">八、主线程转内核 thread</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#九、学习文章"><span class="toc-text">九、学习文章</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

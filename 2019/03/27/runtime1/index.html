@@ -1,0 +1,246 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> Runtime(1)		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> Runtime(1)		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> Runtime(1)		</h1><div class="post-meta"><a href="/2019/03/27/runtime1/#comments" class="comment-count"></a><p><span class="date">Mar 27, 2019</span><span><a href="/categories/底层原理/" class="category">底层原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>文章：<a href="http://home.cnblogs.com/u/Mike-zh/" target="_blank" rel="noopener">Mike_zh</a>/<a href="https://www.cnblogs.com/Mike-zh/p/4557014.html" target="_blank" rel="noopener">iOS-Runtime知识点整理</a>、<a href="https://www.ianisme.com/" target="_blank" rel="noopener">ian</a>/<a href="https://www.ianisme.com/ios/2019.html" target="_blank" rel="noopener">Objective-C Runtime 1小时入门教程</a></p>
+<h5 id="一、简介"><a href="#一、简介" class="headerlink" title="一、简介"></a>一、简介</h5><p>OC 是一门动态语言，所以它会把一些决定工作从编译链接推迟到运行时。也就是说只有编译器是不够的，还需要一个运行时系统 （runtime system）来执行编译后的代码，它是整个 OC 运行框架的一块基石。</p>
+<p>Runtime 其实有两个版本：modern 和 legacy。我们现在用的 Objective-C 2.0 采用的是现行（Modern）版的 Runtime 系统，只能运行在 iOS 和 OS X 10.5 之后的 64 位程序中。而 OS X 较老的 32 位程序仍采用 Objective-C 1 中的 Legacy 版本。</p>
+<p>当更改一个类的实例变量的布局时，在早期版本中你需要重新编译它的子类，而现行版就不需要。</p>
+<p>Runtime 基本是用 C 和汇编（437 版本开始较多使用 mm 文件，但是仍用 C 语法）实现的，可见苹果为了动态系统的高效而作出了很多努力。<a href="http://opensource.apple.com/tarballs/objc4/" target="_blank" rel="noopener">runtime源码</a>，苹果和 GNU 各自维护一个开源的 runtime 版本，两个版本在努力的保持一致。</p>
+<h5 id="二、Runtime-相关的头文件"><a href="#二、Runtime-相关的头文件" class="headerlink" title="二、Runtime 相关的头文件"></a>二、Runtime 相关的头文件</h5><p>ios 的 sdk 中 usr/include/objc 文件夹下面有这样几个文件</p>
+<p>List.h<br>NSObjCRuntime.h<br>NSObject.h<br>Object.h<br>Protocol.h<br>a.txt<br>hashtable.h<br>hashtable2.h<br>message.h<br>module.map<br>objc-api.h<br>objc-auto.h<br>objc-class.h<br>objc-exception.h<br>objc-load.h<br>objc-runtime.h<br>objc-sync.h<br>objc.h<br>runtime.h</p>
+<p>都是和运行时相关的头文件，其中主要使用的函数定义在 message.h 和 runtime.h 这两个文件中。 在 message.h 中主要包含了一些向对象发送消息的函数，这是 OC 对象方法调用的底层实现。 runtime.h 是运行时最重要的文件，其中包含了对运行时进行操作的方法。 主要包括：</p>
+<p>1、操作对象的类型的定义</p>
+<p>/// An opaque type that represents a method in a class definition.  一个类型，代表着类定义中的一个方法<br>typedef struct objc_method *Method;</p>
+<p>/// An opaque type that represents an instance variable.  代表实例(对象)的变量<br>typedef struct objc_ivar *Ivar;</p>
+<p>/// An opaque type that represents a category.  代表一个分类<br>typedef struct objc_category *Category;</p>
+<p>/// An opaque type that represents an Objective-C declared property.  代表OC声明的属性<br>typedef struct objc_property *objc_property_t;</p>
+<p>// Class 代表一个类，它在 objc.h 中这样定义的 typedef struct objc_class *Class;<br>struct objc_class {<br>    Class _Nonnull isa  OBJC_ISA_AVAILABILITY;</p>
+<p>#if !__OBJC2__<br>    Class _Nullable super_class                              OBJC2_UNAVAILABLE;<br>    const char <em> _Nonnull name                               OBJC2_UNAVAILABLE;<br>    long version                                             OBJC2_UNAVAILABLE;<br>    long info                                                OBJC2_UNAVAILABLE;<br>    long instance_size                                       OBJC2_UNAVAILABLE;<br>    struct objc_ivar_list </em> _Nullable ivars                  OBJC2_UNAVAILABLE;<br>    struct objc_method_list <em> _Nullable </em> _Nullable methodLists                    OBJC2_UNAVAILABLE;<br>    struct objc_cache <em> _Nonnull cache                       OBJC2_UNAVAILABLE;<br>    struct objc_protocol_list </em> _Nullable protocols          OBJC2_UNAVAILABLE;</p>
+<p>#endif</p>
+<p>} OBJC2_UNAVAILABLE;</p>
+<p>这些类型的定义，对一个类进行了完全的分解，将类定义或者对象的每一个部分都抽象为一个类型 type，对操作一个类属性和方法非常方便。OBJC2_UNAVAILABLE 标记的属性是 Ojective-C 2.0 不支持的，但实际上可以用响应的函数获取这些属性，例如：如果想要获取 Class 的 name 属性，可以按如下方法获取：</p>
+<p>Class cls = obj.class;<br>// NSLog(@”%s”, cls-&gt;name); // 用这种方法已经不能获取 name 了因为OBJC2_UNAVAILABLE<br>const char * clsName = class_getName(cls);<br>NSLog(@”%s”, clsName);</p>
+<p>2、函数的定义</p>
+<blockquote>
+<p>操作对象的方法一般以 object_ 开头<br>操作类的方法一般以 class_ 开头<br>操作类或对象的方法的方法一般以 method_ 开头<br>操作成员变量的方法一般以 ivar_ 开头<br>操作属性的方法一般以 property_ 开头<br>操作协议的方法一般以 protocol_ 开头</p>
+<p>以 objc_ 开头的方法，则是 runtime 最终的管家，可以获取内存中类的加载信息、类的列表、关联对象和关联属性等操作。</p>
+</blockquote>
+<p>根据以上的函数的前缀可以大致了解到层级关系。</p>
+<p>// 使用 runtime 对当前的应用中加载的类进行打印<br>- (void)touchesBegan:(NSSet<uitouch *> <em>)touches withEvent:(UIEvent </em>)event<br>{<br>    unsigned int count = 0;</uitouch></p>
+<pre><code>Class * clsList = objc_copyClassList(&amp;count);
+
+for (int i = 0; i &lt; count; i++) {
+    const char * clsName = class_getName(clsList\[i\]);
+    NSLog(@&quot;%s&quot;, clsName);
+}
+</code></pre><p>}</p>
+<h5 id="三、技术点"><a href="#三、技术点" class="headerlink" title="三、技术点"></a>三、技术点</h5><p>// 简单的定义了一个成员变量和两个属性<br>@interface Person : NSObject<br>{<br>    @private<br>         CGFloat _height;<br>}<br>@property (nonatomic, copy) NSString * name;<br>@property (nonatomic, assign) NSInteger age;</p>
+<p>@end</p>
+<p>1、获取属性/成员变量列表</p>
+<p>使用 class_copyIvarList() 函数获取成员变量的列表，使用 class_copyPropertyList() 函数获取属性列表：</p>
+<p>- (void)touchesBegan:(NSSet<uitouch *> <em>)touches withEvent:(UIEvent </em>)event<br>{<br>    Class cls = NSClassFromString(@”Person”);   // Class cls = Person.class;</uitouch></p>
+<pre><code>unsigned int count = 0;
+// 获取成员变量数组
+Ivar * ivarList = class_copyIvarList(cls, &amp;count);
+for (int i = 0; i &lt; count; i++) {
+    // 获取成员变量名
+    const char * ivarName = ivar_getName(ivarList\[i\]); 
+    NSLog(@&quot;%s&quot;, ivarName);
+}
+
+// 获取属性数组
+objc\_property\_t * ptyList = class_copyPropertyList(cls, &amp;count);
+for (int i = 0; i &lt; count; i++) {
+    const char * ptyName = property_getName(ptyList\[i\]);
+    NSLog(@&quot;%s&quot;, ptyName);
+}
+</code></pre><p>}</p>
+<p>2018-11-04 17:28:03.905326+0800 Demo[5894:1444503] _height<br>2018-11-04 17:28:03.905486+0800 Demo[5894:1444503] _name<br>2018-11-04 17:28:03.905616+0800 Demo[5894:1444503] _age<br>2018-11-04 17:28:03.905745+0800 Demo[5894:1444503] name<br>2018-11-04 17:28:03.905877+0800 Demo[5894:1444503] age</p>
+<p>从这里就可以看出 @property 做了三件事：</p>
+<p>①、生成一个带下划线的成员变量<br>②、生成这个成员变量的 set 方法<br>③、生成这个成员变量的 get 方法</p>
+<p>因此会输出三个成员变量 _height、_age 和 _name。并且从上面可知 ivarList 能够获取到 @property 关键字定义的属性 ，而 propertyList 不能获取到成员变量。即用 ivarList 可以获取到所有的成员变量和属性。</p>
+<p>@property (nonatomic, copy, readonly) NSString * name;  // 只读属性</p>
+<p>- (NSString *)name<br>{<br>    return @”job”;<br>}</p>
+<p>2018-11-04 17:52:52.690815+0800 Demo[6025:1474196] _height<br>2018-11-04 17:52:52.691025+0800 Demo[6025:1474196] _age<br>2018-11-04 17:52:52.691159+0800 Demo[6025:1474196] name<br>2018-11-04 17:52:52.691308+0800 Demo[6025:1474196] age</p>
+<p>当只读属性 name 重写了 getter 方法时，无论使用 ivarList 还是使用 propertyList 都无法获取到 _name 成员变量。</p>
+<blockquote>
+<p>一个 readonly 的属性，到底是 didSet+set 好，还是重写 getter 好?</p>
+</blockquote>
+<p>大部分的 readonly 的属性是计算型的，依赖于其他属性，因此可以使用 didSet+set，也就是在其他属性的 set 方法内，将只读属性 set。 但是 didSet+set 有时候完全没有必要，不符合懒加载的规则，浪费了计算能力，用重写 getter 的方法好一些。</p>
+<blockquote>
+<p>在 KVC 时，想要获取全部的成员变量和属性， 怎么办呢？</p>
+</blockquote>
+<p>首先要了解 setValue:forKeyPath: 方法的底层实现：</p>
+<p>①、首先去类的方法列表去寻找有没有 setter 方法，如果有，就直接调用 [obj setXX:value]<br>②、查找有没有成员变量 _XX，如果有 _XX = value；<br>③、查找有没有成员变量 XX，如果有 XX = value；<br>④、如果都没有找到，直接报错。</p>
+<p>Terminating app due to uncaught exception ‘NSUnknownKeyException’,<br>reason: ‘[<person 0x102bb7388> setValue:forUndefinedKey:]:<br>this class is not key value coding-compliant for the key name.’</person></p>
+<p>首先，只读属性为什么要为它赋值呢，因此对它进行 kvc 也不合情理。</p>
+<p>另外，对于重写了 getter 的只读属性而言：如果对 propertyList 的属性一次使用 kvc，就会报错，因此为保证代码正常，不能使用 propertyList 的属性进行 kvc；</p>
+<p>使用 ivaList 时是无法获取到重写了 getter 的只读属性，因此是 kvc 的最佳方案。再者，使用 propertyList 无法获取成员变量 _height，无法对成员变量进行赋值。而使用 ivaList 是可以将需要赋值的成员变量都获取的。</p>
+<p>要想不对 _height 成员变量赋值，在 kvc 时又可以这样改进一下，通过 ivarList 获取，去掉 propertyList 中没有的成员变量，这样就过滤掉了 _height。</p>
+<p>@property (nonatomic, weak) NSTimer <em> timer;<br>@property (nonatomic, strong) NSThread </em> thread;<br>@property (nonatomic, strong, readonly) AModel * a;  // 自定义对象</p>
+<p>{<br>     unsigned int count = 0;<br>     objc_property_t * propertyList = class_copyPropertyList(self.class, &amp;count);</p>
+<pre><code>for (int i = 0; i &lt; count; i++) {
+     NSLog(@&quot;%s&quot;, property_getAttributes(propertyList\[i\]));
+}
+</code></pre><p>}</p>
+<p>2018-11-05 15:09:37.839596+0800 Demo[39749:288880] T@”NSTimer”,W,N,V_timer<br>2018-11-05 15:09:37.839692+0800 Demo[39749:288880] T@”NSThread”,&amp;,N,V_thread<br>2018-11-05 15:09:37.839771+0800 Demo[39749:288880] T@”AModel”,R,N,V_a</p>
+<p>通过 property_getAttributes() 方法获取属性的参数。</p>
+<h5 id="四、应用场景"><a href="#四、应用场景" class="headerlink" title="四、应用场景"></a>四、应用场景</h5><p>1、KVC字典转模型</p>
+<p>获取属性/成员列表一个重要的应用就是：一次取出模型中的属性/成员变量，根据变量名获取字典中的 key 然后取出对应的 value，使用 setValue: forKeyPath: 方法设置值。</p>
+<p>为什么要这样，而不再使用方法 setValuesForKeysWithDictionary:。因为在 setValuesForKeysWithDictionary: 方法内部会执行这样一个过程：</p>
+<p>①、遍历字典里面的所有 key，取出 key；<br>②、取出 key 的 value，即 dict[key]；<br>③、使用方法 [setValue:value forKeyPath:key] 给模型的属性/成员变量进行赋值。</p>
+<p>因此，开发中经常遇到的字典中的 key 比模型中多时，会出现的 this class is not key-value compliant for ‘xxx’ 这个 bug，是因为模型中没有这个属性/成员变量。当模型中的属性比字典中多时，使用 setValuesForKeysWithDictionary: ，多出来的属性是对象类型时为 null，基本数据类型时会有一个系统默认值（如 int 为 0）。</p>
+<p>因此使用逐一为属性赋值的方法进行 KVC：</p>
+<p>- (void)touchesBegan:(NSSet<uitouch *> <em>)touches withEvent:(UIEvent </em>)event<br>{<br>     Class cls = Person.class;<br>     unsigned int count = 0;</uitouch></p>
+<pre><code>Person * person = \[\[Person alloc\] init\];
+NSDictionary * dict = @{  @&quot;name&quot; : @&quot;Tom&quot;, @&quot;age&quot; : @19, @&quot;height&quot;: @175 };
+
+Ivar * ivars = class_copyIvarList(cls, &amp;count);
+
+for (int i = 0; i &lt; count; i++) {
+     const char * clsName = ivar_getName(ivars\[i\]);
+     NSString * name = \[NSString stringWithUTF8String:clsName\];
+     NSString * key = \[name substringFromIndex:1\];  // 去掉&apos;_&apos;
+     \[person setValue:dict\[key\] forKey:key\];
+}
+</code></pre><p>}</p>
+<p>2018-11-04 19:42:16.964474+0800 Demo[6425:1574210] height:175.0000，name:Tom，age:19，time:(null)</p>
+<p>使用这种方式进行 kvc，即使字典中的 key 多的时候也不会有 bug。</p>
+<p>但新的问题出现了，如果模型中的属性比字典中的 key 多便会出现 bug，而且如果多的是对象类型不会有 bug，该属性的值为 null，如果是基本数据类型就会出错 could not set nil as the value for the key ‘xxx’。</p>
+<blockquote>
+<p>setObject:forKey: 如果 value 传 nil 会直接报错；setValue:forKey: 则不会，会赋值 nil。具体可以看文档说明。</p>
+</blockquote>
+<p>解决基础类型被赋值 nil 的 bug：可以在 [setValue:value forKeyPath:key] 方法调用之前取出属性对应的类型，如果类型是基本数据类型，value 替换为默认值（如 int 对应默认值为 0）。</p>
+<p>runtime 提供的 ivar_getTypeEncoding() 函数可以获取到属性的类型。<a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100-SW1" target="_blank" rel="noopener">Type Encodings</a></p>
+<p>for (int i = 0; i &lt; count; i++) {<br>     const char <em> ivarName = ivar_getName(ivars[i]);<br>     NSString </em> name = [NSString stringWithUTF8String:ivarName];<br>     NSString * key  = [name substringFromIndex:1];</p>
+<pre><code>const char * coding = ivar_getTypeEncoding(ivars\[i\]); // 获取类型
+NSString * strCode = \[NSString stringWithUTF8String:coding\];
+id value = dict\[key\];
+
+if (\[strCode isEqualToString:@&quot;f&quot;\]) {  // 判断类型是否是 float
+     value = @(0.0);
+}
+
+\[person setValue:value forKey:key\];
+</code></pre><p>}</p>
+<p>method_getTypeEncoding() 函数可以获取到方法类型编码</p>
+<p>{<br>     Method m = class_getInstanceMethod(self.class, @selector(do:at:on:));</p>
+<pre><code>NSLog(@&quot;%s&quot;, method_getTypeEncoding(m));
+</code></pre><p>}<br>- (BOOL)do:(NSString *)something at:(char)place on:(int)count;</p>
+<p>2018-11-05 14:42:30.891829+0800 Demo[38588:270099] B32@0:8@16c24i28</p>
+<p>property_getAttributes() 函数可以获取到属性的参数。<a href="https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtPropertyIntrospection.html#//apple_ref/doc/uid/TP40008048-CH101-SW6" target="_blank" rel="noopener">Declared Properties</a></p>
+<p>2、NSCoding 归档和解档</p>
+<p>获取属性/成员列表另外一个重要的应用就是进行归档和解档，其原理和上面的 kvc 基本上一样：</p>
+<p>- (void)encodeWithCoder:(NSCoder <em>)aCoder<br>{<br>     unsigned int count = 0;<br>     Ivar </em> ivars = class_copyIvarList(self.class, &amp;count);</p>
+<pre><code>for (int i = 0; i &lt; count; i++) {
+     const char * ivarName = ivar_getName(ivars\[i\]);
+     NSString * name = \[NSString stringWithUTF8String:ivarName\];
+     NSString * key  = \[name substringFromIndex:1\];
+
+     id value = \[self valueForKey:key\];  // 取出 key 对应的 value
+     \[aCoder encodeObject:value forKey:key\];   // 编码
+}
+</code></pre><p>}</p>
+<p>- (id)initWithCoder:(NSCoder *)aDecoder<br>{<br>     if (self = [super init]) {</p>
+<pre><code>     unsigned int count = 0;
+     Ivar * ivars = class_copyIvarList(self.class, &amp;count);
+
+     for (int i = 0; i &lt; count; i++) {
+          const char * ivarName = ivar_getName(ivars\[i\]);
+          NSString * name = \[NSString stringWithUTF8String:ivarName\];
+          NSString * key = \[name substringFromIndex:1\];
+
+          id value = \[aDecoder decodeObjectForKey:key\];  // 解码
+          \[self setValue:value forKey:key\];  // 设置 key 对应的 value
+     }
+}
+return self;    
+</code></pre><p>}</p>
+<p>3、交换方法实现</p>
+<p>交换两个方法的实现一般写在类的 load 方法里面，因为 load 方法会在程序运行前加载一次，而 initialize 方法会在类或者子类第一次使用的时候调用，当有分类的时候会调用多次。</p>
+<p>+ (void)load<br>{<br>     static dispatch_once_t onceToken;<br>     dispatch_once(&amp;onceToken, ^{</p>
+<pre><code>     Method orginalMethod = class_getClassMethod(\[UIImage class\], @selector(imageNamed:));
+     Method swizzleMethod = class\_getClassMethod(\[UIImage class\], @selector(my\_imageNamed:));
+
+     //方法交换
+     method_exchangeImplementations(orginalMethod, swizzleMethod);
+});
+</code></pre><p>}</p>
+<p>+ (UIImage <em>)my_imageNamed:(NSString </em>)name<br>{<br>     return [self my_imageNamed:name];<br>}</p>
+<p>注意的是</p>
+<p>①、可以交换的两个方法的参数必须是匹配的，参数的类型一致。<br>②、如果想在 my_imageNamed: 的内部调用 imageNamed: 方法，此时调用 [self my_imageNamed:name] 实际上是在调用 imageName: 的代码实现。</p>
+<p>任何一个方法都有两个重要的属性：SEL 方法的编号，IMP 方法的实现。方法的调用过程实际上是根据 SEL 去寻找 IMP。</p>
+<p>4、类/对象的关联对象</p>
+<p>关联对象不是为类/对象添加属性或者成员变量（因为在设置关联后也无法通过 ivarList 或者 propertyList 取得) ，而是为类添加一个相关的对象，通常用于存储类信息，例如存储类的属性列表数组，为将来字典转模型的方便。 例如，将属性的名称存到数组中设置关联</p>
+<p>/* 参数 1 : 关联到对象<br>   参数 2 : 关联的 key，可以是任意类型<br>   参数 3 : 被关联的对象<br>   参数 4 : 关联引用的规则<br>           enum {<br>                OBJC_ASSOCIATION_ASSIGN = 0,<br>                OBJC_ASSOCIATION_RETAIN_NONATOMIC = 1,<br>                OBJC_ASSOCIATION_COPY_NONATOMIC = 3,<br>                OBJC_ASSOCIATION_RETAIN = 01401,<br>                OBJC_ASSOCIATION_COPY = 01403<br>           };<br>*/<br>objc_setAssociatedObject(self, key, value, OBJC_ASSOCIATION_COPY_NONATOMIC);</p>
+<p>id value = objc_getAssociatedObject(self, key);</p>
+<p>5、动态添加方法，拦截未实现的方法</p>
+<p>每个类都有继承自 NSObject 的两个类方法</p>
+<p>+ (BOOL)resolveClassMethod:(SEL)sel;<br>+ (BOOL)resolveInstanceMethod:(SEL)sel;</p>
+<p>一个适用于类方法，一个适用于对象方法。</p>
+<p>在代码中调用没有实现的方法时，也就是 sel 标识的方法没有实现，都会先调用这两个方法中的一个拦截。 通常的做法是在 resolve 的内部指定 sel 对应的 IMP，从而完成方法的动态创建和调用两个过程，也可以不指定 IMP 打印错误信息后直接返回。</p>
+<p>// 每个方法的内部都默认包含两个参数，被称为隐式参数：id self 和 SEL _cmd<br>void method(id self, SEL _cmd) {</p>
+<p>}</p>
+<p>+ (BOOL)resolveInstanceMethod:(SEL)sel<br>{<br>     if ([NSStringFromSelector(sel) isEqualToString:@”doSomething”]) {       </p>
+<pre><code>     /\* 参数 4 : const char *types 方法的类型
+
+        要注意函数至少有 self 和 _cmd 参数，第二个和第三个字符必须是 “@:”。
+
+        如果想要再增加参数，就可以从实现的第三个参数算起：
+            class_addMethod(self, sel, method, &quot;v@:@&quot;); // 多一个对象类型参数增加了 @
+
+            void method(id self, SEL _cmd, NSString * name) {  }
+
+        返回值：YES if the method was found and added to the receiver, otherwise NO.
+     */ 
+     class_addMethod(self, sel, method, &quot;v@:&quot;);  // 为 sel 指定实现为 method
+}
+return YES;
+</code></pre><p>}</p>
+<p>6、动态创建一个类</p>
+<p>动态创建一个类，为这个类添加成员变量和方法，并创建这个类型的对象：</p>
+<p>#import &lt;objc/message.h&gt;</p>
+<p>void sayFunction(id self, SEL _cmd, id param) {<br>    NSLog(@”%ld岁的%@在%@说%@”, [object_getIvar(self, class_getInstanceVariable([self class], “_age”)) integerValue], object_getIvar(self, class_getInstanceVariable([self class], “_name”)), object_getIvar(self, class_getInstanceVariable([self class], “schoolName”)), param);<br>}</p>
+<p>- (void)touchesBegan:(NSSet <em>)touches withEvent:(UIEvent </em>)event<br>{<br>    // 创建 Student 类。参数 1 : 父类   参数 2 : 类名   参数 3 : 通常为 0<br>    Class StudentClass = objc_allocateClassPair(NSObject.class, “Student”, 0);</p>
+<pre><code>// 添加一个 NSString 的变量，第四个参数是对齐方式，第五个参数是参数类型
+// 必须在 objc\_allocateClassPair and 和 objc\_registerClassPair 之间调用
+if (class_addIvar(StudentClass, &quot;schoolName&quot;, sizeof(NSString *), 0, &quot;@&quot;)) {
+    NSLog(@&quot;添加成员变量成功&quot;);
+}
+
+// 添加 NSString * _name 成员变量
+class\_addIvar(StudentClass, &quot;\_name&quot;, sizeof(NSString *), 0, @encode(NSString *));
+// 添加 int _age 成员变量
+class\_addIvar(StudentClass, &quot;\_age&quot;, sizeof(int), 0, @encode(int));
+
+// 为 Student 类添加方法 &quot;v@:&quot; 这种写法见参数类型连接
+SEL sel = sel_registerName(&quot;sayFunction:&quot;);
+if (class_addMethod(StudentClass, sel, (IMP)sayFunction, &quot;v@:@&quot;)) {
+    NSLog(@&quot;添加方法成功&quot;);
+}
+
+// 注册这个类到 runtime 系统中就可以使用了
+objc_registerClassPair(StudentClass);
+
+// 使用创建的类
+id student = \[\[StudentClass alloc\] init\];
+
+// 给刚刚添加的变量赋值
+// object_setInstanceVariable(student, &quot;schoolName&quot;, (void *)&amp;str);在ARC下不允许使用
+\[student setValue:@&quot;清华大学&quot; forKey:@&quot;schoolName&quot;\];
+
+// KVC 动态改变实例变量
+\[student setValue:@&quot;Tom&quot; forKey:@&quot;name&quot;\];
+
+// 从类中获取成员变量Ivar
+Ivar ageIvar = class\_getInstanceVariable(StudentClass, &quot;\_age&quot;);
+// 为peopleInstance的成员变量赋值
+object_setIvar(StudentClass, ageIvar, @18);
+
+// 调用 sayFunction 方法，也就是给 student 这个接受者发送 sayFunction: 这个消息
+objc_msgSend(student, &quot;sayFunction:&quot;, @&quot;你好~&quot;); 
+// \[student performSelector:sel withObject:@&quot;你好~&quot;\]; // 动态调用未显式在类中声明的方法
+
+student = nil;
+StudentClass = nil;
+</code></pre><p>//    objc_disposeClassPair(StudentClass);<br>}</p>
+<p>直接使用 objc_msgSend() 会报错 Too many arguments to function call, expected 0, have 3，此时需要在 Target -&gt; Build Settings -&gt; 搜索 msg -&gt; 修改为 NO</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-d8496fe34a524c20.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/600" alt></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/27/runtime1/">http://yoursite.com/2019/03/27/runtime1/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/27/runtime2/" class="pre"> Runtime(2)		</a><a href="/2019/03/26/tcp-ip-e5-8d-8f-e8-ae-ae/" class="next"> TCP/IP 协议		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、简介"><span class="toc-text">一、简介</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、Runtime-相关的头文件"><span class="toc-text">二、Runtime 相关的头文件</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、技术点"><span class="toc-text">三、技术点</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、应用场景"><span class="toc-text">四、应用场景</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

@@ -1,0 +1,474 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> GCD		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> GCD		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> GCD		</h1><div class="post-meta"><a href="/2019/03/19/gcd/#comments" class="comment-count"></a><p><span class="date">Mar 19, 2019</span><span><a href="/categories/多线程/" class="category">多线程</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="https://www.jianshu.com/p/2d57c72016c6" target="_blank" rel="noopener">iOS多线程：『GCD』详尽总结</a></p>
+<h5 id="一、GCD-简介"><a href="#一、GCD-简介" class="headerlink" title="一、GCD 简介"></a>一、GCD 简介</h5><blockquote>
+<p><a href="http://baike.baidu.com/item/GCD" target="_blank" rel="noopener">百度百科</a></p>
+<p>Grand Central Dispatch(GCD) 是 Apple 开发的一个多核编程的较新的解决方法。在 Mac OSX 10.6 首次推出，也可在 iOS4 及以上版本使用。它主要用于优化应用程序以支持多核处理器以及其他对称多处理系统。它是一个在线程池模式的基础上执行的并发任务。</p>
+</blockquote>
+<p>使用 GCD 的好处：</p>
+<ul>
+<li><p>GCD 可用于多核的并行运算</p>
+</li>
+<li><p>GCD 会自动利用更多的 CPU 内核（比如双核、四核）</p>
+</li>
+<li><p>GCD 会自动管理线程的生命周期（创建线程、调度任务、销毁线程），程序员只需要告诉 GCD 想要执行什么任务</p>
+</li>
+</ul>
+<h5 id="二、GCD-任务和队列"><a href="#二、GCD-任务和队列" class="headerlink" title="二、GCD 任务和队列"></a>二、GCD 任务和队列</h5><p>GCD 中两个核心概念：任务和队列。</p>
+<p>1、任务</p>
+<p>要执行的操作，也就是在线程中执行的那段代码。在 GCD 是放在 block 里。</p>
+<p>执行任务有两种方式：同步执行（sync）和异步执行（async）。</p>
+<p>主要区别：是否等待队列的任务执行结束，以及是否具备开启新线程的能力。</p>
+<ul>
+<li><p>同步执行</p>
+<ul>
+<li><p>同步添加任务到指定的队列中，在添加的任务执行结束之前，会一直等待，直到队列里面的任务完成之后再继续执行。</p>
+</li>
+<li><p>只能在当前线程中执行任务，不具备开启新线程的能力。</p>
+</li>
+</ul>
+</li>
+<li><p>异步执行：</p>
+<ul>
+<li><p>异步添加任务到指定的队列中，它不会做任何等待，可以继续执行任务。</p>
+</li>
+<li><p>可以在新的线程中执行任务，具备开启新线程的能力。</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>注意：异步执行（async）虽然具有开启新线程的能力，但是并不一定开启新线程，这跟任务所指定的队列类型有关。</p>
+<p>2、队列</p>
+<p>指执行任务的等待队列，即用来存放任务的队列。</p>
+<p>队列是一种特殊的线性表，采用 FIFO（先进先出）的原则，即新任务总是被插入到队列的末尾，而读取任务的时候总是从队列的头部开始读取。每读取一个任务，则从队列中释放一个任务。队列的结构可参考下图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1877784-01267bd211719167.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="4"></p>
+<p>在 GCD 中有两种队列：串行队列（Serial Dispatch Queue）和并发队列（Concurrent Dispatch Queue）。两者都符合 FIFO（先进先出）的原则。</p>
+<p>两者的主要区别是：执行顺序不同，以及开启线程数不同。</p>
+<ul>
+<li><p>串行队列：</p>
+<ul>
+<li>每次只执行一个任务，任务一个接一个执行。（只开启一个线程）</li>
+</ul>
+</li>
+<li><p>并发队列：</p>
+<ul>
+<li>多个任务可以并发（同时）执行。（可以开启多个线程，并且同时执行任务）</li>
+</ul>
+</li>
+</ul>
+<p>注意：并发队列的并发功能只有在异步（dispatch_async）函数下才有效。</p>
+<p>两者具体区别如下图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1877784-4faca27116209f35.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="5"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1877784-97f3931d1b187b11.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="6"></p>
+<h5 id="三、GCD-的使用步骤"><a href="#三、GCD-的使用步骤" class="headerlink" title="三、GCD 的使用步骤"></a>三、GCD 的使用步骤</h5><p>GCD 的使用只有两步：</p>
+<p>①、创建一个队列（串行队列或并发队列）</p>
+<p>②、将任务追加到任务的等待队列中，然后系统就会根据任务类型执行任务（同步执行或异步执行）。</p>
+<p>1、队列的创建方法/获取方法</p>
+<ul>
+<li>使用 dispatch_queue_create 来创建队列。</li>
+</ul>
+<p>/<em><br>   参数 1 : 表示队列的唯一标识符，用于 DEBUG，可以为空，推荐使用应用 BundleId 的逆序全程域名<br>   参数 2 : 用于识别是串行队列、并发队列。DISPATCH_QUEUE_SERIAL:串行   DISPATCH_QUEUE_CONCURRENT:并发
+ </em>/</p>
+<p>// 串行队列<br>dispatch_queue_t queue = dispatch_queue_create(“net.bujige.testQueue”, DISPATCH_QUEUE_SERIAL);</p>
+<p>// 并发队列<br>dispatch_queue_t queue = dispatch_queue_create(“net.bujige.testQueue”, DISPATCH_QUEUE_CONCURRENT); </p>
+<ul>
+<li><p>GCD 提供了的一种特殊的串行队列：主队列（Main Dispatch Queue）</p>
+<ul>
+<li><p>所有放在主队列中的任务，都会放到主线程中执行。</p>
+</li>
+<li><p>可使用 dispatch_get_main_queue() 获得主队列。</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>// 主队列<br>dispatch_queue_t queue = dispatch_get_main_queue(); </p>
+<ul>
+<li>GCD 默认提供了全局并发队列（Global Dispatch Queue）</li>
+</ul>
+<p>/**<br> * 全局并发队列<br> *<br> * 参数 1 : 队列优先级，一般用 DISPATCH_QUEUE_PRIORITY_DEFAULT<br> * 参数 2 : 暂时没用，传 0<br> */<br>dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0); </p>
+<p>2、任务的创建方法</p>
+<p>GCD 提供了同步执行任务的创建方法 dispatch_sync 和异步执行任务创建方法 dispatch_async。</p>
+<p>// 同步<br>dispatch_sync(queue, ^{<br>    // do something<br>});</p>
+<p>// 异步<br>dispatch_async(queue, ^{<br>    // do something<br>});</p>
+<p>虽然使用 GCD 只需两步，但是既然有两种队列（串行队列/并发队列），两种任务执行方式（同步执行/异步执行），那么就有了四种不同的组合方式。这四种不同的组合方式是：</p>
+<ol>
+<li>同步执行 + 并发队列</li>
+<li>异步执行 + 并发队列</li>
+<li>同步执行 + 串行队列</li>
+<li>异步执行 + 串行队列</li>
+</ol>
+<p>还有两种特殊队列：全局并发队列、主队列。因为主队列特殊，所以就又多了两种组合方式。这样就有 6 种不同的组合方式了。</p>
+<ol start="5">
+<li>同步执行 + 主队列</li>
+<li>异步执行 + 主队列</li>
+</ol>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-c840e31e294a8e17.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="7"></p>
+<p>同步既然不会开辟新的线程，那同步阻塞的是当前线程还是当前队列？</p>
+<p>阻塞当前队列，造成线程死锁。</p>
+<p>3、GCD 线程间的通信</p>
+<p>在 iOS 开发过程中，通常把一些耗时的操作放在其他线程，然后在主线程进行 UI 刷新。而当有时候在其他线程完成了耗时操作时，需要回到主线程，就用到了线程之间的通讯。</p>
+<p>/**<br> * 线程间通信<br> */<br>- (void)communication<br>{<br>    // 获取全局并发队列<br>    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);<br>    // 获取主队列<br>    dispatch_queue_t mainQueue = dispatch_get_main_queue(); </p>
+<pre><code>dispatch_async(queue, ^{
+    // 异步追加任务
+    for (int i = 0; i &lt; 2; ++i) {
+        \[NSThread sleepForTimeInterval:2\];          // 模拟耗时操作
+        NSLog(@&quot;1---%@&quot;, \[NSThread currentThread\]); // 打印当前线程
+    }
+
+    // 回到主线程
+    dispatch_async(mainQueue, ^{
+        // 追加在主线程中执行的任务
+        \[NSThread sleepForTimeInterval:2\];          // 模拟耗时操作
+        NSLog(@&quot;2---%@&quot;, \[NSThread currentThread\]); // 打印当前线程
+    });
+});
+</code></pre><p>}</p>
+<p>1—&lt;NSThread: 0x600000271940&gt;{number = 3, name = (null)}<br>1—&lt;NSThread: 0x600000271940&gt;{number = 3, name = (null)}<br>2—&lt;NSThread: 0x60000007bf80&gt;{number = 1, name = main}</p>
+<p>可以看到在其他线程中先执行任务，执行完了之后回到主线程执行主线程的相应操作。</p>
+<p>4、GCD 的其他方法</p>
+<p>①、GCD 栅栏方法：dispatch_barrier_async</p>
+<p>有时需要异步执行两组操作，而且第一组操作执行完之后，才能开始执行第二组操作。这样就需要有一个相当于栅栏一样的方法将两组异步执行的操作组（包含一个或多个任务）给分割开来。这就需要用到 dispatch_barrier_async 方法。</p>
+<p>dispatch_barrier_async 函数会等待前边追加到并发队列中的任务全部执行完毕之后，再将指定的任务追加到该异步队列。然后在 dispatch_barrier_async 函数追加的任务执行完毕之后，异步队列才恢复为一般动作，接着追加任务到该异步队列并开始执行。</p>
+<p>具体如下图所示：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1877784-4d6d77fafd3ad007.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="8"></p>
+<pre><code>// 并行队列
+dispatch\_queue\_t queue = dispatch\_queue\_create(&quot;com.dubinbin.Demo&quot;, DISPATCH\_QUEUE\_CONCURRENT);
+
+dispatch_async(queue, ^{
+    NSLog(@&quot;1111&quot;);
+});
+
+dispatch_async(queue, ^{
+    NSLog(@&quot;2222&quot;);
+});
+
+dispatch\_barrier\_async(queue, ^{
+    NSLog(@&quot;barrier&quot;);
+});
+
+dispatch_async(queue, ^{
+    NSLog(@&quot;3333&quot;);
+});
+
+dispatch_async(queue, ^{
+    NSLog(@&quot;4444&quot;);
+});
+
+NSLog(@&quot;end&quot;);
+</code></pre><p>2019-03-19 14:47:01.584536+0800 Demo[45246:3034531] end<br>2019-03-19 14:47:01.584562+0800 Demo[45246:3034564] 2222<br>2019-03-19 14:47:01.584566+0800 Demo[45246:3034562] 1111<br>2019-03-19 14:47:01.584676+0800 Demo[45246:3034562] barrier<br>2019-03-19 14:47:01.584755+0800 Demo[45246:3034562] 3333<br>2019-03-19 14:47:01.584765+0800 Demo[45246:3034564] 4444</p>
+<p>dispatch_barrier_async 执行结果：在执行完栅栏前面的任务之后，才执行栅栏操作，最后再执行栅栏后边的任务。</p>
+<p>②、GCD 延时执行方法：dispatch_after</p>
+<p>经常会遇到这样的需求：在指定时间（例如 3 秒）之后执行某个任务。可以用 GCD 的 dispatch_after 函数来实现。</p>
+<p>注意：dispatch_after 函数并不是在指定时间之后才开始执行处理，而是在指定时间之后将任务追加到主队列中。严格来说，这个时间并不是绝对准确的，但想要大致延迟执行任务，dispatch_after 函数是很有效的。</p>
+<pre><code>dispatch\_after(dispatch\_time(DISPATCH\_TIME\_NOW, (int64\_t)(5 * NSEC\_PER\_SEC)), dispatch\_get\_main\_queue(), ^{
+    NSLog(@&quot;Delay in Thread : %@&quot;, \[NSThread currentThread\]);
+});
+
+NSLog(@&quot;end&quot;);
+</code></pre><p>14:52:01.582676+0800  end<br>14:52:06.583078+0800  Delay in Thread : &lt;NSThread: 0x600001026940&gt;{number = 1, name = main}</p>
+<p>dispatch_after 执行结果：打印 end 之后大约 5.0 秒打印了 Delay in Thread。</p>
+<p>③、GCD 一次性代码：dispatch_once</p>
+<p>在创建单例或者整个程序运行过程中只执行一次的代码时，就用到了 GCD 的 dispatch_once 函数。使用 dispatch_once 函数能保证某段代码在程序运行过程中只被执行 1 次，并且即使在多线程的环境下，dispatch_once 也可以保证线程安全。</p>
+<pre><code>static dispatch\_once\_t onceToken;
+dispatch_once(&amp;onceToken, ^{
+    // code to be executed once
+});
+</code></pre><p>④、GCD 快速迭代方法：dispatch_apply</p>
+<p>通常是用 for 循环遍历，但是 GCD 提供了快速迭代的函数 dispatch_apply。dispatch_apply 按照指定的次数将指定的任务追加到指定的队列中，并等待全部队列执行结束。</p>
+<p>如果是在串行队列（单线程）中使用 dispatch_apply，那么就和 for 循环一样，按顺序同步执行，体现不出快速迭代的意义。</p>
+<p>dispatch_apply 可以在多个线程中同时（异步）遍历多个数字。</p>
+<p>注意：无论是串行队列，还是异步队列，dispatch_apply 都会等待全部任务执行完毕，这点就像是同步操作，也像是队列组中的 dispatch_group_wait 方法。</p>
+<pre><code>dispatch\_apply(5, queue, ^(size\_t index) {
+    NSLog(@&quot;%zd---%@&quot;, index, \[NSThread currentThread\]);
+});
+
+NSLog(@&quot;end&quot;);
+</code></pre><p>1—&lt;NSThread: 0x6000031499c0&gt;{number = 3, name = (null)}<br>3—&lt;NSThread: 0x600003149a00&gt;{number = 5, name = (null)}<br>0—&lt;NSThread: 0x600003126fc0&gt;{number = 1, name = main}<br>2—&lt;NSThread: 0x6000031414c0&gt;{number = 4, name = (null)}<br>4—&lt;NSThread: 0x6000031414c0&gt;{number = 4, name = (null)}<br>end</p>
+<p>因为是在并发队列中异步执行任务，所以各个任务的执行时间长短不定，最后结束顺序也不定，但是 end 一定在最后执行。</p>
+<p>⑤、GCD 队列组：dispatch_group</p>
+<p>有时候会有这样的需求：分别异步执行 2 个耗时任务，然后当 2 个耗时任务都执行完毕后再回到主线程执行任务。这时候就可以用到 GCD 的队列组。</p>
+<ul>
+<li><p>调用队列组的 dispatch_group_async 先把任务放到队列中，然后将队列放入队列组中。或者使用队列组的 dispatch_group_enter、dispatch_group_leave 组合来实现。</p>
+</li>
+<li><p>调用队列组的 dispatch_group_notify 回到指定线程执行任务。或者使用 dispatch_group_wait 回到当前线程继续向下执行（会阻塞当前线程）。</p>
+</li>
+</ul>
+<p>dispatch_group_notify</p>
+<p>监听 group 中任务的完成状态，当所有的任务都执行完成后，追加任务到 group 并执行。</p>
+<pre><code>dispatch\_queue\_t queue = dispatch\_queue\_create(&quot;com.dubinbin.Demo&quot;, DISPATCH\_QUEUE\_CONCURRENT);
+dispatch\_group\_t group = dispatch\_group\_create();
+
+dispatch\_group\_async(group, queue, ^{
+    NSLog(@&quot;1111&quot;);
+});
+
+dispatch\_group\_async(group, queue, ^ {
+    NSLog(@&quot;2222&quot;);
+});
+
+dispatch\_group\_notify(group, queue, ^{
+    NSLog(@&quot;group&quot;);
+});
+
+dispatch\_group\_async(group, queue, ^{
+    NSLog(@&quot;3333&quot;);
+});
+
+dispatch\_group\_async(group, queue, ^{
+    NSLog(@&quot;4444&quot;);
+});
+
+NSLog(@&quot;end&quot;);
+</code></pre><p>2019-03-19 15:07:48.576680+0800 Demo[45472:3045696] end<br>2019-03-19 15:07:48.576680+0800 Demo[45472:3045738] 2222<br>2019-03-19 15:07:48.576687+0800 Demo[45472:3045736] 1111<br>2019-03-19 15:07:48.576702+0800 Demo[45472:3045735] 4444<br>2019-03-19 15:07:51.580427+0800 Demo[45472:3045737] 3333<br>2019-03-19 15:07:51.580874+0800 Demo[45472:3045737] group</p>
+<p>dispatch_group_notify 运行结果：当所有任务都执行完成之后，才执行 dispatch_group_notify block 中的任务。</p>
+<p>注意：barrier 和 group 的区别，barrier 只等待之前的任务执行完，group 需要等待加入到 group 中所有的任务执行完。</p>
+<p>dispatch_group_wait</p>
+<p>暂停当前线程（阻塞当前线程），等待指定的 group 中的任务执行完成后，才会往下继续执行。</p>
+<pre><code>dispatch\_queue\_t queue = dispatch\_queue\_create(&quot;com.dubinbin.Demo&quot;, DISPATCH\_QUEUE\_CONCURRENT);
+dispatch\_group\_t group = dispatch\_group\_create();
+
+dispatch\_group\_async(group, queue, ^{
+    NSLog(@&quot;1111&quot;);
+});
+
+dispatch\_group\_async(group, queue, ^ {
+    NSLog(@&quot;2222&quot;);
+});
+
+dispatch\_group\_notify(group, queue, ^{
+    NSLog(@&quot;group&quot;);
+});
+
+dispatch\_group\_async(group, queue, ^{
+    NSLog(@&quot;3333&quot;);
+});
+
+dispatch\_group\_async(group, queue, ^{
+    \[NSThread sleepForTimeInterval:5\];
+    NSLog(@&quot;4444&quot;);
+});
+
+dispatch\_group\_wait(group, DISPATCH\_TIME\_FOREVER);
+
+NSLog(@&quot;end&quot;);
+</code></pre><p>2019-03-19 15:14:18.051069+0800 Demo[45564:3049581] 2222<br>2019-03-19 15:14:18.051069+0800 Demo[45564:3049578] 1111<br>2019-03-19 15:14:18.051089+0800 Demo[45564:3049579] 3333<br>2019-03-19 15:14:23.055943+0800 Demo[45564:3049580] 4444<br>2019-03-19 15:14:23.056329+0800 Demo[45564:3049532] end<br>2019-03-19 15:14:23.056329+0800 Demo[45564:3049580] group</p>
+<p>dispatch_group_wait 运行结果：dispatch_group_wait 会阻塞当前线程，当所有任务执行完成再继续向下执行。</p>
+<p>dispatch_group_enter、dispatch_group_leave</p>
+<p>dispatch_group_enter 标志着一个任务追加到 group，相当于 group 中未执行完毕任务数 +1</p>
+<p>dispatch_group_leave 标志着一个任务离开了 group，相当于 group 中未执行完毕任务数 -1。</p>
+<p>当 group 中未执行完毕任务数为 0 时，才会使 dispatch_group_wait 解除阻塞，并执行追加到 dispatch_group_notify 中的任务。</p>
+<pre><code>dispatch\_queue\_t queue = dispatch\_queue\_create(&quot;com.dubinbin.Demo&quot;, DISPATCH\_QUEUE\_CONCURRENT);
+dispatch\_group\_t group = dispatch\_group\_create();
+
+dispatch\_group\_enter(group);
+dispatch_async(queue, ^{
+    NSLog(@&quot;1111&quot;);
+    dispatch\_group\_leave(group);
+});
+
+dispatch\_group\_enter(group);
+dispatch_async(queue, ^{
+    NSLog(@&quot;2222&quot;);
+    dispatch\_group\_leave(group);
+});
+
+dispatch\_group\_notify(group, queue, ^{
+    NSLog(@&quot;group&quot;);
+});
+
+dispatch\_group\_enter(group);
+dispatch_async(queue, ^{
+    \[NSThread sleepForTimeInterval:5\];
+    NSLog(@&quot;3333&quot;);
+    dispatch\_group\_leave(group);
+});
+
+dispatch\_group\_enter(group);
+dispatch_async(queue, ^{
+    NSLog(@&quot;4444&quot;);
+    dispatch\_group\_leave(group);
+});
+
+dispatch\_group\_wait(group, DISPATCH\_TIME\_FOREVER);
+
+NSLog(@&quot;end&quot;);
+</code></pre><p>2019-03-19 15:45:32.294390+0800 Demo[45813:3061727] 1111<br>2019-03-19 15:45:32.294399+0800 Demo[45813:3061725] 2222<br>2019-03-19 15:45:32.294411+0800 Demo[45813:3061728] 4444<br>2019-03-19 15:45:37.299935+0800 Demo[45813:3061726] 3333<br>2019-03-19 15:45:37.300306+0800 Demo[45813:3061728] group<br>2019-03-19 15:45:37.300309+0800 Demo[45813:3061668] end</p>
+<p>dispatch_group_enter、dispatch_group_leave 运行结果：这里的 dispatch_group_enter、dispatch_group_leave 组合等同于 dispatch_group_async。当所有任务执行完成之后，才执行 dispatch_group_notify 中的任务。</p>
+<p>6、GCD 信号量：dispatch_semaphore</p>
+<p>GCD 中的信号量是指 Dispatch Semaphore，是持有计数的信号。</p>
+<p>在 Dispatch Semaphore 中，使用计数来完成这个功能，计数为 0 时等待；计数 ≥ 1 时不等待。</p>
+<p>Dispatch Semaphore 提供了三个函数。</p>
+<ul>
+<li><p>dispatch_semaphore_create：创建一个 Semaphore 并初始化信号的总量</p>
+</li>
+<li><p>dispatch_semaphore_signal：发送一个信号，让信号总量 +1</p>
+</li>
+<li><p>dispatch_semaphore_wait：使总信号量 -1，当信号总量为 0 时一直等待（阻塞所在线程），否则正常执行。</p>
+</li>
+</ul>
+<p>注意：想清楚你需要处理哪个线程等待（阻塞），又要哪个线程继续执行，然后才能使用信号量。</p>
+<p>Dispatch Semaphore 在实际开发中主要用于：</p>
+<ul>
+<li><p>保持线程同步，将异步执行任务转换为同步执行任务</p>
+</li>
+<li><p>保证线程安全，为线程加锁</p>
+</li>
+</ul>
+<p>①、Dispatch Semaphore 线程同步</p>
+<p>在开发中会遇到这样的需求：异步执行耗时任务，并使用异步执行的结果进行一些额外的操作。换句话说，相当于将异步执行任务转换为同步执行任务。比如 AFNetworking 中 AFURLSessionManager.m 的 tasksForKeyPath: 方法，通过引入信号量的方式，等待异步执行任务结果，获取到 tasks，然后再返回该 tasks。</p>
+<p>- (NSArray <em>)tasksForKeyPath:(NSString </em>)keyPath<br>{<br>    __block NSArray * tasks = nil;</p>
+<pre><code>dispatch\_semaphore\_t semaphore = dispatch\_semaphore\_create(0);
+
+\[self.session getTasksWithCompletionHandler:^( NSArray * dataTasks, 
+                                               NSArray * uploadTasks,
+                                               NSArray * downloadTasks) {
+
+    if (\[keyPath isEqualToString:NSStringFromSelector(@selector(dataTasks))\]) {
+        tasks = dataTasks;
+    }
+    else if (\[keyPath isEqualToString:NSStringFromSelector(@selector(uploadTasks))\]) {
+        tasks = uploadTasks;
+    }
+    else if (\[keyPath isEqualToString:NSStringFromSelector(@selector(downloadTasks))\]) {
+        tasks = downloadTasks;
+    }
+    else if (\[keyPath isEqualToString:NSStringFromSelector(@selector(tasks))\]) {
+        tasks = \[@\[dataTasks, uploadTasks, downloadTasks\] valueForKeyPath:@&quot;@unionOfArrays.self&quot;\];
+    }
+
+    dispatch\_semaphore\_signal(semaphore);
+}\];
+
+dispatch\_semaphore\_wait(semaphore, DISPATCH\_TIME\_FOREVER);
+
+return tasks;
+</code></pre><p>}</p>
+<p>下面，我们来利用 Dispatch Semaphore 实现线程同步，将异步执行任务转换为同步执行任务。</p>
+<p>②、Dispatch Semaphore 线程安全和线程同步（为线程加锁）</p>
+<p>线程安全</p>
+<p>如果你的代码所在的进程中有多个线程在同时运行，而这些线程可能会同时运行这段代码。如果每次运行结果和单线程运行的结果是一样的，而且其他的变量的值也和预期的是一样的，就是线程安全的。</p>
+<p>若每个线程中对全局变量、静态变量只有读操作，而无写操作，一般来说，这个全局变量是线程安全的；若有多个线程同时执行写操作（更改变量），一般都需要考虑线程同步，否则的话就可能影响线程安全。</p>
+<p>线程同步</p>
+<p>可以理解为线程 A 和 线程 B 一块配合，A 执行到一定程度时要依靠线程 B 的某个结果，于是停下来，示意 B 运行；B 依言执行，再将结果给 A；A 再继续操作。</p>
+<p>7、dispatch_set_target_queue</p>
+<p>/**<br> * 参数 1 : 要执行变更的队列（不能指定主队列和全局队列）<br> * 参数 2 : 目标队列（指定全局队列）<br> */<br>dispatch_set_target_queue(dispatch_object_t object, dispatch_queue_t queue);</p>
+<p>dispatch_set_target_queue 函数有两个作用：①、变更队列的执行优先级；②、目标队列可以成为原队列的执行阶层。</p>
+<pre><code>// 串行队列，默认优先级
+dispatch\_queue\_t serialQueue = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue.serialQueue&quot;, NULL);
+// 串行队列（参照），默认优先级
+dispatch\_queue\_t serialDefaultQueue = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue.serialDefaultQueue&quot;, NULL);
+
+// 1\. 变更前
+dispatch_async(serialQueue, ^{
+    NSLog(@&quot;1&quot;);
+});
+dispatch_async(serialDefaultQueue, ^{
+    NSLog(@&quot;2&quot;);
+});
+
+// 全局队列，后台优先级
+dispatch\_queue\_t globalDefaultQueue = dispatch\_get\_global\_queue(DISPATCH\_QUEUE\_PRIORITY\_BACKGROUND, 0);
+// 2\. 变更优先级
+dispatch\_set\_target_queue(serialQueue, globalDefaultQueue);
+
+// 3\. 变更后
+dispatch_async(serialQueue, ^{
+    NSLog(@&quot;1&quot;);
+});
+dispatch_async(serialDefaultQueue, ^{
+    NSLog(@&quot;2&quot;);
+});
+</code></pre><p>-------------------- 1 ——————–<br>2019-03-19 23:25:27.663809+0800 Demo[41898:2730565] 2<br>2019-03-19 23:25:27.663825+0800 Demo[41898:2730566] 1<br>2019-03-19 23:25:27.664036+0800 Demo[41898:2730565] 2<br>2019-03-19 23:25:27.664039+0800 Demo[41898:2730566] 1</p>
+<p>-------------------- 2 ——————–<br>2019-03-19 23:25:27.663809+0800 Demo[41898:2730565] 1<br>2019-03-19 23:25:27.663825+0800 Demo[41898:2730566] 2<br>2019-03-19 23:25:27.664036+0800 Demo[41898:2730565] 2<br>2019-03-19 23:25:27.664039+0800 Demo[41898:2730566] 1</p>
+<p>变更优先级前，serialQueue、serialDefaultQueue 打印随机；变更后，serialDefaultQueue 必定先于 serialQueue 打印。</p>
+<pre><code>dispatch\_queue\_t serialQueue1 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue1&quot;, NULL);
+dispatch\_queue\_t serialQueue2 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue2&quot;, NULL);
+dispatch\_queue\_t serialQueue3 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue3&quot;, NULL);
+dispatch\_queue\_t serialQueue4 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue4&quot;, NULL);
+dispatch\_queue\_t serialQueue5 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue5&quot;, NULL);
+
+dispatch_async(serialQueue1, ^{
+    NSLog(@&quot;1&quot;);
+});
+dispatch_async(serialQueue2, ^{
+    NSLog(@&quot;2&quot;);
+});
+dispatch_async(serialQueue3, ^{
+    NSLog(@&quot;3&quot;);
+});
+dispatch_async(serialQueue4, ^{
+    NSLog(@&quot;4&quot;);
+});
+dispatch_async(serialQueue5, ^{
+    NSLog(@&quot;5&quot;);
+});
+</code></pre><p>2019-03-19 23:31:27.856574+0800 Demo[41983:2736476] 1<br>2019-03-19 23:31:27.856583+0800 Demo[41983:2736474] 4<br>2019-03-19 23:31:27.856585+0800 Demo[41983:2736475] 2<br>2019-03-19 23:31:27.856586+0800 Demo[41983:2736477] 5<br>2019-03-19 23:31:27.856586+0800 Demo[41983:2736493] 3</p>
+<p>未设置目标队列前，异步执行任务不阻塞，所以打印随机。</p>
+<pre><code>dispatch\_queue\_t serialQueue1 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue1&quot;, NULL);
+dispatch\_queue\_t serialQueue2 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue2&quot;, NULL);
+dispatch\_queue\_t serialQueue3 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue3&quot;, NULL);
+dispatch\_queue\_t serialQueue4 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue4&quot;, NULL);
+dispatch\_queue\_t serialQueue5 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue5&quot;, NULL);
+
+dispatch\_queue\_t targetSerialQueue = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.targetSerialQueue&quot;, NULL);
+
+//设置执行阶层
+dispatch\_set\_target_queue(serialQueue1, targetSerialQueue);
+dispatch\_set\_target_queue(serialQueue3, targetSerialQueue);
+dispatch\_set\_target_queue(serialQueue2, targetSerialQueue);
+dispatch\_set\_target_queue(serialQueue4, targetSerialQueue);
+dispatch\_set\_target_queue(serialQueue5, targetSerialQueue);
+
+dispatch_async(serialQueue1, ^{
+    NSLog(@&quot;1&quot;);
+});
+dispatch_async(serialQueue2, ^{
+    NSLog(@&quot;2&quot;);
+});
+dispatch_async(serialQueue3, ^{
+    NSLog(@&quot;3&quot;);
+});
+dispatch_async(serialQueue4, ^{
+    NSLog(@&quot;4&quot;);
+});
+dispatch_async(serialQueue5, ^{
+    NSLog(@&quot;5&quot;);
+});
+</code></pre><p>2019-03-19 23:34:04.912115+0800 Demo[42048:2739515] 1<br>2019-03-19 23:34:04.912432+0800 Demo[42048:2739515] 2<br>2019-03-19 23:34:04.912573+0800 Demo[42048:2739515] 3<br>2019-03-19 23:34:04.912692+0800 Demo[42048:2739515] 4<br>2019-03-19 23:34:04.912874+0800 Demo[42048:2739515] 5</p>
+<p>情况一：先设置目标队列，后添加任务，按顺序执行。</p>
+<pre><code>dispatch\_queue\_t serialQueue1 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue1&quot;, NULL);
+dispatch\_queue\_t serialQueue2 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue2&quot;, NULL);
+dispatch\_queue\_t serialQueue3 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue3&quot;, NULL);
+dispatch\_queue\_t serialQueue4 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue4&quot;, NULL);
+dispatch\_queue\_t serialQueue5 = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.serialQueue5&quot;, NULL);
+
+dispatch_async(serialQueue1, ^{
+    NSLog(@&quot;1&quot;);
+});
+dispatch_async(serialQueue2, ^{
+    NSLog(@&quot;2&quot;);
+});
+dispatch_async(serialQueue3, ^{
+    NSLog(@&quot;3&quot;);
+});
+dispatch_async(serialQueue4, ^{
+    NSLog(@&quot;4&quot;);
+});
+dispatch_async(serialQueue5, ^{
+    NSLog(@&quot;5&quot;);
+});
+
+dispatch\_queue\_t targetSerialQueue = dispatch\_queue\_create(&quot;com.gcd.setTargetQueue2.targetSerialQueue&quot;, NULL);
+
+//设置执行阶层
+dispatch\_set\_target_queue(serialQueue1, targetSerialQueue);
+dispatch\_set\_target_queue(serialQueue2, targetSerialQueue);
+dispatch\_set\_target_queue(serialQueue3, targetSerialQueue);
+dispatch\_set\_target_queue(serialQueue4, targetSerialQueue);
+dispatch\_set\_target_queue(serialQueue5, targetSerialQueue);
+</code></pre><p>2019-03-19 23:36:07.791578+0800 Demo[42077:2741664] 1<br>2019-03-19 23:36:07.791620+0800 Demo[42077:2741665] 4<br>2019-03-19 23:36:07.791578+0800 Demo[42077:2741663] 3<br>2019-03-19 23:36:07.791578+0800 Demo[42077:2741666] 2<br>2019-03-19 23:36:07.791635+0800 Demo[42077:2741693] 5</p>
+<p>情况二：先添加任务，后设置目标队列，乱序输出。</p>
+<p>在必须将不可并行执行的处理追加到多个 Serial Dispatch Queue 中时，如果使用 dispatch_set_target_queue 函数将目标指定为某一个 Serial Dispatch Queue，即可防止处理并行执行。</p>
+<h5 id="四、参考资料"><a href="#四、参考资料" class="headerlink" title="四、参考资料"></a>四、参考资料</h5><p><a href="http://blog.csdn.net/liuyang11908/article/details/70757534" target="_blank" rel="noopener">iOS GCD之dispatch_semaphore（信号量）</a></p>
+<p><a href="https://www.jianshu.com/p/cbaeea5368b1" target="_blank" rel="noopener">iOS多线程：『pthread、NSThread』详尽总结</a></p>
+<p><a href="https://www.jianshu.com/p/4b1d77054b35" target="_blank" rel="noopener">iOS多线程：『NSOperation』详尽总结</a></p>
+<p><a href="https://www.jianshu.com/p/d260d18dd551" target="_blank" rel="noopener">iOS多线程：『RunLoop』详尽总结</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/19/gcd/">http://yoursite.com/2019/03/19/gcd/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/19/deep-gcd/" class="pre"> GCD 深入		</a><a href="/2019/03/19/switch-e4-b8-8e-if-else-e7-9a-84-e6-95-88-e7-8e-87-e9-97-ae-e9-a2-98/" class="next"> switch 与 if-else 的效率问题		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、GCD-简介"><span class="toc-text">一、GCD 简介</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、GCD-任务和队列"><span class="toc-text">二、GCD 任务和队列</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、GCD-的使用步骤"><span class="toc-text">三、GCD 的使用步骤</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、参考资料"><span class="toc-text">四、参考资料</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

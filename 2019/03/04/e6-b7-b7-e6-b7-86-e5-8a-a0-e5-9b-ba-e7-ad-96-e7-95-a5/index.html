@@ -1,0 +1,240 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 混淆加固策略		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 混淆加固策略		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 混淆加固策略		</h1><div class="post-meta"><a href="/2019/03/04/e6-b7-b7-e6-b7-86-e5-8a-a0-e5-9b-ba-e7-ad-96-e7-95-a5/#comments" class="comment-count"></a><p><span class="date">Mar 04, 2019</span><span><a href="/categories/工程发布/" class="category">工程发布</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="https://www.jianshu.com/p/628a0c232c2a" target="_blank" rel="noopener">iOS-代码混淆加固策略</a></p>
+<h5 id="一、前言"><a href="#一、前言" class="headerlink" title="一、前言"></a>一、前言</h5><p>iOS 系统是封闭的，App 上架需要通过 App Store，安全性来说相当高。但是对于大厂和知名 App 而言，别人给的安全保障永远没有自己做的来得踏实。所以对于大厂、少部分企业级和金融支付类应用来说加固是相当重要的。</p>
+<p>下面是目前几个专业加固大厂提供的加固策略。</p>
+<p>1、网易</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-a11e7df432a0330b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="ç½æ"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-26763da7d2f4ff77.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="ç½æ"></p>
+<p>网易安全主要操作：</p>
+<p>①、防静态分析。包括字符串加密、符号混淆、代码逻辑混淆和游戏存档加密；</p>
+<p>②、防动态调试、反调试和通信安全（数据加密）；</p>
+<p>③、外挂检测。加速挂、内存修改挂和自动任务挂等。</p>
+<p>2、爱加密</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-a45f848d01911b3b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="ç±å å¯"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-2b6983b5fafbf0a6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="ç±å å¯"></p>
+<p>3、safengine</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-9be698d5e95ef533.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>4、几维安全</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-cf4c468770646c20.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="å ç»´å å¯"></p>
+<p>5、梆梆安全</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-ddf098860045aed6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="æ¢æ¢å®å¨"></p>
+<p>本文将针对以上几点进行实现，对于一些不太容易实现的将会做方向性讨论。</p>
+<ul>
+<li>字符串加密</li>
+</ul>
+<p><strong>隐患</strong>：程序里面的明文字符串给静态分析提供了极大的帮助，比如说根据界面特殊字符串提示信息，从而定义到程序代码块，或者获取程序使用的一些网络接口。</p>
+<p><strong>加固</strong>：对程序中使用到字符串的地方，首先获取到使用到的字符串，当然要注意哪些是能加密，哪些不能加密的，然后对字符串进行加密，并保存加密后的数据，再在使用字符串的地方插入解密算法，这样就很好的保护了明文字符串。</p>
+<ul>
+<li>代码混淆（方法名、类名、变量名、符号表）</li>
+</ul>
+<p><strong>隐患</strong>：只要使用 class-dump 把应用的类和方法定义 dump 下来，然后根据方法名就能够判断很多程序的处理函数是在哪。从而进行 hook 等操作。</p>
+<p><strong>加固</strong>：对于程序中的类名方法名，自己产生一个随机的字符串来替换这些定义的类名和方法名，但是不是所有类名、方法名都能替换的，要过滤到系统有关的函数以及类，可以参考下开源项目：<a href="https://github.com/Polidea/ios-class-guard" title="https://github.com/Polidea/ios-class-guard" target="_blank" rel="noopener">https://github.com/Polidea/ios-class-guard</a></p>
+<ul>
+<li>代码逻辑混淆</li>
+</ul>
+<p><strong>隐患</strong>：目前的 iOS 应用找到可执行文件然后拖到 Hopper Disassembler 或者 IDA 里，程序的逻辑基本一目了然。</p>
+<p><strong>加固</strong>：可以基于 Xcode 使用的编译器 clang，然后在中间层 IR 实现自己的一些混淆处理，比如加入一些无用的逻辑块、代码块，以及加入各种跳转但是又不影响程序原有的逻辑。可以参考下开源项目：<a href="https://github.com/obfuscator-llvm/obfuscator/" title="https://github.com/obfuscator-llvm/obfuscator/" target="_blank" rel="noopener">https://github.com/obfuscator-llvm/obfuscator/</a>  当然开源项目中也是存在一些问题的，还需自己再去做一些优化工作。</p>
+<ul>
+<li>反调试</li>
+</ul>
+<p><strong>隐患</strong>：目前大多数 iOS 应用对于简单的反调试功能都没有，更别说注入检测，以及其它的一些检测了。</p>
+<p><strong>加固</strong>：加入安全 SDK，包括多处调试检测，注入检测，越狱检测，关键代码加密，防篡改等等功能。并提供接口给开发者处理检测结果。</p>
+<h5 id="二、字符串加密"><a href="#二、字符串加密" class="headerlink" title="二、字符串加密"></a>二、字符串加密</h5><p>对字符串加密的方式目前所了解到掌握到的最可靠方式就是用脚本将代码中的所有标记需要加密的字符串进行异或转换，这样代码中就不存在明文字符串了。当然第三方的字符串加密不可能这么简单。</p>
+<p>不过为了增加字符串加密的难度复杂性，可以先将字符串用加密工具（如 AES、base64 等）转换，然后把转换后的字符串和解密的钥匙放在工程中，用异或转换，把解密钥匙和加密后的字符串转换，这样就有两层保障，增加了复杂度。</p>
+<p>创建任意一个工程，在工程中写入下面的代码，并在每句打上断点。</p>
+<p>/<em> 加密NSString字符串 </em>/<br>NSString * s = @”Hello World”;<br>NSLog(@”%@”, s);    </p>
+<p>/<em> 加密char</em>字符串 <em>/<br>char</em> cs = “Super Man”;<br>NSLog(@”%s”, cs);</p>
+<p>选择 Xcode -&gt; Debug -&gt; Debug Workflow -&gt; Always Show Disassembly，这样就可以在断点处进入汇编模式界面。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-cf7455f60701b4a3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>最后运行程序，断点处进入汇编模式界面。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-d15ab211016ba111.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>你会发现，代码里的字符串内容暴露在了汇编模式中，这会导致别人在逆向分析你的工程时能看见字符串内容，一般接口、域名、加解密钥匙串、AppKey、AppId 等比较重要的东西会放在客户端用作字符串，这就很容易暴露出来。</p>
+<p>处理步骤：</p>
+<p>1、首先需要在工程代码中进行修改，把下面的宏和 decryptConfusionCS、decryptConstString 函数放入代码。</p>
+<p>/*<br> *  @brief  字符串混淆解密函数。将 char[] 形式字符数组和 0xAA 异或运算解密。<br> <em>/<br>extern char</em> decryptConfusionCS(char<em> string)<br>{<br>    char</em> origin_string = string;<br>    while(<em>string) {
+        </em>string ^= 0xAA;<br>        string++;<br>    }<br>    return origin_string;<br>}</p>
+<p>/*<br> *  @brief  解密函数。<br> *  @return 返回 NSString 类型。<br> <em>/<br>extern NSString</em> decryptConstString(char<em> string)<br>{<br>    // 先执行decryptConfusionString函数解密字符串<br>    char</em> str = decryptConfusionCS(string);</p>
+<pre><code>// 获取字符串的长度
+unsigned long len = strlen(str);
+NSUInteger length = \[\[NSString stringWithFormat:@&quot;%lu&quot;,len\] integerValue\];
+
+return \[\[NSString alloc\] initWithBytes:str length:length encoding:NSUTF8StringEncoding\];
+</code></pre><p>}</p>
+<p>/*<br> *  @brief  使用 confusion_key 宏控制加密解密<br> *   1、当 confusion_key 宏被定义时，执行解密脚本，对字符串解密<br> *   2、当 confusion_key 宏被删除或未定义时，执行加密脚本，对字符串进行加密<br> */</p>
+<p>#define confusion_key</p>
+<p>#ifdef confusion_key  // 解密</p>
+<p>#define confusion_NSSTRING(string) decryptConstString(string)   // 返回结果是 NSString 类型</p>
+<p>#define confusion_CSTRING(string) decryptConfusionCS(string)    // 返回结果是 char* 类型的</p>
+<p>#else  // 加密</p>
+<p>#define confusion_NSSTRING(string) @string    // 加密 NSString 类型的内容</p>
+<p>#define confusion_CSTRING(string) string      // 加密 char * 类型的内容</p>
+<p>#endif</p>
+<p>2、用宏包含每个需要转换的字符串。</p>
+<p>{<br>    /* 使用 confusion_NSSTRING 宏包含需要加密的 NSString 字符串 <em>/<br>    NSString </em> s = confusion_NSSTRING(“Hello World”);<br>    NSLog(@”%@”, s);</p>
+<pre><code>/\* 使用 confusion_CSTRING 宏包含需要加密的 char* 字符串 */
+char * cs = confusion_CSTRING(&quot;Super Man&quot;);
+NSLog(@&quot;%s&quot;, cs);
+</code></pre><p>}</p>
+<p>3、使用终端 cd 到需要加密的工程目录下，执行 touch confusion.py 和 touch decrypt.py 命令，生产加密和解密脚本文件。</p>
+<p>$ touch confusion.py<br>$ touch decrypt.py </p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-472cc842107846ed.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>4、把下面代码加入加密脚本 confusion.py。</p>
+<p>#!/usr/bin/env python<br># encoding=utf8<br># -<em>- coding: utf-8 -</em>-<br># author by heyujia<br># 脚本将会用于对指定目录下的.h .m源码中的字符串进行转换<br># 替换所有字符串常量为加密的char数组，形式((char[]){1, 2, 3, 0})</p>
+<p>import importlib<br>import os<br>import re<br>import sys</p>
+<p># replace替换字符串为((char[]){1, 2, 3, 0})的形式，同时让每个字节与0xAA异或进行加密<br># 当然可以不使用0xAA 使用其他的十六进制也行 例如0XBB、0X22、0X11<br>def replace(match):<br>    string = match.group(2) + ‘\x00’<br>    replaced_string = ‘((char []) {‘ + ‘, ‘.join([“%i” % ((ord(c) ^ 0xAA) if c != ‘\0’ else 0) for c in list(string)]) + ‘})’<br>    return match.group(1) + replaced_string + match.group(3)</p>
+<p># obfuscate方法是修改传入文件源代码中用confusion_NSSTRING标记的所有字符串<br># 使用replace函数对字符串进行异或转换<br>def obfuscate(file):<br>    with open(file, ‘r’) as f:<br>        code = f.read()<br>        f.close()<br>        code = re.sub(r’(confusion_NSSTRING\(|confusion_CSTRING\()”(.*?)”(\))’, replace, code)<br>        code = re.sub(r’//#define ggh_confusion’, ‘#define ggh_confusion’, code)<br>        with open(file, ‘w’) as f:<br>            f.write(code)<br>            f.close()</p>
+<p># openSrcFile方法是读取源码路径下的所有.h和.m 文件<br># 对每个文件执行obfuscate函数<br>def openSrcFile(path):<br>    print(“混淆的路径为 “+ path)</p>
+<pre><code># this folder is custom
+for parent,dirnames,filenames in os.walk(path):
+    #case 1:
+    #        for dirname in dirnames:
+    #            print((&quot; parent folder is:&quot; + parent).encode(&apos;utf-8&apos;))
+    #            print((&quot; dirname is:&quot; + dirname).encode(&apos;utf-8&apos;))
+    #case 2
+    for filename in filenames:
+        extendedName = os.path.splitext(os.path.join(parent,filename))
+        if (extendedName\[1\] == &apos;.h&apos; or extendedName\[1\] == &apos;.m&apos;):
+            print(&quot;处理源代码文件: &quot;+ os.path.join(parent,filename))
+            obfuscate(os.path.join(parent,filename))
+</code></pre><p>#这里需要修改源码的路径为自己工程的文件夹名称<br>srcPath = ‘../SSDemo’</p>
+<p>if __name__ == ‘__main__‘:<br>    print(“本脚本用于对源代码中被标记的字符串进行加密”)</p>
+<pre><code>if len(srcPath) &gt; 0:
+    openSrcFile(srcPath)
+else:
+    print(&quot;请输入正确的源代码路径&quot;)
+    sys.exit()
+</code></pre><p>5、把下面代码放入解密脚本 decrypt.py。</p>
+<p>#!/usr/bin/env python<br># encoding=utf8<br># -<em>- coding: utf-8 -</em>-<br># author by heyujia<br># 解密脚本<br># 替换所有标记过的加密的char数组为字符串常量，””</p>
+<p>import importlib<br>import os<br>import re<br>import sys</p>
+<p># 替换((char[]){1, 2, 3, 0})的形式为字符串，同时让每个数组值与0xAA异或进行解密<br>def replace(match):<br>    string = match.group(2)<br>    decodeConfusion_string = “”<br>    for numberStr in list(string.split(‘,’)):<br>        if int(numberStr) != 0:<br>            decodeConfusion_string = decodeConfusion_string + “%c” % (int(numberStr) ^ 0xAA)<br>    replaced_string = ‘\“‘ + decodeConfusion_string + ‘\“‘</p>
+<pre><code>print(&quot;replaced\_string = &quot; + replaced\_string)
+
+return match.group(1) + replaced_string + match.group(3)
+</code></pre><p># 修改源代码，加入字符串加密的函数<br>def obfuscate(file):<br>    with open(file, ‘r’) as f:<br>        code = f.read()<br>        f.close()<br>        code = re.sub(r’(confusion_NSSTRING\(|confusion_CSTRING\()\(\(char \[\]\) \{(.<em>?)\}\)(\))’, replace, code)<br>        code = re.sub(r’[/]</em>#define ggh_confusion’, ‘//#define ggh_confusion’, code)<br>        with open(file, ‘w’) as f:<br>            f.write(code)<br>            f.close()</p>
+<p>#读取源码路径下的所有.h和.m 文件<br>def openSrcFile(path):<br>    print(“解密路径： “+ path)</p>
+<pre><code># this folder is custom
+for parent,dirnames,filenames in os.walk(path):
+    #case 1:
+    #        for dirname in dirnames:
+    #            print((&quot; parent folder is:&quot; + parent).encode(&apos;utf-8&apos;))
+    #            print((&quot; dirname is:&quot; + dirname).encode(&apos;utf-8&apos;))
+    #case 2
+    for filename in filenames:
+        extendedName = os.path.splitext(os.path.join(parent,filename))
+        #读取所有.h和.m 的源文件
+        if (extendedName\[1\] == &apos;.h&apos; or extendedName\[1\] == &apos;.m&apos;):
+            print(&quot;已解密文件:&quot;+ os.path.join(parent,filename))
+            obfuscate(os.path.join(parent,filename))
+</code></pre><p>#源码路径<br>srcPath = ‘../SSDemo’<br>if __name__ == ‘__main__‘:<br>    print(“字符串解混淆脚本，将被标记过的char数组转为字符串，并和0xAA异或。还原代码”)<br>    if len(srcPath) &gt; 0:<br>        openSrcFile(srcPath)<br>    else:<br>        print(“请输入正确的源代码路径！”)<br>        sys.exit()</p>
+<p>5、根据自己的需求修改下脚本里面的代码和文件路径 srcPath = ‘../SSDemo’ 。</p>
+<p>6、注释工程代码中的宏定义 #define confusion_key，然后执行加密脚本，在终端中输入 python confusion.py。</p>
+<p>$ python confusion.py<br>本脚本用于对源代码中被标记的字符串进行加密<br>混淆的路径为 ../SSDemo<br>处理源代码文件: ../SSDemo/SSDemo/AppDelegate.h<br>处理源代码文件: ../SSDemo/SSDemo/ViewController.m<br>处理源代码文件: ../SSDemo/SSDemo/main.m<br>处理源代码文件: ../SSDemo/SSDemo/AppDelegate.m<br>处理源代码文件: ../SSDemo/SSDemo/ViewController.h<br>处理源代码文件: ../SSDemo/SSDemoUITests/SSDemoUITests.m<br>处理源代码文件: ../SSDemo/SSDemoTests/SSDemoTests.m</p>
+<p>处理后，工程中的代码如下：</p>
+<p>{<br>    NSString * s = confusion_NSSTRING(((char []) {226, 207, 198, 198, 197, 138, 253, 197, 216, 198, 206, 0}));<br>    NSLog(@”%@”, s);</p>
+<pre><code>char* cs = confusion_CSTRING(((char \[\]) {249, 223, 218, 207, 216, 138, 231, 203, 196, 0}));
+NSLog(@&quot;%s&quot;, cs);
+</code></pre><p>}</p>
+<p>此时字符串已被加密，运行程序一切正常。</p>
+<p>2019-03-04 11:05:35.091685+0800 SSDemo[4368:2059292] Hello World<br>2019-03-04 11:05:35.091843+0800 SSDemo[4368:2059292] Super Man</p>
+<p>汇编模式下看。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-37df83f46ab922ba.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>加密后汇编界面看不见字符串内容了，但是用来解密的方法暴露在了汇编界面，所以还需要对方法名、变量名、类名等做混淆。</p>
+<p>7、取消注释工程代码中的宏定义 #define confusion_key，然后执行解密脚本，在终端中输入 python decrypt.py。</p>
+<p>SSDemo $ python decrypt.py<br>字符串解混淆脚本，将被标记过的char数组转为字符串，并和0xAA异或。还原代码<br>解密路径： ../SSDemo<br>已解密文件:../SSDemo/SSDemo/AppDelegate.h<br>已解密文件:../SSDemo/SSDemo/ViewController.m<br>replaced_string = “Hello World”<br>replaced_string = “Super Man”<br>已解密文件:../SSDemo/SSDemo/main.m<br>已解密文件:../SSDemo/SSDemo/AppDelegate.m<br>已解密文件:../SSDemo/SSDemo/ViewController.h<br>已解密文件:../SSDemo/SSDemoUITests/SSDemoUITests.m<br>已解密文件:../SSDemo/SSDemoTests/SSDemoTests.m</p>
+<p>解密后：</p>
+<p>{<br>    /* 使用confusion_NSSTRING宏包含需要加密的NSString字符串 <em>/<br>    NSString </em> s = confusion_NSSTRING(“Hello World”);<br>    NSLog(@”%@”, s);</p>
+<pre><code>/\* 使用confusion_NSSTRING宏包含需要加密的char*字符串 */
+char* cs = confusion_CSTRING(&quot;Super Man&quot;);
+NSLog(@&quot;%s&quot;, cs);
+</code></pre><p>}</p>
+<p>解密后文本又变回了原样。</p>
+<p>8、这里只是基本的异或转换加密，让代码中的字符串变成看不懂的 char[]，实际操作中远远不止这么简单。</p>
+<p>①、先用加密工具如：AES、Base64 等把需要转换的字符串先加密；</p>
+<p>②、用异或转换加密的脚本把加密字符串进行转换（包括解密用的钥匙串）；</p>
+<p>③、先异或解密字符串，然后根据解密钥匙串把字符串在转为可用的字符串。</p>
+<p>还可以使用 NSLocalizedString 字符串本地化保护字符串。</p>
+<p>要验证最终的混淆结果是否达到效果，你还需要学习如何破壳解密 IPA 如何动态静态逆向编程分析工程源码，先掌握逆向分析后在来做代码混淆，就能验证混淆结果是否有效。<a href="https://www.jianshu.com/p/7ee32399359b" target="_blank" rel="noopener">这篇文章</a></p>
+<p>9、出现的问题</p>
+<p>①、报错时请查看下自己 Mac 电脑中的 python 版本，如果是 python3 就输入 python3 confusion.py。</p>
+<p>②、如果报 Non-ASCII character ‘\xe8’ in file confusion.py on line 2 相关的错，请确定脚本的前面 3 行是</p>
+<p>#!/usr/bin/env python<br># encoding=utf8<br># -<em>- coding: utf-8 -</em>-</p>
+<p>必须有这三行代码，才能在脚本中输入中文。</p>
+<p>③、如果报 IndentationError: unexpected indent 请注意脚本中的每行代码的换行符和缩进格式必须标准。</p>
+<p>④、如果报错</p>
+<p>SSDemo $ python decrypt.py<br>  File “decrypt.py”, line 25<br>    return match.group(1) + replaced_string + match.group(3)<br>SyntaxError: ‘return’ outside function</p>
+<p>请注意脚本中的每行代码的换行符和缩进格式必须标准。</p>
+<h5 id="三、变量、方法名、类名混淆"><a href="#三、变量、方法名、类名混淆" class="headerlink" title="三、变量、方法名、类名混淆"></a>三、变量、方法名、类名混淆</h5><p>对于混淆这一块，网上基本都是 copy 念大婶的内容，没有创新和思考。网上的方法有缺陷，只能混淆方法名或者说自己固定的内容去替换。第一不自动，对于大项目而言每个方法名自己添加，太麻烦。第二变量混淆有问题，因为只是单纯的字符串替换，用宏代替。当遇到使用 ‘_’ 下划线访问变量时，就会出现错误。</p>
+<p>对于变量、方法名、类名的混淆，其实和字符串混淆差不多，都是加密混淆，然后解密混淆。</p>
+<p>不同的是，变量、方法名、类名的混淆目的是为了让别人反编译的时候不知道你的变量、方法、类是具体用来干什么的，不会像明文那样一目了然，增加逆向难度。混淆的内容不需要像字符串一样，最后程序运行时还要转成中文正常使用。</p>
+<p>1、打开终端 cd 到需要混淆的工程目录下，输入 touch obConfusion.sh、touch obDecrypt.sh，生成机密加密混淆脚本文件和解密混淆脚本文件。</p>
+<p>SSDemo $ touch obConfusion.sh<br>SSDemo $ touch obDecrypt.sh</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-f5fb76e6ccdb6491.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>2、在工程目录以外创建一个文件夹，用于保存加密时生成的加密文本内容，该内容会在解密是用到。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-82e108654485d68d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>3、在 obConfusion.sh 和 obDecrypt.sh 文件中加入脚本内容。</p>
+<p>加密混淆脚本内容：</p>
+<p>#!/bin/sh</p>
+<p>############################################################<br>#<br>#<br>#  代码混淆脚本  RyoHo 2016.2.25<br>#<br>#</p>
+<p>############################################################</p>
+<p>#识别含有多字节编码字符时遇到的解析冲突问题<br>export LC_CTYPE=C<br>export LANG=C</p>
+<p>#配置项：</p>
+<p>#项目路径<br>ProjectPath=”../SSDemo”</p>
+<p>#替换文本存放路径（不能在项目目录或其子目录）<br>SecretFile=”/Users/cykj/Desktop/Temp/rlf”$(date +%Y%m%d)”_”$(date +%H%M)</p>
+<p>#第一个参数为项目路径<br>if [[ $1 ]]<br>then<br>if [[ $1 != “_” ]]; then<br>ProjectPath=$1<br>fi<br>fi</p>
+<p>#第二个参数指定密钥文件路径及文件名<br>if [[ $2 ]]<br>then<br>if [[ $2 != “_” ]]; then<br>SecretFile=$2<br>fi<br>fi</p>
+<p>##############################################################################</p>
+<p>#查找文本中所有要求混淆的属性\方法\类<br>resultfiles=`grep ‘ob_[A-Za-z0-9_]*_fus’ -rl $ProjectPath`</p>
+<p>#查找结果为空则退出<br>if [[ -z $resultfiles ]]<br>then<br>echo “项目没有需要混淆的代码”<br>exit<br>else<br>echo “开始混淆代码…”<br>echo  &gt; $SecretFile<br>fi</p>
+<p>x=$(awk  ‘<br>BEGIN{srand();k=0;}</p>
+<p>#随机数生成函数<br>function random_int(min, max) {<br>return int( rand()*(max-min+1) ) + min;<br>}</p>
+<p>#随机字符串生成函数<br>function random_string(len) {<br>result=”UCS”k;<br>alpbetnum=split(“a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z”, alpbet, “,”);<br>for (i=0; i&lt;len; i++) {<br>result = result””alpbet[ random_int(1, alpbetnum) ];<br>}<br>return result;<br>}<br>/ob_[A-Za-z0-9_]*_fus/{<br>x = $0;</p>
+<p>#匹配需要混淆的属性变量方法<br>while (match(x, “ob_[A-Za-z0-9_]*_fus”) &gt; 0) {<br>tempstr=substr(x, RSTART, RLENGTH);</p>
+<p>#判断是否有之前已经找过的重复字符串<br>for ( i = 0; i &lt; k; i++ ){<br>if (strarr[i] == tempstr){break;}<br>}<br>if(i&lt;k){</p>
+<p>#重复字符串，直接删除<br>x=substr(x, RSTART+RLENGTH);<br>continue;<br>}else{</p>
+<p>#不是重复字符串，添加到替换数组<br>strarr[k++]=tempstr;<br>}<br>randomstr=random_string(20);<br>printf(“%s:%s|”, tempstr,randomstr);</p>
+<p>#替换随机字符串<br>gsub(tempstr,randomstr, x);<br>x = substr(x, RSTART+RLENGTH);<br>}<br>}’ $resultfiles )</p>
+<p>#加密对写入密钥文件<br>echo $x &gt; $SecretFile</p>
+<p>recordnum=1<br>while [[ 1 == 1 ]]; do<br>record=`echo $x|cut -d “|” -f$recordnum`<br>if [[ -z $record ]]<br>then<br>break<br>fi<br>record1=`echo $record|cut -d “:” -f1`<br>echo “原项:”$record1<br>record2=`echo $record|cut -d “:” -f2`<br>echo “加密项:”$record2</p>
+<p>#替换文件夹中所有文件的内容（支持正则）</p>
+<p>#单引号不能扩展<br>sed -i ‘’ “s/${record1}/${record2}/g” `grep $record1 -rl $ProjectPath`<br>echo “第”$recordnum”项混淆代码处理完毕”<br>let “recordnum = $recordnum + 1”<br>done</p>
+<p>#查找需要混淆的文件名并替换<br>filerecordnum=1<br>while [[ 1 == 1 ]]; do<br>filerecord=`echo $x|cut -d “|” -f$filerecordnum`<br>if [[ -z $filerecord ]]<br>then<br>break<br>fi<br>filerecord1=`echo $filerecord|cut -d “:” -f1`</p>
+<p>#echo “原项:”$filerecord1<br>filerecord2=`echo $filerecord|cut -d “:” -f2`</p>
+<p>#echo “加密项:”$filerecord2</p>
+<p>#改文件名</p>
+<p>find $ProjectPath -name $filerecord1”*”| awk ‘<br>BEGIN{frecord1=”‘“$filerecord1”‘“;frecord2=”‘“$filerecord2”‘“;finish=1}<br>{<br>filestr=$0;<br>gsub(frecord1,frecord2,filestr);<br>print “mv “ $0 “ “ filestr”;echo 第”finish”个混淆文件处理完毕”;<br>finish++;<br>}’|bash<br>let “filerecordnum = $filerecordnum + 1”<br>done</p>
+<p>执行加密脚本：</p>
+<p>SSDemo $ sh obConfusion.sh<br>开始混淆代码…<br>原项:ob_say_fus<br>加密项:UCS1aqxdgwdNzwiQOcjuWaQx<br>第1项混淆代码处理完毕</p>
+<p>SSDemo $ sh obConfusion.sh<br>项目没有需要混淆的代码</p>
+<p>解密混淆脚本的内容：</p>
+<p>#!/bin/sh</p>
+<p>######################################<br>#<br>#  代码还原脚本  RyoHo 2018.03.15<br>#</p>
+<p>######################################</p>
+<p>#识别含有多字节编码字符时遇到的解析冲突问题<br>export LC_CTYPE=C<br>export</p>
+<p>#配置项：</p>
+<p>#已经混淆的项目路径<br>ProjectPath=”../SSDemo”</p>
+<p>#这个是文件路径而不是目录，是混淆的时候生成的文本文件路径，每次不一样。所以每次加密后，解密时需要更换路径<br>SecretFile=”/Users/cykj/Desktop/Temp/rlf20190304_1344”</p>
+<p>#第一个参数为项目路径<br>if [[ $1 ]]<br>then<br>if [[ $1 != “_” ]]; then<br>ProjectPath=$1<br>fi<br>fi</p>
+<p>#第二个参数指定密钥文件路径及文件名<br>if [[ $2 ]]<br>then<br>if [[ $2 != “_” ]]; then<br>SecretFile=$2<br>fi<br>fi</p>
+<p>##############################################################################</p>
+<p>#内容还原<br>x=`cat $SecretFile`<br>recordnum=1<br>while [[ 1 == 1 ]]; do<br>record=`echo $x|cut -d “|” -f$recordnum`<br>if [[ -z $record ]]<br>then<br>break<br>fi<br>record1=`echo $record|cut -d “:” -f1`<br>echo “原项:”$record1<br>record2=`echo $record|cut -d “:” -f2`<br>echo “加密项:”$record2</p>
+<p>#若项目中加密项与密钥文件的加密项不符合则退出程序<br>searchresult=`grep $record2 -rl $ProjectPath`<br>if [[ -z $searchresult ]]; then<br>echo “指定的密钥文件不能还原”<br>exit<br>fi</p>
+<p>#替换文件夹中所有文件的内容（支持正则）</p>
+<p>#单引号不能扩展<br>sed -i ‘’ “s/${record2}/${record1}/g” $searchresult<br>echo “第”$recordnum”项混淆代码还原完毕”<br>let “recordnum = $recordnum + 1”<br>done</p>
+<p>#文件还原<br>filerecordnum=1<br>while [[ 1 == 1 ]]; do<br>filerecord=`echo $x|cut -d “|” -f$filerecordnum`<br>if [[ -z $filerecord ]]<br>then<br>break<br>fi<br>filerecord1=`echo $filerecord|cut -d “:” -f1`</p>
+<p>#echo “原项:”$filerecord1<br>filerecord2=`echo $filerecord|cut -d “:” -f2`</p>
+<p>#echo “加密项:”$filerecord2</p>
+<p>#改文件名</p>
+<p>find $ProjectPath -name $filerecord2”*”| awk ‘<br>BEGIN{<br>frecord1=”‘“$filerecord1”‘“;<br>frecord2=”‘“$filerecord2”‘“;<br>finish=1;<br>}<br>{<br>filestr=$0;<br>gsub(frecord2,frecord1,filestr);<br>print “mv “ $0 “ “filestr “;echo 第”finish”个混淆文件还原完毕”<br>finish++;<br>}’|bash<br>let “filerecordnum = $filerecordnum + 1”<br>done</p>
+<p>执行解码脚本：</p>
+<p>SSDemo $ sh obDecrypt.sh<br>export Apple_PubSub_Socket_Render=”/private/tmp/com.apple.launchd.1l9oMsXueg/Render”<br>export GEM_HOME=”/Users/cykj/.rvm/gems/ruby-2.6.0-preview2”<br>export GEM_PATH=”/Users/cykj/.rvm/gems/ruby-2.6.0-preview2:/Users/cykj/.rvm/gems/ruby-2.6.0-preview2@global”<br>export HOME=”/Users/cykj”<br>export IRBRC=”/Users/cykj/.rvm/rubies/ruby-2.6.0-preview2/.irbrc”<br>export LANG=”zh_CN.UTF-8”<br>export LC_CTYPE=”C”<br>export LOGNAME=”cykj”<br>export MY_RUBY_HOME=”/Users/cykj/.rvm/rubies/ruby-2.6.0-preview2”<br>export OLDPWD<br>export PATH=”/Users/cykj/.rvm/gems/ruby-2.6.0-preview2/bin:/Users/cykj/.rvm/gems/ruby-2.6.0-preview2@global/bin:/Users/cykj/.rvm/rubies/ruby-2.6.0-preview2/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/cykj/.rvm/bin”<br>export PWD=”/Users/cykj/Desktop/SSDemo”<br>export RUBY_VERSION=”ruby-2.6.0-preview2”<br>export SHELL=”/bin/bash”<br>export SHLVL=”2”<br>export SSH_AUTH_SOCK=”/private/tmp/com.apple.launchd.892oNF07Ru/Listeners”<br>export TERM=”xterm-256color”<br>export TERM_PROGRAM=”Apple_Terminal”<br>export TERM_PROGRAM_VERSION=”404.1”<br>export TERM_SESSION_ID=”BA420A1D-F03B-471F-A33D-FDB3E1BF5CBD”<br>export TMPDIR=”/var/folders/yl/n6xlpycx5cg0869cspvt3bp80000gn/T/“<br>export USER=”cykj”<br>export XPC_FLAGS=”0x0”<br>export XPC_SERVICE_NAME=”0”<br>export _system_arch=”x86_64”<br>export _system_name=”OSX”<br>export _system_type=”Darwin”<br>export _system_version=”10.13”<br>export rvm_bin_path=”/Users/cykj/.rvm/bin”<br>export rvm_path=”/Users/cykj/.rvm”<br>export rvm_prefix=”/Users/cykj”<br>export rvm_version=”1.29.4 (latest)”<br>原项:ob_say_fus<br>加密项:UCS1aqxdgwdNzwiQOcjuWaQx<br>第1项混淆代码还原完毕</p>
+<p>可以阅读、学习、理解脚本内容，该脚本是有针对性的混淆内容，可以自己修改脚本中的正则表达式来确定混淆的内容。目前脚本中只会替换文本中 ob_<em><em>fus 格式的字符串（区分大小写，oB</em></em>_fus 就不会做混淆），也会替换注释内容里的这种形式的字符串。对于使用下划线访问的变量属性，不会有影响，一样会替换成对应的混淆内容。</p>
+<p>脚本源码地址：<a href="https://github.com/xkftkffz/DMHXDemo" target="_blank" rel="noopener">https://github.com/xkftkffz/DMHXDemo</a>、<a href="https://github.com/heqingliang/CodeObfus" target="_blank" rel="noopener">https://github.com/heqingliang/CodeObfus</a></p>
+<h5 id="四、代码混淆"><a href="#四、代码混淆" class="headerlink" title="四、代码混淆"></a>四、代码混淆</h5><p>开源工具 Obfuscator-LLVM</p>
+<p><a href="https://www.jianshu.com/p/b09806ef1b33" target="_blank" rel="noopener">KLGenerateSpamCode 代码生成器（iOSMixProject 代码生成器）</a>、<a href="http://www.yaozuopan.top/web/index.php/71.html" target="_blank" rel="noopener">ChaosTool</a></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-694f795095e5d609.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>第一项：文件夹绝对路径<br>       示例： /Users/wangxiushuai/Desktop/测试/WxsTestDemo1/WxsTestDemo3<br>第二项：修改源代码类名前缀<br>       格式：-modifyClassNamePrefix [工程文件 xcodeproj 绝对路径] [原前缀]&gt;[新前缀]<br>       示例：-modifyClassNamePrefix /Users/wangxiushuai/Desktop/测试/WxsTestDemo1/WxsTestDemo3.xcodeproj Wxs&gt;WxsTest<br>第三项：修改工程名<br>       格式：-modifyProjectName [原名称]&gt;[新名称]<br>       示例：-modifyProjectName WxsTestDemo3&gt;WxsTestDemo4<br>       注意：Podfile 被修改后需要手动 pod install<br>第四项：生成垃圾代码<br>       格式：-spamCodeOut [垃圾代码文件输出目录] [垃圾代码方法增加的参数名]<br>       示例：-spamCodeOut /Users/wangxiushuai/Desktop/测试/WxsTestDemo1/Trash WxsTrash<br>第五项：忽略这些文件夹<br>       格式：-ignoreDirNames [忽略文件夹名称字符串]<br>       示例：-ignoreDirNames 第三方库<br>第六项：修改xxx.xcassets文件夹中的 png 资源文件名<br>       格式：-handleXcassets<br>第七项：删除工程目录下 .h .m .swift 文件中的注释和空行<br>       格式：-deleteComments<br>第八项：改变api名字，注意是随机的，这个更改最好不要提交，只用来上架，一次性操作，否则可能增加后续维护的负担<br>       格式：-modifyAPIName</p>
+<h5 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h5><p>提供一个<a href="http://www.runoob.com/linux/linux-shell.html" target="_blank" rel="noopener">shell 脚本学习的网站</a></p>
+<p>这种方法混淆能过审核么？</p>
+<p>单纯按照上面的方法审核一般是过不了的。 因为上面脚本中替换的字符串是随机无意义的，而苹果审核对于过多无意义的字符串会拒绝的。 如果要过审核，需要将替换的字符串改为有意义的字符串。可以自己定义一个有意义字符串列表，然后把原本方法名、变量名、类名等按照定义的列表去替换。 混淆的目的是为了防止别人破壳看源码的时候根据方法名类名等轻易就了解逻辑，混淆只是增加了逆向破解者的破解时间成本，只要多花一点时间，破壳者肯定是能完全看懂代码的，并不能做到阻止。</p>
+<p>如果你混淆的目的是为了加固应用。你考虑的重点可能应该是</p>
+<p>1、对 App 内部的所有数据加密，例如：App 中使用了数据库，对库本身加密，对库中的所有字段都加密。<br>2、防止动态库的注入。每次启动检测 APP 内部的所有库。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/04/e6-b7-b7-e6-b7-86-e5-8a-a0-e5-9b-ba-e7-ad-96-e7-95-a5/">http://yoursite.com/2019/03/04/e6-b7-b7-e6-b7-86-e5-8a-a0-e5-9b-ba-e7-ad-96-e7-95-a5/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/04/lazytableimages/" class="pre"> LazyTableImages		</a><a href="/2019/03/03/e4-ba-92-e6-96-a5-e9-94-81/" class="next"> 互斥锁		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、前言"><span class="toc-text">一、前言</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、字符串加密"><span class="toc-text">二、字符串加密</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、变量、方法名、类名混淆"><span class="toc-text">三、变量、方法名、类名混淆</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、代码混淆"><span class="toc-text">四、代码混淆</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、总结"><span class="toc-text">五、总结</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

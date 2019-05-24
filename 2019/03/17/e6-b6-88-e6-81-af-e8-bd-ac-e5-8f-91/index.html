@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 消息转发		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 消息转发		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 消息转发		</h1><div class="post-meta"><a href="/2019/03/17/e6-b6-88-e6-81-af-e8-bd-ac-e5-8f-91/#comments" class="comment-count"></a><p><span class="date">Mar 17, 2019</span><span><a href="/categories/底层原理/" class="category">底层原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>文章：<a href="https://juejin.im/post/5c6e773be51d451b25716d0e" target="_blank" rel="noopener">iOS 消息转发</a>、<a href="http://www.olinone.com/?p=643" target="_blank" rel="noopener">Protocol 协议分发器</a></p>
+<p>在开发过程中，可能遇到服务端返回数据中有 null，当取到 null 值并对 null 发送消息的时候，就可能出现  unrecognized selector sent to instance，导致应用 crash 的情况。</p>
+<p>针对这种情况，在每次取值的时候去做判断处理又不大合适，在 GitHub上发现了 <a href="https://github.com/nicklockwood/NullSafe" target="_blank" rel="noopener">NullSafe</a>。把这个文件拖到项目中，即使出现 null 的情况，也不会报出 unrecognized selector sent to instance 的问题。</p>
+<p>消息转发的整个过程主要涉及的 3 个方法：</p>
+<p>+(BOOL)resolveInstanceMethod:(SEL)sel;<br>-(id)forwardingTargetForSelector:(SEL)aSelector;<br>-(void)forwardInvocation:(NSInvocation*)anInvocation;</p>
+<p>其中在 +(BOOL)resolveInstanceMethod:(SEL)sel 的时候，会有相应的方法缓存操作，这个操作是系统帮我们做的。</p>
+<h5 id="一、消息转发过程"><a href="#一、消息转发过程" class="headerlink" title="一、消息转发过程"></a>一、消息转发过程</h5><p>首先贴一张消息转发的图，笔者聊到的内容会围绕着这张图展开。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-21f16eb1cfa08e77.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="1"></p>
+<p>下边分析消息转发的过程，以 [MyObjet Length] 为例：</p>
+<p>①、首先 MyObjet 在调用 length方法后，会先进行动态方法解析，调用 +(BOOL)resolveInstanceMethod:(SEL)sel，我们可以在这里动态添加方法，而且如果在这里动态添加方法成功后，系统会把动态添加的 length 方法进行缓存，当 MyObjet 再次调用 length 方法的时候，将不会调用 +(BOOL)resolveInstanceMethod:(SEL)sel。会直接调用动态添加成功的 length 方法。</p>
+<p>②、如果动态方法解析部分没有做操作，或者动态添加方法失败了的话，会进行寻找备援接收者的过程 -(id)forwardingTargetForSelector:(SEL)aSelector，这个过程用于寻找一个接收者，可以响应未知的方法。</p>
+<p>③、如果寻找备援接收者的过程中返回值为 nil 的话，那么会进入到完整的消息转发流程中。完整的消息转发流程：首先创建 NSInvocation 对象，把与尚未处理的那条消息有关的全部细节都封于其中，此对象包含选择子、目标（target）及参数。在出发 NSInvocation 对象时，“消息派发系统”（message-dispatch system）将亲自出马，把消息指派给目标对象。</p>
+<h5 id="二、结合-MyObject-中的代码对消息转发流程进一步分析"><a href="#二、结合-MyObject-中的代码对消息转发流程进一步分析" class="headerlink" title="二、结合 MyObject 中的代码对消息转发流程进一步分析"></a>二、结合 MyObject 中的代码对消息转发流程进一步分析</h5><p>①、先看第一部分 MyObject 在调用 length 方法后，会先进行动态方法解析，调用 +(BOOL)resolveInstanceMethod:(SEL)sel，如果我们在这里为 MyObject 动态添加方法。那么也能处理消息。相关代码如下：</p>
+<ul>
+<li><p>(BOOL)resolveInstanceMethod:(SEL)sel<br>{<br>  printf(“%s:%s \n”, __func__ ,NSStringFromSelector(sel).UTF8String);</p>
+<p>  if (sel == @selector(length)) {</p>
+<pre><code>BOOL success = class_addMethod(\[self class\], sel, (IMP)(length), &quot;q@:&quot;); 
+
+if (success) {
+    return success;
+}
+</code></pre><p>  }<br>  return [super resolveInstanceMethod:sel];<br>}</p>
+</li>
+</ul>
+<p>传入的 “q@:” 分别代表：</p>
+<p>q : 返回值 long long<br>@ : 调用方法的的实例为对象类型<br>: : 表示方法</p>
+<p>下图表示了编码类型。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-a5925ae21f498603.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="2"></p>
+<p>②、MyObject 在调用 length 方法后，动态方法解析部分如果返回值为 NO 的时候，会寻找备援接收者，调用 -(id)forwardingTargetForSelector:(SEL)aSelector，如果我们在这里为返回可以处理 length 的接收者。那么也能处理消息。相关代码如下：</p>
+<p>static NSArray * respondClasses;</p>
+<p>- (id)forwardingTargetForSelector:(SEL)aSelector {</p>
+<pre><code>printf(&quot;%s:%s \\n&quot;, \_\_func\_\_ , NSStringFromSelector(aSelector).UTF8String);
+
+id forwardTarget = \[super forwardingTargetForSelector:aSelector\];
+if (forwardTarget) {
+    return forwardTarget;
+}
+
+Class someClass = \[self myResponedClassForSelector:aSelector\];
+if (someClass) {
+    forwardTarget = \[someClass new\];
+}
+
+return forwardTarget;
+</code></pre><p>}</p>
+<p>- (Class)myResponedClassForSelector:(SEL)selector<br>{<br>    respondClasses = @[<br>                       [NSMutableArray class],<br>                       [NSMutableDictionary class],<br>                       [NSMutableString class],<br>                       [NSNumber class],<br>                       [NSDate class],<br>                       [NSData class]<br>                       ];<br>    for (Class someClass in respondClasses) {<br>        if ([someClass instancesRespondToSelector:selector]) {<br>            return someClass;<br>        }<br>    }<br>    return nil;<br>}</p>
+<p>+(BOOL)instancesRespondToSelector:(SEL)aSelector; 用于返回 Class 对应的实例能否响应 aSelector。</p>
+<p>③、MyObject 在调用 length 方法后，动态方法解析部分如果返回值为 NO 的时候，寻找备援接收者的返回值为 nil 的时候，会进行完整的消息转发流程。调用 -(void)forwardInvocation:(NSInvocation<em>)anInvocation，这个过程会有一个插曲 -(NSMethodSignature</em>)methodSignatureForSelector:(SEL)selector，只有我们返回了相应地 NSMethodSignature 实例的时候，完整地消息转发流程才能得以顺利完成。</p>
+<blockquote>
+<p> -(NSMethodSignature*)methodSignatureForSelector:(SEL)selector。</p>
+<p>摘抄自文档：This method is used in the implementation of protocols. This method is also used in situations where an NSInvocation object must be created, such as during message forwarding.If your object maintains a delegate or is capable of handling messages that it does not directly implement, you should override this method to return an appropriate method signature.</p>
+<p>这个方法也会用于消息转发的时候，当 NSInvocation 对象必须创建的时候，如果我们的对象能够处理没有直接实现的方法，我们应该重写这个方法，返回一个合适的方法签名。</p>
+</blockquote>
+<p>相关代码</p>
+<p>- (void)forwardInvocation:(NSInvocation *)anInvocation<br>{</p>
+<pre><code>printf(&quot;%s:%s \\n\\n\\n\\n&quot;, \_\_func\_\_ , NSStringFromSelector(anInvocation.selector).UTF8String);
+
+anInvocation.target = nil;
+\[anInvocation invoke\];
+</code></pre><p>}</p>
+<p>- (NSMethodSignature *)methodSignatureForSelector:(SEL)selector {</p>
+<pre><code>NSMethodSignature *signature = \[super methodSignatureForSelector:selector\];
+if (!signature) {
+    Class responededClass = \[self myResponedClassForSelector:selector\];
+    if (responededClass) {
+        @try {
+            signature = \[responededClass instanceMethodSignatureForSelector:selector\];
+        } @catch (NSException *exception) {
+
+        }@finally {
+
+        }
+    }
+}
+return signature;
+</code></pre><p>}</p>
+<p>- (Class)myResponedClassForSelector:(SEL)selector {</p>
+<pre><code>respondClasses = @\[
+                   \[NSMutableArray class\],
+                   \[NSMutableDictionary class\],
+                   \[NSMutableString class\],
+                   \[NSNumber class\],
+                   \[NSDate class\],
+                   \[NSData class\]
+                   \];
+for (Class someClass in respondClasses) {
+    if (\[someClass instancesRespondToSelector:selector\]) {
+        return someClass;
+    }
+}
+return nil;
+</code></pre><p>}</p>
+<p>这里有一个不常用的 API：+(NSMethodSignature*)instanceMethodSignatureForSelector:(SEL)aSelector;，这个 API 通过 Class 及给定的 aSelector 返回一个包含实例方法标识描述的方法签名实例。</p>
+<p>&lt;NSMethodSignature: 0x6000030a17c0&gt;<br>    number of arguments = 2<br>    frame size = 224<br>    is special struct return? NO<br>    return value: ——– ——– ——– ——–<br>        type encoding (f) ‘f’<br>        flags {isFloat}<br>        modifiers {}<br>        frame {offset = 16, offset adjust = 0, size = 16, size adjust = -12}<br>        memory {offset = 0, size = 4}<br>    argument 0: ——– ——– ——– ——–<br>        type encoding (@) ‘@’<br>        flags {isObject}<br>        modifiers {}<br>        frame {offset = 0, offset adjust = 0, size = 8, size adjust = 0}<br>        memory {offset = 0, size = 8}<br>    argument 1: ——– ——– ——– ——–<br>        type encoding (:) ‘:’<br>        flags {}<br>        modifiers {}<br>        frame {offset = 8, offset adjust = 0, size = 8, size adjust = 0}<br>        memory {offset = 0, size = 8}</p>
+<p>NSInvocation。</p>
+<p>仍然以<code>myObject</code>调用<code>length</code>方法为例。 - (void)forwardInvocation:(NSInvocation *)anInvocation中的 anInvocation 的信息如下：</p>
+<p>&lt;NSInvocation: 0x6000025b8140&gt;<br>return value: {Q} 0<br>target: {@} 0x60000322c360<br>selector: {:} length</p>
+<p>> return value 指返回值，”Q” 表示返回值类型为 long long 类型；<br>> target 指的是消息的接收者，”@”标识对象类型；<br>> selector 指的是方法，”:”表示是方法，后边的 length 为方法名。</p>
+<p>更多内容可见下图 NSInvocation 的 types：</p>
+<p>enum _NSObjCValueType {<br>    NSObjCNoType = 0,<br>    NSObjCVoidType = ‘v’,<br>    NSObjCCharType = ‘c’,<br>    NSObjCShortType = ‘s’,<br>    NSObjCLongType = ‘l’,<br>    NSObjCLonglongType = ‘q’,<br>    NSObjCFloatType = ‘f’,<br>    NSObjCDoubleType = ‘d’,<br>    NSObjCBoolType = ‘B’,<br>    NSObjCSelectorType = ‘:’,<br>    NSObjCObjectType = ‘@’,<br>    NSObjCStructType = ‘{‘,<br>    NSObjCPointerType = ‘^’,<br>    NSObjCStringType = ‘*’,<br>    NSObjCArrayType = ‘[‘,<br>    NSObjCUnionType = ‘(‘,<br>    NSObjCBitfield = ‘b’<br>} API_DEPRECATED(“Not supported”, macos(10.0,10.5), ios(2.0,2.0), watchos(2.0,2.0), tvos(9.0,9.0));</p>
+<h5 id="三、尚存疑点"><a href="#三、尚存疑点" class="headerlink" title="三、尚存疑点"></a>三、尚存疑点</h5><p>细心的读者可能会发现在首次消息转发的时候流程并不是</p>
+<p>+[MyObject resolveInstanceMethod:]:length<br>-[MyObject forwardingTargetForSelector:]:length<br>-[MyObject forwardInvocation:]:length </p>
+<p>而是</p>
+<p>+[MyObject resolveInstanceMethod:]:length<br>-[MyObject forwardingTargetForSelector:]:length<br>+[MyObject resolveInstanceMethod:]:length<br>+[MyObject resolveInstanceMethod:]:_forwardStackInvocation:<br>-[MyObject forwardInvocation:]:length </p>
+<p>查看了开源源码 <a href="https://opensource.apple.com/source/objc4/objc4-750.1/runtime/NSObject.mm.auto.html" target="_blank" rel="noopener">NSObject.mm</a> 相关源码如下：</p>
+<p>// Replaced by CF (returns an NSMethodSignature)</p>
+<ul>
+<li>(NSMethodSignature *)methodSignatureForSelector:(SEL)sel {<br>  _objc_fatal(“-[NSObject methodSignatureForSelector:] “<pre><code>&quot;not available without CoreFoundation&quot;);
+</code></pre>}</li>
+<li>(void)forwardInvocation:(NSInvocation *)invocation {<br>  [self doesNotRecognizeSelector:(invocation ? [invocation selector] : 0)];<br>}<br>// Replaced by CF (throws an NSException)</li>
+<li>(void)doesNotRecognizeSelector:(SEL)sel {<br>  _objc_fatal(“-[%s %s]: unrecognized selector sent to instance %p”, <pre><code>object\_getClassName(self), sel\_getName(sel), self);
+</code></pre>}</li>
+</ul>
+<h5 id="四、NSNull-QiNullSafe-m"><a href="#四、NSNull-QiNullSafe-m" class="headerlink" title="四、NSNull+QiNullSafe.m"></a>四、NSNull+QiNullSafe.m</h5><p>根据 <a href="https://github.com/nicklockwood/NullSafe" target="_blank" rel="noopener">NullSafe</a> 仿写的 <a href="https://link.juejin.im/?target=https%3A%2F%2Fgithub.com%2FQiShare%2FQiSafeType%2Fblob%2Fmaster%2FQiSafeType%2FNullSafe%2FNSNull%252BQiNullSafe.m" target="_blank" rel="noopener">NSNull+QiNullSafe.m</a>。</p>
+<p>NSNull+QiNullSafe.m 能够避免的问题有：</p>
+<p>NSNull *null = [NSNull null];<br>[null performSelector:@selector(addObject:) withObject:@”aaa”];<br>[null performSelector:@selector(setValue:forKey:) withObject:@”aaa”];<br>[null performSelector:@selector(valueForKey:) withObject:@”aaa”];<br>[null performSelector:@selector(length) withObject:nil];<br>[null performSelector:@selector(integerValue) withObject:nil];<br>[null performSelector:@selector(timeIntervalSinceNow) withObject:nil];<br>[null performSelector:@selector(bytes) withObject:nil];</p>
+<h5 id="五、NullSafe-是怎么处理-null-问题"><a href="#五、NullSafe-是怎么处理-null-问题" class="headerlink" title="五、NullSafe 是怎么处理 null 问题"></a>五、NullSafe 是怎么处理 null 问题</h5><p>其实 <a href="https://github.com/nicklockwood/NullSafe" target="_blank" rel="noopener">NullSafe</a>  处理 null 问题用的是消息转发的第三部分，走的是完整地消息转发流程。</p>
+<p>不过我们开发过程中，如果可以的话，还是尽可能早地处理消息转发这部分，比如在动态方法解析的时候，动态添加方法（毕竟这一步系统可以为我们做方法的缓存处理）。 或者是在寻找备援接收对象的时候，返回能够响应未实现的方法的对象。</p>
+<p>注意：相关的使用场景在测试的时候不要用，测试的时候尽可能还是要暴露出问题的。并且使用的时候，最好结合着异常日志上报。</p>
+<h5 id="六、单元测试"><a href="#六、单元测试" class="headerlink" title="六、单元测试"></a>六、单元测试</h5><p>- (void)testStringValue<br>{<br>    id null = [NSNull null];</p>
+<pre><code>NSString * string = \[null stringValue\];
+
+XCTAssertNil(string);
+</code></pre><p>}</p>
+<p>- (void)testFloatValue<br>{<br>    id null = [NSNull null];</p>
+<pre><code>CGFloat f = \[null floatValue\];
+
+XCTAssertEqualWithAccuracy(f, 0.0f, 0.0f);
+</code></pre><p>}</p>
+<p>- (void)testPerformSelector<br>{<br>    NSNull * null = [NSNull null];<br>    [null performSelector:@selector(addObject:) withObject:@”aaa”];<br>}</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/17/e6-b6-88-e6-81-af-e8-bd-ac-e5-8f-91/">http://yoursite.com/2019/03/17/e6-b6-88-e6-81-af-e8-bd-ac-e5-8f-91/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/18/aomultiproxier-e3-80-81hjprotocoldispatcher/" class="pre"> AOMultiproxier、HJProtocolDispatcher		</a><a href="/2019/03/15/sdwebimageprefetcher/" class="next"> SDWebImagePrefetcher		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、消息转发过程"><span class="toc-text">一、消息转发过程</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、结合-MyObject-中的代码对消息转发流程进一步分析"><span class="toc-text">二、结合 MyObject 中的代码对消息转发流程进一步分析</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、尚存疑点"><span class="toc-text">三、尚存疑点</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、NSNull-QiNullSafe-m"><span class="toc-text">四、NSNull+QiNullSafe.m</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、NullSafe-是怎么处理-null-问题"><span class="toc-text">五、NullSafe 是怎么处理 null 问题</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、单元测试"><span class="toc-text">六、单元测试</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

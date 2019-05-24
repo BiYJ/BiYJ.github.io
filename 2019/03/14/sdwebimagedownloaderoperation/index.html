@@ -1,0 +1,406 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> SDWebImageDownloaderOperation		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> SDWebImageDownloaderOperation		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> SDWebImageDownloaderOperation		</h1><div class="post-meta"><a href="/2019/03/14/sdwebimagedownloaderoperation/#comments" class="comment-count"></a><p><span class="date">Mar 14, 2019</span><span><a href="/categories/SDWebImage/" class="category">SDWebImage</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>文章：<a href="https://www.cnblogs.com/machao/p/6248111.html" target="_blank" rel="noopener">SDWebImage源码解读之SDWebImageDownloaderOperation</a>、<a href="http://www.jianshu.com/p/a044cd145a3d" target="_blank" rel="noopener">多线程之NSOperation简介</a></p>
+<p>本篇主要讲解下载操作的相关知识，SDWebImageDownloaderOperation 的主要任务是把一张图片从服务器下载到内存中。下载数据并不难，如何对下载这一系列的任务进行设计，就很难了。接下来逐步的分析作者在开发中的思路和使用到的技术细节。</p>
+<h5 id="一、NSOperation"><a href="#一、NSOperation" class="headerlink" title="一、NSOperation"></a>一、NSOperation</h5><p>为了让程序更快的执行，我们用多线程异步的方式解决这个问题，GCD 与 NSOperation 都能实现多线程。</p>
+<p>NSOperation 最核心的使用方法总结：</p>
+<p>①、main() 和 start()。</p>
+<p>同步：把逻辑写在 main() 中；异步：把逻辑写到 start() 中。然后加入到队列之中。</p>
+<p>②、NSOperation 什么时候执行呢？难道要手动调用 main() 和 start() 吗？</p>
+<p>手动调用肯定也是行的。当调用 start() 的时候，默认的是在当前线程执行同步操作，如果是在主线程调用了，那么必然会导致程序死锁。</p>
+<p>另外一种方式就是加入到 operationQueue 中，operationQueue 会尽快执行 NSOperation。如果 operationQueue 是同步的，那么它会等到 NSOperation 的 isFinished 等于 YES 后，再执行下一个任务；如果是异步的，通过设置 maxConcurrentOperationCount 来控制同时执行的最大操作，某个操作完成后，继续其他的操作。</p>
+<p>③、并不是调用了 canche 就一定取消了。</p>
+<p>如果 NSOperation 还没有执行，那么就会取消；如果执行了，只会将 isCancelled 设置为 YES。所以，在我们的操作中，应该在每个操作开始前，或者在每个有意义的实际操作完成后，先检查下这个属性是不是已经设置为 YES。如果是 YES，则后面操作都可以不用在执行了。</p>
+<p>思考：比如有一系列的任务要执行，有两种选择，一种是通过数组控制数据的取出顺序，另外一种就是使用队列。</p>
+<h5 id="二、-h-文件"><a href="#二、-h-文件" class="headerlink" title="二、.h 文件"></a>二、.h 文件</h5><p>FOUNDATION_EXPORT NSString <em> _Nonnull const SDWebImageDownloadStartNotification;  // 任务开始<br>FOUNDATION_EXPORT NSString </em> _Nonnull const SDWebImageDownloadReceiveResponseNotification; // 接收到数据<br>FOUNDATION_EXPORT NSString <em> _Nonnull const SDWebImageDownloadStopNotification;   // 暂停<br>FOUNDATION_EXPORT NSString </em> _Nonnull const SDWebImageDownloadFinishNotification; // 完成</p>
+<p>在设计一个功能的时候，作者都会用通知的形式暴露出关键的节点，不管使用者需不需要使用这些通知。这是一个很好地方法，可以在自定义控件的时候参考这个设计。</p>
+<p>/*<em><br> Describes a downloader operation. If one wants to use a custom downloader op, it needs to inherit from `NSOperation` and conform to this protocol<br> For the description about these methods, see `SDWebImageDownloaderOperation`
+ </em>/<br>@protocol SDWebImageDownloaderOperationInterface &lt;NSURLSessionTaskDelegate, NSURLSessionDataDelegate&gt;<br>@required<br>/**<br> * 使用 NSURLRequest、NSURLSession 和 SDWebImageDownloaderOptions 初始化<br> */<br>- (nonnull instancetype)initWithRequest:(nullable NSURLRequest <em>)request<br>                              inSession:(nullable NSURLSession </em>)session<br>                                options:(SDWebImageDownloaderOptions)options;</p>
+<p>/**<br> * 可以为每一个 NSOperation 自由的添加相应对象<br> */<br>- (nullable id)addHandlersForProgress:(nullable SDWebImageDownloaderProgressBlock)progressBlock<br>                            completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock;<br>/**<br> * 是否需要解压图片<br> */<br>- (BOOL)shouldDecompressImages;<br>- (void)setShouldDecompressImages:(BOOL)value;</p>
+<p>/**<br> * 是否需要设置凭证<br> */<br>- (nullable NSURLCredential <em>)credential;<br>- (void)setCredential:(nullable NSURLCredential </em>)value;</p>
+<p>/**<br> * 根据 token 取消下载<br> */<br>- (BOOL)cancel:(nullable id)token;</p>
+<p>@optional<br>- (nullable NSURLSessionTask *)dataTask;</p>
+<p>@end</p>
+<p>按照作者的注释，如果想要实现一个自定义的下载操作，就必须继承自 NSOperation，同时实现 SDWebImageDownloaderOperationInterface 这个协议。不去看其他的代码，只做一个简单的猜测：很可能在别的类中，只使用 SDWebImageDownloaderOperationInterface 和 NSOperation 中的方法和属性。</p>
+<p>@interface SDWebImageDownloaderOperation : NSOperation &lt;SDWebImageDownloaderOperationInterface, SDWebImageOperation&gt;</p>
+<p>首先它遵守了 SDWebImageDownloaderOperationInterface 协议，所以协议的 required 方法都必须实现。我们在设计这个 .h 的时候呢，可以把协议中的方法写到这个 .h 中，这样别人在使用的时候，就会更加直观。</p>
+<p>/**<br> * The credential used for authentication challenges in <code>-URLSession:task:didReceiveChallenge:completionHandler:</code>.<br> *<br> * This will be overridden by any shared credentials that exist for the username or password of the request URL, if present.<br> <em>/<br>@property (nonatomic, strong, nullable) NSURLCredential </em>credential;</p>
+<p>这就实现了 SDWebImageDownloaderOperationInterface 协议中的 -redential 和 - setCredential:。</p>
+<p>一般情况下，在主动指明初始化方法的时候，肯定会为初始化方法设定几个参数。那么这些参数就应该以只读的方式暴露给他人。</p>
+<p>比如：</p>
+<p>/**<br> * The request used by the operation’s task. 任务请求<br> <em>/<br>@property (strong, nonatomic, readonly, nullable) NSURLRequest </em>request;</p>
+<p>/**<br> * The operation’s task. 任务<br> <em>/<br>@property (strong, nonatomic, readonly, nullable) NSURLSessionTask </em>dataTask;</p>
+<p>/**<br> * The SDWebImageDownloaderOptions for the receiver.  下载选项<br> */<br>@property (assign, nonatomic, readonly) SDWebImageDownloaderOptions options;</p>
+<p>/**<br> *  Initializes a `SDWebImageDownloaderOperation` object<br> *<br> *  @param request        the URL request<br> *  @param session        the URL session in which this operation will run<br> *  @param options        downloader options<br> */<br>- (nonnull instancetype)initWithRequest:(nullable NSURLRequest <em>)request<br>                              inSession:(nullable NSURLSession </em>)session<br>                                options:(SDWebImageDownloaderOptions)options NS_DESIGNATED_INITIALIZER;</p>
+<p>其他的属性：</p>
+<p>/**<br> * The expected size of data.  预期的数据大小<br> */<br>@property (assign, nonatomic) NSInteger expectedSize;</p>
+<p>/**<br> * The response returned by the operation’s task.  请求响应<br> <em>/<br>@property (strong, nonatomic, nullable) NSURLResponse </em>response;</p>
+<p>添加回调方法：</p>
+<p>/**<br> *  Adds handlers for progress and completion. Returns a tokent that can be passed to -cancel: to cancel this set of<br> *  callbacks.<br> *  为进度和完成添加处理程序。返回一个可传递给 -cancel: 以取消此回调集合的标记。<br> *<br> *  @param progressBlock  the block executed when a new chunk of data arrives.<br> *                        @note the progress block is executed on a background queue  后台队列<br> *  @param completedBlock the block executed when the download is done.<br> *                        @note the completed block is executed on the main queue for success. If errors are found, there is a chance the block will be executed on a background queue  成功时在主队列执行，失败时在后台队列<br> *<br> *  @return the token to use to cancel this set of handlers<br> */<br>- (nullable id)addHandlersForProgress:(nullable SDWebImageDownloaderProgressBlock)progressBlock<br>                            completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock;</p>
+<p>取消方法：</p>
+<p>/**<br> *  Cancels a set of callbacks. Once all callbacks are canceled, the operation is cancelled.<br> *<br> *  @param token the token representing a set of callbacks to cancel<br> *<br> *  @return YES if the operation was stopped because this was the last token to be canceled. NO otherwise.<br> */<br>- (BOOL)cancel:(nullable id)token;</p>
+<p>这个方法不是取消任务的，而是取消任务中的回调，当然当任务中没有响应者的时候，任务也会被取消。</p>
+<h5 id="三、-m-文件"><a href="#三、-m-文件" class="headerlink" title="三、.m 文件"></a>三、.m 文件</h5><p>我们的目的是下载一张图片，那么最核心的逻辑是什么呢？</p>
+<ol>
+<li><p>初始化一个 task</p>
+</li>
+<li><p>添加响应者</p>
+</li>
+<li><p>开启下载任务</p>
+</li>
+<li><p>处理下载过程和结束后的事情</p>
+</li>
+</ol>
+<p>也就是说 .m 中所有的代码，都是围绕着上边 4 点来设计的。 那么就详细的对每一步进行分析：</p>
+<p>// iOS 8 Foundation.framework extern these symbol but the define is in CFNetwork.framework. We just fix this without import CFNetwork.framework</p>
+<p>#if (__IPHONE_OS_VERSION_MIN_REQUIRED &amp;&amp; __IPHONE_OS_VERSION_MIN_REQUIRED &lt; __IPHONE_9_0)<br>const float NSURLSessionTaskPriorityHigh = 0.75;<br>const float NSURLSessionTaskPriorityDefault = 0.5;<br>const float NSURLSessionTaskPriorityLow = 0.25;</p>
+<p>#endif</p>
+<p>任务优先级。</p>
+<p>typedef NSMutableDictionary<nsstring *, id> SDCallbacksDictionary;  // 字典</nsstring></p>
+<p>@interface SDWebImageDownloaderOperation ()<br>/**<br> * 是一个数组，数组中存放的是 SDCallbacksDictionary 类型的数据，SDCallbacksDictionary 字典的 key 是一个字符串，它有两种情况：kProgressCallbackKey 和 kCompletedCallbackKey,也就是说进度和完成的回调都是放到了数组中。那么字典的值就是回调的 block 了。<br> <em>/<br>@property (strong, nonatomic, nonnull) NSMutableArray&lt;SDCallbacksDictionary </em>&gt; *callbackBlocks;</p>
+<p>@property (assign, nonatomic, getter = isExecuting) BOOL executing;<br>@property (assign, nonatomic, getter = isFinished) BOOL finished;<br>@property (strong, nonatomic, nullable) NSMutableData <em>imageData;<br>@property (copy, nonatomic, nullable) NSData </em>cachedData; // for `SDWebImageDownloaderIgnoreCachedResponse`</p>
+<p>// This is weak because it is injected by whoever manages this session. If this gets nil-ed out, we won’t be able to run<br>// the task associated with this operation<br>/**<br> * 这个属性是我们初始化的时候传进来的参数。这个参数不一定是可用的，也就是说是不安全的，当出现不可用的情况时，就需要使用 ownedSession<br> <em>/<br>@property (weak, nonatomic, nullable) NSURLSession </em>unownedSession;<br>// This is set if we’re using not using an injected NSURLSession. We’re responsible of invalidating this one<br>@property (strong, nonatomic, nullable) NSURLSession *ownedSession;</p>
+<p>@property (strong, nonatomic, readwrite, nullable) NSURLSessionTask *dataTask;</p>
+<p>@property (strong, nonatomic, nonnull) dispatch_semaphore_t callbacksLock; // a lock to keep the access to `callbackBlocks` thread-safe</p>
+<p>@property (strong, nonatomic, nonnull) dispatch_queue_t coderQueue; // the queue to do image decoding 解压队列</p>
+<p>#if SD_UIKIT<br>@property (assign, nonatomic) UIBackgroundTaskIdentifier backgroundTaskId;  // 后台任务 id</p>
+<p>#endif</p>
+<p>@property (strong, nonatomic, nullable) id<sdwebimageprogressivecoder> progressiveCoder;</sdwebimageprogressivecoder></p>
+<p>@end</p>
+<p>1、初始化一个 task</p>
+<p>- (nonnull instancetype)init {<br>    return [self initWithRequest:nil inSession:nil options:0];<br>}</p>
+<p>- (nonnull instancetype)initWithRequest:(nullable NSURLRequest <em>)request<br>                              inSession:(nullable NSURLSession </em>)session<br>                                options:(SDWebImageDownloaderOptions)options {<br>    if ((self = [super init])) {<br>        _request = [request copy];<br>        _shouldDecompressImages = YES;<br>        _options = options;<br>        _callbackBlocks = [NSMutableArray new];<br>        _executing = NO;<br>        _finished = NO;<br>        _expectedSize = 0;<br>        _unownedSession = session;<br>        _callbacksLock = dispatch_semaphore_create(1);<br>        _coderQueue = dispatch_queue_create(“com.hackemist.SDWebImageDownloaderOperationCoderQueue”, DISPATCH_QUEUE_SERIAL);</p>
+<p>#if SD_UIKIT<br>        _backgroundTaskId = UIBackgroundTaskInvalid;</p>
+<p>#endif<br>    }<br>    return self;<br>}</p>
+<p>初始化属性。</p>
+<p>2、添加响应者</p>
+<p>- (nullable id)addHandlersForProgress:(nullable SDWebImageDownloaderProgressBlock)progressBlock<br>                            completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock<br>{<br>    SDCallbacksDictionary *callbacks = [NSMutableDictionary new];<br>    if (progressBlock) callbacks[kProgressCallbackKey] = [progressBlock copy];<br>    if (completedBlock) callbacks[kCompletedCallbackKey] = [completedBlock copy];<br>    LOCK(self.callbacksLock);<br>    [self.callbackBlocks addObject:callbacks];<br>    UNLOCK(self.callbacksLock);<br>    return callbacks;<br>}</p>
+<p>将 block 数据保存到新建的字典，再存到数组中，这里边使用 dispatch_semaphore 信号量完成锁的功能。</p>
+<p>在旧版本中是使用 dispatch_barrier_async，做一个简单的介绍。</p>
+<p>我们可以创建两种类型的队列：串行和并行，也就是 DISPATCH_QUEUE_SERIAL、DISPATCH_QUEUE_CONCURRENT。barrier 是栅栏的意思，也就是说是用来做拦截功能的，上边的这两种都能够拦截任务，换句话说，就是只有我的任务完成后，队列后边的任务才能完成。</p>
+<p>不同之处就是，dispatch_barrier_sync 控制了任务往队列添加这一过程，只有当我的任务完成之后，才能往队列中添加任务。dispatch_barrier_async 不会控制队列添加任务。但是只有当我的任务完成后，队列中后边的任务才会执行。</p>
+<p>那么在这里的任务是往数组中添加数据，对顺序没什么要求，我们采取 dispatch_barrier_async 就可以了，已经能保证数据添加的安全性了。</p>
+<p>- (nullable NSArray<id> <em>)callbacksForKey:(NSString </em>)key<br>{<br>    LOCK(self.callbacksLock);<br>    NSMutableArray<id> *callbacks = [[self.callbackBlocks valueForKey:key] mutableCopy];<br>    UNLOCK(self.callbacksLock);<br>    // We need to remove [NSNull null] because there might not always be a progress block for each callback<br>    [callbacks removeObjectIdenticalTo:[NSNull null]];<br>    return [callbacks copy]; // strip mutability here<br>}</id></id></p>
+<p>根据 key 取出所有对应 key 的 block，同样加锁。比较有意思的是 [self.callbackBlocks valueForKey:key] 这段代码，self.callbackBlocks 是一个数组，假定它的结构是这样的：</p>
+<p>@[ @{ @”completed” : Block1 },<br>   @{ @”progress” : Block2  },<br>   @{ @”completed” : Block3 },<br>   @{ @”progress” : Block4  },<br>   @{ @”completed” : Block5 },<br>   @{ @”progress” : Block6  }]</p>
+<p>调用 [self.callbackBlocks valueForKey:@”progress”] 后会得到 [Block2, Block4, Block6]。</p>
+<blockquote>
+<p>Returns an array containing the results of invoking valueForKey: using key on each of the array’s objects.</p>
+</blockquote>
+<p>遍历数组，每个元素都执行 valueForKey: 方法。</p>
+<p>removeObjectIdenticalTo: 这个方法会移除数组中指定相同地址的元素。</p>
+<p>- (BOOL)cancel:(nullable id)token<br>{<br>    BOOL shouldCancel = NO;<br>    LOCK(self.callbacksLock);<br>    [self.callbackBlocks removeObjectIdenticalTo:token];<br>    if (self.callbackBlocks.count == 0) {<br>        shouldCancel = YES;<br>    }<br>    UNLOCK(self.callbacksLock);<br>    if (shouldCancel) {<br>        [self cancel];<br>    }<br>    return shouldCancel;<br>}</p>
+<p>这个函数就是取消某一回调。加锁保证对 callbackBlocks 数组的多线程访问安全。</p>
+<p>3、开启下载任务</p>
+<p>- (void)start {<br>    @synchronized (self) {<br>        // 如果任务已经被设置为取消了，那么就无需开启下载任务了，设置 finished = YES，并重置。<br>        if (self.isCancelled) {<br>            self.finished = YES;<br>            [self reset];<br>            return;<br>        }</p>
+<p>#if SD_UIKIT<br>        Class UIApplicationClass = NSClassFromString(@”UIApplication”);<br>        BOOL hasApplication = UIApplicationClass &amp;&amp; [UIApplicationClass respondsToSelector:@selector(sharedApplication)];<br>        if (hasApplication &amp;&amp; [self shouldContinueWhenAppEntersBackground]) {<br>            __weak __typeof__ (self) wself = self;<br>            UIApplication * app = [UIApplicationClass performSelector:@selector(sharedApplication)];</p>
+<pre><code>    // 开启后台任务
+    self.backgroundTaskId = \[app beginBackgroundTaskWithExpirationHandler:^{
+        \[wself cancel\];
+    }\];
+}
+</code></pre><p>#endif<br>        NSURLSession *session = self.unownedSession;</p>
+<pre><code>    // 会话不存在，生成会话
+    if (!session) {
+        NSURLSessionConfiguration *sessionConfig = \[NSURLSessionConfiguration defaultSessionConfiguration\];
+        // 请求超时 15 秒
+        sessionConfig.timeoutIntervalForRequest = 15;
+
+        /\*\*
+         \*  Create the session for this task
+         \*  We send nil as delegate queue so that the session creates a serial operation queue for performing all delegate
+         \*  method calls and completion handler calls.
+         */
+        session = \[NSURLSession sessionWithConfiguration:sessionConfig
+                                                delegate:self
+                                           delegateQueue:nil\];
+        self.ownedSession = session;
+    }
+
+    // 不缓存响应
+    if (self.options &amp; SDWebImageDownloaderIgnoreCachedResponse) {
+        // Grab the cached data for later check
+        NSURLCache *URLCache = session.configuration.URLCache;
+        if (!URLCache) {
+            URLCache = \[NSURLCache sharedURLCache\];
+        }
+        NSCachedURLResponse *cachedResponse;
+        // NSURLCache&apos;s \`cachedResponseForRequest:\` is not thread-safe, see https://developer.apple.com/documentation/foundation/nsurlcache#2317483  
+        // 加锁，处理线程不安全的方法
+        @synchronized (URLCache) {
+            cachedResponse = \[URLCache cachedResponseForRequest:self.request\];
+        }
+        // 保存数据
+        if (cachedResponse) {
+            self.cachedData = cachedResponse.data;
+        }
+    }
+
+    self.dataTask = \[session dataTaskWithRequest:self.request\];
+    self.executing = YES;
+}
+
+if (self.dataTask) {
+</code></pre><p>#pragma clang diagnostic push</p>
+<p>#pragma clang diagnostic ignored “-Wunguarded-availability”<br>        // 设置任务优先级<br>        if ([self.dataTask respondsToSelector:@selector(setPriority:)]) {<br>            if (self.options &amp; SDWebImageDownloaderHighPriority) {<br>                self.dataTask.priority = NSURLSessionTaskPriorityHigh;<br>            }<br>            else if (self.options &amp; SDWebImageDownloaderLowPriority) {<br>                self.dataTask.priority = NSURLSessionTaskPriorityLow;<br>            }<br>        }</p>
+<p>#pragma clang diagnostic pop<br>        // 开启任务<br>        [self.dataTask resume];</p>
+<pre><code>    // 回调 
+    for (SDWebImageDownloaderProgressBlock progressBlock in \[self callbacksForKey:kProgressCallbackKey\]) {
+        progressBlock(0, NSURLResponseUnknownLength, self.request.URL);
+    }
+    __block typeof(self) strongSelf = self;
+    // 通知
+    dispatch\_async(dispatch\_get\_main\_queue(), ^{
+        \[\[NSNotificationCenter defaultCenter\] postNotificationName:SDWebImageDownloadStartNotification 
+                                                            object:strongSelf\];
+    });
+} 
+else {
+    // 错误
+    \[self callCompletionBlocksWithError:\[NSError errorWithDomain:NSURLErrorDomain 
+                                                            code:NSURLErrorUnknown 
+                                        userInfo:@{NSLocalizedDescriptionKey : @&quot;Task can&apos;t be initialized&quot;}\]\];
+    \[self done\];
+}
+</code></pre><p>}</p>
+<p>这一块分为几个子任务。</p>
+<ul>
+<li><p>如果该任务已经被设置为取消。</p>
+<p>/**<br> * 重置类的属性<br> */<br>- (void)reset<br>{</p>
+<pre><code>LOCK(self.callbacksLock);
+\[self.callbackBlocks removeAllObjects\];
+UNLOCK(self.callbacksLock);
+
+@synchronized (self) {
+    self.dataTask = nil;
+
+    if (self.ownedSession) {
+        \[self.ownedSession invalidateAndCancel\];
+        self.ownedSession = nil;
+    }
+</code></pre><p>#if SD_UIKIT</p>
+<pre><code>if (self.backgroundTaskId != UIBackgroundTaskInvalid) {
+    // If backgroundTaskId != UIBackgroundTaskInvalid, sharedApplication is always exist
+    UIApplication * app = \[UIApplication performSelector:@selector(sharedApplication)\];
+    \[app endBackgroundTask:self.backgroundTaskId\];
+    self.backgroundTaskId = UIBackgroundTaskInvalid;
+}
+</code></pre><p>#endif</p>
+<pre><code>}
+</code></pre><p>}</p>
+</li>
+<li><p>增加应用进入后台的处理，确保能够开启下载任务。start 方法的目的只是开启下载任务，它所要保证的就是调用 start 时，任务能够开启，至于是否下载成功，那不是 start 应该关心的事情。（待验证）</p>
+</li>
+<li><p>task 开启前的准备工作：设置优先级、会话。</p>
+</li>
+<li><p>开启 task 并处理回调、通知。</p>
+</li>
+</ul>
+<p>- (void)cancel {<br>    @synchronized (self) {<br>        [self cancelInternal];<br>    }<br>}</p>
+<p>- (void)cancelInternal {<br>    if (self.isFinished) return;<br>    [super cancel];</p>
+<pre><code>if (self.dataTask) {
+    \[self.dataTask cancel\];
+    __block typeof(self) strongSelf = self;
+    dispatch\_async(dispatch\_get\_main\_queue(), ^{
+        \[\[NSNotificationCenter defaultCenter\] postNotificationName:SDWebImageDownloadStopNotification 
+                                                            object:strongSelf\];
+    });
+
+    // As we cancelled the task, its callback won&apos;t be called and thus won&apos;t
+    // maintain the isFinished and isExecuting flags.
+    if (self.isExecuting) self.executing = NO;
+    if (!self.isFinished) self.finished = YES;
+}
+
+\[self reset\];
+</code></pre><p>}</p>
+<p>同时取消 operation、task，修改状态并向外通知，重置属性。</p>
+<p>- (void)setFinished:(BOOL)finished {<br>    [self willChangeValueForKey:@”isFinished”];<br>    _finished = finished;<br>    [self didChangeValueForKey:@”isFinished”];<br>}</p>
+<p>- (void)setExecuting:(BOOL)executing {<br>    [self willChangeValueForKey:@”isExecuting”];<br>    _executing = executing;<br>    [self didChangeValueForKey:@”isExecuting”];<br>}</p>
+<p>自己实现了 kvo。</p>
+<p>4、处理下载过程和结束后的事情</p>
+<p>- (void)URLSession:(NSURLSession <em>)session<br>          dataTask:(NSURLSessionDataTask </em>)dataTask<br>didReceiveResponse:(NSURLResponse <em>)response<br> completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler<br>{<br>    NSURLSessionResponseDisposition disposition = NSURLSessionResponseAllow;<br>    NSInteger expected = (NSInteger)response.expectedContentLength;<br>    expected = expected &gt; 0 ? expected : 0;<br>    self.expectedSize = expected;<br>    self.response = response;<br>    NSInteger statusCode = [response respondsToSelector:@selector(statusCode)] ? ((NSHTTPURLResponse </em>)response).statusCode : 200;<br>    BOOL valid = statusCode &lt; 400;<br>    //‘304 Not Modified’ is an exceptional one. It should be treated as cancelled if no cache data<br>    //URLSession current behavior will return 200 status code when the server respond 304 and URLCache hit. But this is not a standard behavior and we just add a check<br>    if (statusCode == 304 &amp;&amp; !self.cachedData) {<br>        valid = NO;<br>    }</p>
+<pre><code>if (valid) {
+    for (SDWebImageDownloaderProgressBlock progressBlock in \[self callbacksForKey:kProgressCallbackKey\]) {
+        progressBlock(0, expected, self.request.URL);
+    }
+} 
+else {
+    // Status code invalid and marked as cancelled. 
+    // Do not call `\[self.dataTask cancel\]` which may mass up URLSession life cycle
+    disposition = NSURLSessionResponseCancel;
+}
+__block typeof(self) strongSelf = self;
+dispatch\_async(dispatch\_get\_main\_queue(), ^{
+    \[\[NSNotificationCenter defaultCenter\] postNotificationName:SDWebImageDownloadReceiveResponseNotification 
+                                                        object:strongSelf\];
+});
+
+if (completionHandler) {
+    completionHandler(disposition);
+}
+</code></pre><p>}</p>
+<p>上边的代码，处理了当收到响应后要做的事情。规定：没有收到响应码或者响应码小于 400 认定为正常的情况，其中 304 比较特殊，因为当 stateCode 为 304 的时候，便是这个响应没有变化，可以在缓存中读取。其他的情况可以认定为错误的请求。</p>
+<p>当一切顺利的时候，基本上就是给早已定义的属性赋值，上边的代码逻辑比较简单，在这里就不做介绍了。</p>
+<p>- (void)URLSession:(NSURLSession <em>)session dataTask:(NSURLSessionDataTask </em>)dataTask didReceiveData:(NSData *)data<br>{<br>    if (!self.imageData) {<br>        self.imageData = [[NSMutableData alloc] initWithCapacity:self.expectedSize];<br>    }<br>    // 拼接数据<br>    [self.imageData appendData:data];</p>
+<pre><code>if ((self.options &amp; SDWebImageDownloaderProgressiveDownload) &amp;&amp; self.expectedSize &gt; 0) {
+    // Get the image data
+    __block NSData *imageData = \[self.imageData copy\];
+    // Get the total bytes downloaded  当前下载数据的总长度
+    const NSInteger totalSize = imageData.length;
+    // Get the finish status  是否已经完全下载
+    BOOL finished = (totalSize &gt;= self.expectedSize);
+
+    if (!self.progressiveCoder) {
+        // We need to create a new instance for progressive decoding to avoid conflicts
+        for (id&lt;SDWebImageCoder&gt;coder in \[SDWebImageCodersManager sharedInstance\].coders) {
+            if (\[coder conformsToProtocol:@protocol(SDWebImageProgressiveCoder)\] &amp;&amp;
+                \[((id&lt;SDWebImageProgressiveCoder&gt;)coder) canIncrementallyDecodeFromData:imageData\]) {
+                self.progressiveCoder = \[\[\[coder class\] alloc\] init\];
+                break;
+            }
+        }
+    }
+
+    // progressive decode the image in coder queue
+    dispatch_async(self.coderQueue, ^{
+        @autoreleasepool {
+            UIImage *image = \[self.progressiveCoder incrementallyDecodedImageWithData:imageData 
+                                                                             finished:finished\];
+            if (image) {
+                NSString *key = \[\[SDWebImageManager sharedManager\] cacheKeyForURL:self.request.URL\];
+                image = \[self scaledImageForKey:key image:image\];
+                if (self.shouldDecompressImages) {
+                    image = \[\[SDWebImageCodersManager sharedInstance\] decompressedImageWithImage:image 
+                                                                                            data:&amp;imageData 
+                                                     options:@{SDWebImageCoderScaleDownLargeImagesKey: @(NO)}\];
+                }
+
+                // We do not keep the progressive decoding image even when \`finished\`=YES. Because they are for view rendering but not take full function from downloader options. And some coders implementation may not keep consistent between progressive decoding and normal decoding.
+
+                \[self callCompletionBlocksWithImage:image imageData:nil error:nil finished:NO\];
+            }
+        }
+    });
+}
+
+for (SDWebImageDownloaderProgressBlock progressBlock in \[self callbacksForKey:kProgressCallbackKey\]) {
+    progressBlock(self.imageData.length, self.expectedSize, self.request.URL);
+}
+</code></pre><p>}</p>
+<p>上边的方法处理了接收到数据的逻辑。按照正常想法，当我们接受到数据的时候，只要把收据拼接起来，根据设置选项，调用 process 回调就行了。那么为什么这个方法中用了如此大的篇幅来处理图片数据呢？</p>
+<p>答案就是，即使图片没有下载完，我们也能根据已经获取的图片数据，来显示一张数据不完整的图片。 通过这样一个细节，我想到了很多应用场景，比如说，之前看到过一个场景，通过滑动 slider 自上而下的显示一张图片的部分内容，我们完全可以通过上边的代码来实现。根据 slider 的 value 来控制整个 NSData 的大小，来合成图片。当然这也跟图片的组成有关。</p>
+<p>- (void)URLSession:(NSURLSession <em>)session<br>          dataTask:(NSURLSessionDataTask </em>)dataTask<br> willCacheResponse:(NSCachedURLResponse <em>)proposedResponse<br> completionHandler:(void (^)(NSCachedURLResponse </em>cachedResponse))completionHandler<br>{<br>    NSCachedURLResponse *cachedResponse = proposedResponse;</p>
+<pre><code>if (!(self.options &amp; SDWebImageDownloaderUseNSURLCache)) {
+    // Prevents caching of responses
+    cachedResponse = nil;
+}
+if (completionHandler) {
+    completionHandler(cachedResponse);
+}
+</code></pre><p>}</p>
+<p>该方法用于响应的缓存设置，如果把回调的参数设置为 nil，那么就不会缓存响应，总之，真正缓存的数据就是回调中的参数。</p>
+<p>- (void)URLSession:(NSURLSession <em>)session task:(NSURLSessionTask </em>)task didCompleteWithError:(NSError *)error<br>{<br>    @synchronized(self) {<br>        self.dataTask = nil;<br>        __block typeof(self) strongSelf = self;<br>        dispatch_async(dispatch_get_main_queue(), ^{<br>            [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStopNotification<br>                                                                object:strongSelf];<br>            if (!error) {<br>                [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadFinishNotification<br>                                                                    object:strongSelf];<br>            }<br>        });<br>    }</p>
+<pre><code>// make sure to call `\[self done\]` to mark operation as finished
+if (error) {
+    \[self callCompletionBlocksWithError:error\];
+    \[self done\];
+} 
+else {
+    if (\[self callbacksForKey:kCompletedCallbackKey\].count &gt; 0) {
+        /\*\*
+         \*  If you specified to use \`NSURLCache\`, then the response you get here is what you need.
+         */
+        __block NSData *imageData = \[self.imageData copy\];
+        self.imageData = nil;
+        if (imageData) {
+            /\*\*  if you specified to only use cached data via \`SDWebImageDownloaderIgnoreCachedResponse\`,
+             \*  then we should check if the cached data is equal to image data
+             */
+            if (self.options &amp; SDWebImageDownloaderIgnoreCachedResponse 
+                &amp;&amp; \[self.cachedData isEqualToData:imageData\]) {
+                // call completion block with nil
+                \[self callCompletionBlocksWithImage:nil imageData:nil error:nil finished:YES\];
+                \[self done\];
+            } 
+            else {
+                // decode the image in coder queue
+                dispatch_async(self.coderQueue, ^{
+                    @autoreleasepool {
+                        UIImage *image = \[\[SDWebImageCodersManager sharedInstance\] decodedImageWithData:imageData\];
+                        NSString *key = \[\[SDWebImageManager sharedManager\] cacheKeyForURL:self.request.URL\];
+                        image = \[self scaledImageForKey:key image:image\];
+
+                        // Do not force decoding animated images or GIF,
+                        // because there has imageCoder which can change \`image\` or \`imageData\` to static image, lose the animated feature totally.
+                        BOOL shouldDecode = !image.images &amp;&amp; image.sd_imageFormat != SDImageFormatGIF;
+                        if (shouldDecode) {
+                            if (self.shouldDecompressImages) {
+                                BOOL shouldScaleDown = self.options &amp; SDWebImageDownloaderScaleDownLargeImages;
+                                image = \[\[SDWebImageCodersManager sharedInstance\] decompressedImageWithImage:image data:&amp;imageData options:@{SDWebImageCoderScaleDownLargeImagesKey: @(shouldScaleDown)}\];
+                            }
+                        }
+                        CGSize imageSize = image.size;
+                        if (imageSize.width == 0 || imageSize.height == 0) {
+                            \[self callCompletionBlocksWithError:\[NSError errorWithDomain:SDWebImageErrorDomain 
+                                                                                    code:0 
+                                    userInfo:@{NSLocalizedDescriptionKey : @&quot;Downloaded image has 0 pixels&quot;}\]\];
+                        } 
+                        else {
+                            \[self callCompletionBlocksWithImage:image 
+                                                      imageData:imageData 
+                                                          error:nil
+                                                       finished:YES\];
+                        }
+                        \[self done\];
+                    }
+                });
+            }
+        } 
+        else {
+            \[self callCompletionBlocksWithError:\[NSError errorWithDomain:SDWebImageErrorDomain 
+                                                                    code:0 
+                                                userInfo:@{NSLocalizedDescriptionKey : @&quot;Image data is nil&quot;}\]\];
+            \[self done\];
+        }
+    } 
+    else {
+        \[self done\];
+    }
+}
+</code></pre><p>}</p>
+<p>该方法是处理了图片下载完成之后的逻辑，也没有很特别的东西，比较复杂的是对完成后的数据的处理更加完善。要做到这一点，确实需要 N 多知识的积累。</p>
+<p>- (void)URLSession:(NSURLSession <em>)session task:(NSURLSessionTask </em>)task didReceiveChallenge:(NSURLAuthenticationChallenge <em>)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential </em>credential))completionHandler<br>{<br>    NSURLSessionAuthChallengeDisposition disposition = NSURLSessionAuthChallengePerformDefaultHandling;<br>    __block NSURLCredential *credential = nil;</p>
+<pre><code>if (\[challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust\]) {
+    if (!(self.options &amp; SDWebImageDownloaderAllowInvalidSSLCertificates)) {
+        disposition = NSURLSessionAuthChallengePerformDefaultHandling;
+    } 
+    else {
+        credential = \[NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust\];
+        disposition = NSURLSessionAuthChallengeUseCredential;
+    }
+} 
+else {
+    if (challenge.previousFailureCount == 0) {
+        if (self.credential) {
+            credential = self.credential;
+            disposition = NSURLSessionAuthChallengeUseCredential;
+        } else {
+            disposition = NSURLSessionAuthChallengeCancelAuthenticationChallenge;
+        }
+    } else {
+        disposition = NSURLSessionAuthChallengeCancelAuthenticationChallenge;
+    }
+}
+
+if (completionHandler) {
+    completionHandler(disposition, credential);
+}
+</code></pre><p>}</p>
+<p>这个方法跟 HTTPS 有点关系，要想说明白这个方法究竟干了什么事，需要对验证有点了解才行。</p>
+<p>当我们发出了一个请求，这个请求到达服务器后，假定服务器设置了需要验证，那么这个方法就会被调用。服务器会返回去一个NSURLAuthenticationChallenge。通过 NSURLAuthenticationChallenge 的 protectionSpace，获取授权 method。如果这个 method 是服务器信任的， 那么我们就可以直接使用服务器返回的证书，当然，我们也可以使用自己的证书，其他情况都会被认为验证失败，当前请求将会被取消。当有了证书后，客户端就可以使用证书中的公钥对数据进行加密了。</p>
+<p>其他的方法：</p>
+<p>- (nullable UIImage <em>)scaledImageForKey:(nullable NSString </em>)key image:(nullable UIImage *)image {<br>    return SDScaledImageForKey(key, image);<br>}</p>
+<p>- (BOOL)shouldContinueWhenAppEntersBackground {<br>    return self.options &amp; SDWebImageDownloaderContinueInBackground;<br>}</p>
+<p>- (void)callCompletionBlocksWithError:(nullable NSError *)error {<br>    [self callCompletionBlocksWithImage:nil imageData:nil error:error finished:YES];<br>}</p>
+<p>- (void)callCompletionBlocksWithImage:(nullable UIImage <em>)image<br>                            imageData:(nullable NSData </em>)imageData<br>                                error:(nullable NSError <em>)error<br>                             finished:(BOOL)finished {<br>    NSArray<id> </id></em>completionBlocks = [self callbacksForKey:kCompletedCallbackKey];<br>    dispatch_main_async_safe(^{<br>        for (SDWebImageDownloaderCompletedBlock completedBlock in completionBlocks) {<br>            completedBlock(image, imageData, error, finished);<br>        }<br>    });<br>}</p>
+<h5 id="四、总结"><a href="#四、总结" class="headerlink" title="四、总结"></a>四、总结</h5><p>SDWebImageDownloaderOperation 提供了下载单张图片的能力，在真实开发中，图片往往都是一组一组的出现的。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/14/sdwebimagedownloaderoperation/">http://yoursite.com/2019/03/14/sdwebimagedownloaderoperation/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/15/sdwebimagedownloader/" class="pre"> SDWebImageDownloader		</a><a href="/2019/03/14/sdwebimagecache-e3-80-81sdimagecacheconfig/" class="next"> SDWebImageCache、SDImageCacheConfig		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、NSOperation"><span class="toc-text">一、NSOperation</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、-h-文件"><span class="toc-text">二、.h 文件</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、-m-文件"><span class="toc-text">三、.m 文件</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、总结"><span class="toc-text">四、总结</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

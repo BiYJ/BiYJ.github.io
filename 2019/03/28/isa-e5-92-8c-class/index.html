@@ -1,0 +1,371 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> isa 和 Class		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> isa 和 Class		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> isa 和 Class		</h1><div class="post-meta"><a href="/2019/03/28/isa-e5-92-8c-class/#comments" class="comment-count"></a><p><span class="date">Mar 28, 2019</span><span><a href="/categories/底层原理/" class="category">底层原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>文章：<a href="https://www.jianshu.com/u/12201cdd5d7a" target="_blank" rel="noopener">一缕殇流化隐半边冰霜</a>/<a href="https://www.jianshu.com/p/9d649ce6d0b8" target="_blank" rel="noopener">神经病院Objective-C Runtime入院第一天–isa和Class</a></p>
+<p>目录</p>
+<ol>
+<li>Runtime 简介</li>
+<li>NSObject 起源<ul>
+<li>isa_t 结构体的具体实现</li>
+<li>cache_t 的具体实现</li>
+<li>class_data_bits_t 的具体实现</li>
+</ul>
+</li>
+<li>测试题</li>
+</ol>
+<h5 id="一、Runtime-简介"><a href="#一、Runtime-简介" class="headerlink" title="一、Runtime 简介"></a>一、Runtime 简介</h5><p>Runtime 又叫运行时，是一套底层的 C 语言 API，是 iOS 系统的核心之一。开发者在编码过程中，可以给任意一个对象发送消息，在编译阶段只是确定了要向接收者发送这条消息，而接受者将要如何响应和处理这条消息，那就要看运行时来决定了。</p>
+<p>C 语言中，函数的调用在编译期就会决定调用哪个函数。</p>
+<p>而 OC 的函数属于动态调用过程，在编译期并不能决定真正调用哪个函数，只有在真正运行时才会根据函数的名称找到对应的函数来调用。</p>
+<p>Objective-C 是一个动态语言，不仅需要一个编译器，也需要一个运行时系统来动态得创建类和对象、进行消息传递和转发。</p>
+<p>Objc 在三种层面上与 Runtime 系统进行交互：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-b4ed02142f8f97fe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="1"></p>
+<p>1、通过 Objective-C 源代码</p>
+<p>一般情况开发者只需要编写 OC 代码即可，Runtime 系统自动在幕后把我们写的源代码在编译阶段转换成运行时代码，在运行时确定对应的数据结构和调用具体哪个方法。</p>
+<p>2、通过 Foundation 框架的 NSObject 类定义的方法</p>
+<p>在 OC 中，除了 NSProxy 类以外，所有的类都是 NSObject 的子类。在 Foundation 框架下，NSObject 和 NSProxy 两个基类，定义了类层次结构中该类下方所有类的公共接口和行为。NSProxy 是专门用于实现代理对象的类，暂且不提。这两个类都遵循了 NSObject 协议。在 NSObject 协议中，声明了所有 OC 对象的公共方法。</p>
+<p>在 NSObject 协议中，有以下 5 个方法是可以从 Runtime 中获取信息，让对象进行自我检查。</p>
+<p>/**<br> * 返回对象的类<br> */<br>- (Class)class OBJC_SWIFT_UNAVAILABLE(“use ‘anObject.dynamicType’ instead”);</p>
+<p>/**<br> * 检查对象是否存在于指定类的继承体系中，是否是为某个类或它的子类<br> */<br>- (BOOL)isKindOfClass:(Class)aClass;</p>
+<p>/**<br> * 检查对象是否是某个类的实例<br> */<br>- (BOOL)isMemberOfClass:(Class)aClass;</p>
+<p>/**<br> * 检查对象能否响应指定的消息<br> */<br>- (BOOL)conformsToProtocol:(Protocol *)aProtocol;</p>
+<p>/**<br> * 检查对象是否实现了指定协议类的方法<br> */<br>- (BOOL)respondsToSelector:(SEL)aSelector;</p>
+<p>在 NSObject 的类中还定义了一个方法</p>
+<p>/**<br> * 返回指定方法实现的地址 IMP<br> */<br>- (IMP)methodForSelector:(SEL)aSelector;</p>
+<p>3、通过对 Runtime 库函数的直接调用</p>
+<p>关于库函数可以在 <a href="https://developer.apple.com/documentation/objectivec/objective-c_runtime?language=objc" target="_blank" rel="noopener">Objective-C Runtime Reference</a> 中查看 Runtime 函数的详细文档。</p>
+<p>关于这一点，其实还有一个小插曲。当我们导入了 objc/Runtime.h 和 objc/message.h 两个头文件之后，我们查找到了Runtime 的函数之后，写代码时发现没有代码提示，那些函数里面的参数和描述都没有了。对于熟悉 Runtime 的开发者来说，这并没有什么难的，因为参数早已铭记于胸。但是对于新手来说，这是相当不友好的。而且，如果是从 iOS6 开始开发的同学，依稀可能能感受到，关于 Runtime 的具体实现的官方文档越来越少了？可能还怀疑是不是错觉。其实从 Xcode5 开始，苹果就不建议开发者手动调用 Runtime 的 API，也同样希望我们不要知道具体底层实现。所以 IDE 上面默认带了一个参数，禁止了 Runtime 的代码提示，源码和文档方面也删除了一些解释。</p>
+<p>具体设置如下：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-4a2ea408888ae8cd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/811/format/webp" alt="2"></p>
+<p>如果发现导入了两个库文件之后，仍然没有代码提示，就需要把这里的设置改成 NO，即可。</p>
+<h5 id="二、NSObject-起源"><a href="#二、NSObject-起源" class="headerlink" title="二、NSObject 起源"></a>二、NSObject 起源</h5><p>与 Runtime 交互有 3 种方式，前两种方式都与 NSObject 有关，那我们就从 NSObject 基类开始说起。以下源码分析均来自<a href="https://link.jianshu.com?t=http://opensource.apple.com//source/objc4/" target="_blank" rel="noopener">objc4-680</a></p>
+<p>NSObject 的定义如下：</p>
+<p>typedef struct objc_class *Class;</p>
+<p>@interface NSObject <nsobject> {<br>    Class isa  OBJC_ISA_AVAILABILITY;<br>}</nsobject></p>
+<p>在 Objc2.0 之前，objc_class 源码如下：</p>
+<p>struct objc_class {<br>    Class isa  OBJC_ISA_AVAILABILITY;</p>
+<p>#if !__OBJC2__<br>    Class super_class                                        OBJC2_UNAVAILABLE;<br>    const char <em>name                                         OBJC2_UNAVAILABLE;<br>    long version                                             OBJC2_UNAVAILABLE;<br>    long info                                                OBJC2_UNAVAILABLE;<br>    long instance_size                                       OBJC2_UNAVAILABLE;<br>    struct objc_ivar_list </em>ivars                             OBJC2_UNAVAILABLE;  // 指向成员变量列表的指针<br>    struct objc_method_list *<em>methodLists                    OBJC2_UNAVAILABLE;  // 指向方法列表指针的指针<br>    struct objc_cache </em>cache                                 OBJC2_UNAVAILABLE;<br>    struct objc_protocol_list *protocols                     OBJC2_UNAVAILABLE;</p>
+<p>#endif</p>
+<p>} OBJC2_UNAVAILABLE;</p>
+<p>在这里可以看到，在一个类中，有超类的指针、类名、版本的信息。</p>
+<p>动态修改 *methodLists 的值来添加成员方法，这也是 Category 实现的原理，同样解释了 Category 不能添加属性的原因。</p>
+<p>关于 Category，推荐 2 篇文章可以仔细研读：<a href="https://link.jianshu.com?t=http://tech.meituan.com/DiveIntoCategory.html" target="_blank" rel="noopener">深入理解Objective-C：Category</a>、<a href="https://link.jianshu.com?t=https://bestswifter.com/jie-he-category-gong-zuo-yuan-li-fen-xi-oc2-0-zhong-de-runtime/" target="_blank" rel="noopener">结合 Category 工作原理分析 OC2.0 中的 runtime</a></p>
+<p>然后在 2006 年苹果发布 Objc 2.0 之后，objc_class 的定义就变成下面这个样子了，源码 <a href="https://opensource.apple.com//source/objc4/objc4-680/runtime/objc-private.h.auto.html" target="_blank" rel="noopener">objc_private</a>。</p>
+<p>typedef struct objc_class <em>Class;<br>typedef struct objc_object </em>id;</p>
+<p>@interface Object {<br>    Class isa;<br>}</p>
+<p>@interface NSObject <nsobject> {<br>    Class isa  OBJC_ISA_AVAILABILITY;<br>}</nsobject></p>
+<p>struct objc_object {<br>private:<br>    isa_t isa;<br>}</p>
+<p>struct objc_class : objc_object {<br>    // Class ISA;<br>    Class superclass;<br>    cache_t cache;             // formerly cache pointer and vtable<br>    class_data_bits_t bits;    // class_rw_t * plus custom rr/alloc flags<br>}</p>
+<p>union isa_t<br>{</p>
+<p>}</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-06a854913380136c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/956/format/webp" alt="3"></p>
+<p>把源码的定义转化成类图，就是上图的样子。</p>
+<p>从上述源码中，我们可以看到，Objective-C 对象都是 C 语言结构体实现的，在 objc2.0 中，所有的对象都会包含一个 isa_t 类型的结构体。</p>
+<p>objc_object 被源码 typedef 成了 id 类型，这也就是我们平时遇到的 id 类型。这个结构体中就只包含了一个 isa_t 类型的结构体。这个结构体在下面会详细分析。</p>
+<p>objc_class 继承于 objc_object。所以在 objc_class 中也会包含 isa_t 类型的结构体 isa。至此，可以得出结论：</p>
+<p>Objective-C 中类也是一个对象。在 objc_class 中，除了 isa 之外，还有 3 个成员变量，一个是父类的指针，一个是方法缓存，最后一个是这个类的实例方法链表。</p>
+<p>object 类和 NSObject 类里面分别都包含一个 objc_class 类型的 isa。</p>
+<p>1、isa</p>
+<p>union isa_t<br>{<br>    isa_t() { }<br>    isa_t(uintptr_t value) : bits(value) { }<br>    Class cls;<br>    uintptr_t bits;</p>
+<p># if __arm64__<br>    struct {<br>        uintptr_t indexed           : 1;  // 是否开启 isa 指针优化。index = 1 表示开启 isa 指针优化<br>        uintptr_t has_assoc         : 1;  // 是否有设置过关联对象，如果没有，释放时会更快<br>        uintptr_t has_cxx_dtor      : 1;  // 是否有 C++ 的析构函数（.cxx_destruct），如果没有，释放时会更快<br>        uintptr_t shiftcls          : 33; // MACH_VM_MAX_ADDRESS 0x1000000000 存储着Class、Meta-Class对象的内存地址信息<br>        uintptr_t magic             : 6;  // 用于在调试时分辨对象是否未完成初始化<br>        uintptr_t weakly_referenced : 1;  // 是否有被弱引用指向过，如果没有，释放时会更快<br>        uintptr_t deallocating      : 1;  // 对象是否正在释放<br>        uintptr_t has_sidetable_rc  : 1;  // 引用计数器是否过大无法存储在 isa 中。如果为 1，那么引用计数会存储在一个叫 SideTable 的类的属性中<br>        uintptr_t extra_rc          : 19; // 里面存储的值是引用计数 - 1<br>    };</p>
+<p># elif __x86_64__<br>    struct {<br>        uintptr_t indexed           : 1;<br>        uintptr_t has_assoc         : 1;<br>        uintptr_t has_cxx_dtor      : 1;<br>        uintptr_t shiftcls          : 44; // MACH_VM_MAX_ADDRESS 0x7fffffe00000<br>        uintptr_t magic             : 6;<br>        uintptr_t weakly_referenced : 1;<br>        uintptr_t deallocating      : 1;<br>        uintptr_t has_sidetable_rc  : 1;<br>        uintptr_t extra_rc          : 8;<br>    };</p>
+<p># else</p>
+<p># endif<br>}</p>
+<p><a href="https://blog.csdn.net/u012581760/article/details/81230721" target="_blank" rel="noopener">isa 详解</a></p>
+<p>在 arm64 之前 isa 就是普通的指针，只存储类对象、元类对象的指针。但是 arm64 之后 isa 做了优化，采取了共用体结构，将一个 64 位的内存数据分开存储了很多东西，其中 33 位用来存储地址值。</p>
+<p>当一个对象的实例方法被调用的时候，会通过 isa 找到相应的类，然后在该类的 class_data_bits_t 中去查找方法。class_data_bits_t 是指向了类对象的数据区域，在该数据区域内查找相应方法的对应实现。</p>
+<p>但是在我们调用类方法的时候，类对象的 isa 里面是什么呢？这里为了和对象查找方法的机制一致，遂引入了元类（meta-class）的概念。关于元类，更多具体可以研究这篇文章 <a href="https://link.jianshu.com?t=http://www.cocoawithlove.com/2010/01/what-is-meta-class-in-objective-c.html" target="_blank" rel="noopener">What is a meta-class in Objective-C?</a></p>
+<p>在引入元类之后，类对象和对象查找方法的机制就完全统一了。</p>
+<blockquote>
+<p>对象的实例方法调用时，通过对象的 isa 在类中获取方法的实现。</p>
+<p>类对象的类方法调用时，通过类的 isa 在元类中获取方法的实现。</p>
+</blockquote>
+<p>meta-class 之所以重要，是因为它存储着一个类的所有类方法。每个类都会有一个单独的 meta-class，因为每个类的类方法基本不可能完全相同。</p>
+<p>对应关系的图如下图，下图很好的描述了对象，类，元类之间的关系：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-d7b097e86f9e488d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/625/format/webp" alt="4"></p>
+<p>实线是 super_class 指针，虚线是 isa 指针。</p>
+<ol>
+<li><p>Root class（class） 其实就是 NSObject，NSObject 是没有超类的，所以 Root class（class）的 superclass 指向 nil。</p>
+</li>
+<li><p>每个 Class 都有一个 isa 指针指向唯一的 Meta class</p>
+</li>
+<li><p>Root class（meta）的 superclass 指向 Root class（class），也就是 NSObject，形成一个回路。</p>
+</li>
+<li><p>每个 Meta class 的 isa 指针都指向 Root class（meta）。</p>
+</li>
+</ol>
+<p>我们其实应该明白，类对象和元类对象是唯一的，对象是可以在运行时创建无数个的。而在 main 方法执行之前，从 dyld 到 runtime 这期间，类对象和元类对象在这期间被创建。具体可看 sunnyxx 这篇 <a href="https://link.jianshu.com?t=http://blog.sunnyxx.com/2014/08/30/objc-pre-main/" target="_blank" rel="noopener">iOS 程序 main 函数之前发生了什么</a></p>
+<p><strong>isa_t 结构体的具体实现</strong></p>
+<p>接下来我们就该研究研究 isa 的具体实现了。objc_object 里面的 isa 是 isa_t 类型。通过查看源码，我们可以知道 isa_t 是一个 union 联合体。</p>
+<p>struct objc_object {<br>private:<br>    isa_t isa;<br>public:<br>    // initIsa() should be used to init the isa of new objects only.<br>    // If this object already has an isa, use changeIsa() for correctness.<br>    // initInstanceIsa(): objects with no custom RR/AWZ<br>    void initIsa(Class cls /*indexed=false*/);<br>    void initInstanceIsa(Class cls, bool hasCxxDtor);<br>private:<br>    void initIsa(Class newCls, bool indexed, bool hasCxxDtor);<br>    …<br>｝</p>
+<p>那就从 initIsa 方法开始研究。下面以 arm64 为例，源码 <a href="https://opensource.apple.com//source/objc4/objc4-680/runtime/objc-object.h.auto.html" target="_blank" rel="noopener">objc_object</a>。</p>
+<p>inline void<br>objc_object::initInstanceIsa(Class cls, bool hasCxxDtor)<br>{<br>    initIsa(cls, true, hasCxxDtor);<br>}</p>
+<p>inline void<br>objc_object::initIsa(Class cls, bool indexed, bool hasCxxDtor)<br>{<br>    if (!indexed) {<br>        isa.cls = cls;<br>    } else {<br>        isa.bits = ISA_MAGIC_VALUE;<br>        isa.has_cxx_dtor = hasCxxDtor;<br>        isa.shiftcls = (uintptr_t)cls &gt;&gt; 3;<br>    }<br>}</p>
+<p>initIsa 第二个参数传入了一个 true，所以 initIsa 就会执行 else 里面的语句。</p>
+<p># if __arm64__<br>#   define ISA_MASK        0x0000000ffffffff8ULL<br>#   define ISA_MAGIC_MASK  0x000003f000000001ULL<br>#   define ISA_MAGIC_VALUE 0x000001a000000001ULL<br>    struct {<br>        uintptr_t indexed           : 1;<br>        uintptr_t has_assoc         : 1;<br>        uintptr_t has_cxx_dtor      : 1;<br>        uintptr_t shiftcls          : 33; // MACH_VM_MAX_ADDRESS 0x1000000000<br>        uintptr_t magic             : 6;<br>        uintptr_t weakly_referenced : 1;<br>        uintptr_t deallocating      : 1;<br>        uintptr_t has_sidetable_rc  : 1;<br>        uintptr_t extra_rc          : 19;<br>#       define RC_ONE   (1ULL&lt;&lt;45)<br>#       define RC_HALF  (1ULL&lt;&lt;18)<br>    };</p>
+<p># elif __x86_64__<br>#   define ISA_MASK        0x00007ffffffffff8ULL<br>#   define ISA_MAGIC_MASK  0x001f800000000001ULL<br>#   define ISA_MAGIC_VALUE 0x001d800000000001ULL<br>    struct {<br>        uintptr_t indexed           : 1;<br>        uintptr_t has_assoc         : 1;<br>        uintptr_t has_cxx_dtor      : 1;<br>        uintptr_t shiftcls          : 44; // MACH_VM_MAX_ADDRESS 0x7fffffe00000<br>        uintptr_t magic             : 6;<br>        uintptr_t weakly_referenced : 1;<br>        uintptr_t deallocating      : 1;<br>        uintptr_t has_sidetable_rc  : 1;<br>        uintptr_t extra_rc          : 8;<br>#       define RC_ONE   (1ULL&lt;&lt;56)<br>#       define RC_HALF  (1ULL&lt;&lt;7)<br>    };</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-2f2760cc2bc4034e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="5"></p>
+<p>ISA_MAGIC_VALUE = 0x000001a000000001ULL 转换成二进制是 11010000000000000000000000000000000000001，结构如下图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-78ff71b4e40f616f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/829/format/webp" alt="6"></p>
+<p>参数的说明：</p>
+<p>index</p>
+<p>代表是否开启 isa 指针优化。index = 1 代表开启 isa 指针优化。</p>
+<p>在 2013 年 9 月，苹果推出了 iPhone5s，与此同时，iPhone5s 配备了首个采用 64 位架构的 A7 双核处理器，为了节省内存和提高执行效率，苹果提出了 Tagged Pointer 的概念。对于 64 位程序，引入 Tagged Pointer 后，相关逻辑能减少一半的内存占用，以及 3 倍的访问速度提升，100 倍的创建、销毁速度提升。</p>
+<p>在 WWDC2013 的《Session 404 Advanced in Objective-C》视频中，苹果介绍了 Tagged Pointer。</p>
+<p>Tagged Pointer 的存在主要是为了节省内存。我们知道，对象的指针大小一般是与机器字长有关，在 32 位系统中，一个指针的大小是 32 位（4 字节），而在 64 位系统中，一个指针的大小将是 64 位（8 字节）。</p>
+<p>假设我们要存储一个 NSNumber 对象，其值是一个整数。正常情况下，如果这个整数只是一个 NSInteger 的普通变量，那么它所占用的内存是与 CPU 的位数有关，在 32 位 CPU 下占 4 个字节，在 64 位 CPU 下是占 8 个字节的。而指针类型的大小通常也是与 CPU 位数相关，一个指针所占用的内存在 32 位 CPU 下为 4 个字节，在 64 位 CPU 下也是 8 个字节。如果没有 Tagged Pointer 对象，从 32 位机器迁移到 64 位机器中后，虽然逻辑没有任何变化，但这种 NSNumber、NSDate 一类的对象所占用的内存会翻倍。如下图所示：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-1f205ac1ee6d1db9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="7"></p>
+<p>苹果提出了 Tagged Pointer 对象。由于 NSNumber、NSDate 一类的变量本身的值需要占用的内存大小常常不需要 8 个字节，拿整数来说，4 个字节所能表示的有符号整数就可以达到 20 多亿（注：231 = 2147483648，另外 1 位作为符号位)，对于绝大多数情况都是可以处理的。所以，引入了 Tagged Pointer 对象之后，64 位 CPU 下 NSNumber 的内存图变成了以下这样：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-c1a948684d801b06.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="8"></p>
+<p>关于 <a href="http://www.infoq.com/cn/articles/deep-understanding-of-tagged-pointer/" target="_blank" rel="noopener">Tagged Pointer 技术</a>详细的，可以看上面链接那个文章。</p>
+<p>has_assoc</p>
+<p>对象含有或者曾经含有关联引用，没有关联引用的可以更快地释放内存</p>
+<p>has_cxx_dtor</p>
+<p>表示该对象是否有 C++ 或者 Objc 的析构器</p>
+<p>shiftcls</p>
+<p>类的指针。arm64 架构中有 33 位可以存储类指针。</p>
+<p>源码中 isa.shiftcls = (uintptr_t)cls &gt;&gt; 3;</p>
+<p>将当前地址右移三位的主要原因是用于将 Class 指针中无用的后三位清除减小内存的消耗，因为类的指针要按照字节（8 bits）对齐内存，其指针后三位都是没有意义的 0。具体可以看<a href="https://link.jianshu.com?t=https://github.com/Draveness/iOS-Source-Code-Analyze/blob/master/contents/objc/%E4%BB%8E%20NSObject%20%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96%E4%BA%86%E8%A7%A3%20isa.md#shiftcls" target="_blank" rel="noopener">从 NSObject 的初始化了解 isa</a>这篇文章里面的 shiftcls 分析。</p>
+<p>magic</p>
+<p>判断对象是否初始化完成，在 arm64 中 0x16 是调试器判断当前对象是真的对象还是没有初始化的空间。</p>
+<p>weakly_referenced</p>
+<p>对象被指向或者曾经指向一个 ARC 的弱变量，没有弱引用的对象可以更快释放</p>
+<p>deallocating</p>
+<p>对象是否正在释放内存</p>
+<p>has_sidetable_rc</p>
+<p>判断该对象的引用计数是否过大，如果过大则需要其他散列表来进行存储。</p>
+<p>extra_rc</p>
+<p>存放该对象的引用计数值减一后的结果。对象的引用计数超过 1，会存在这个里面，如果引用计数为 10，extra_rc 的值就为 9。</p>
+<p>ISA_MAGIC_MASK 和 ISA_MASK 分别是通过掩码的方式获取 MAGIC 值和 isa 类指针。</p>
+<p>inline Class<br>objc_object::ISA()<br>{<br>    assert(!isTaggedPointer());<br>    return (Class)(isa.bits &amp; ISA_MASK);<br>}</p>
+<p>关于 x86_64 的架构，具体可以看<a href="https://link.jianshu.com?t=https://github.com/Draveness/iOS-Source-Code-Analyze/blob/master/contents/objc/%E4%BB%8E%20NSObject%20%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96%E4%BA%86%E8%A7%A3%20isa.md" target="_blank" rel="noopener">从 NSObject 的初始化了解 isa</a>文章里面的详细分析。</p>
+<p>2、cache_t 的具体实现</p>
+<p>继续看源码</p>
+<p>struct cache_t {<br>    struct bucket_t *_buckets;<br>    mask_t _mask;      // 分配用来缓存 bucket 的总数<br>    mask_t _occupied;  // 表明实际占用的缓存 bucket 的个数<br>}</p>
+<p>typedef unsigned int uint32_t;<br>typedef uint32_t mask_t;  // x86_64 &amp; arm64 asm are less efficient with 16-bits</p>
+<p>typedef unsigned long  uintptr_t;<br>typedef uintptr_t cache_key_t;</p>
+<p>struct bucket_t {<br>private:<br>    cache_key_t _key;<br>    IMP _imp;<br>}</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-3ab871ca22e8e5a3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/492/format/webp" alt="9"></p>
+<p>根据源码，我们可以知道 cache_t 中存储了一个 bucket_t 的结构体，和两个 unsigned int 的变量。</p>
+<p>bucket_t 的结构体中存储了一个 unsigned long 和一个 IMP。IMP 是一个函数指针，指向了一个方法的具体实现。</p>
+<p>cache_t 中的 bucket_t *_buckets 其实就是一个散列表，用来存储 Method 的链表。</p>
+<p>Cache 的作用主要是为了优化方法调用的性能。当对象 receiver 调用方法 message 时，首先根据对象 receiver 的 isa 指针查找到它对应的类，然后在类的 methodLists 中搜索方法，如果没有找到，就使用 super_class 指针到父类中的 methodLists 查找，一旦找到就调用方法。如果没有找到，有可能消息转发，也可能忽略它。但这样查找方式效率太低，因为往往一个类大概只有 20% 的方法经常被调用，占总调用次数的 80%。所以使用 Cache 来缓存经常调用的方法，当调用方法时，优先在 Cache 查找，如果没有找到，再到 methodLists 查找。</p>
+<p>3、class_data_bits_t 的具体实现</p>
+<p>源码实现：</p>
+<p>struct class_data_bits_t {</p>
+<pre><code>// Values are the FAST_ flags above.
+uintptr_t bits;
+</code></pre><p>}</p>
+<p>struct class_rw_t {<br>    uint32_t flags;<br>    uint32_t version;</p>
+<pre><code>const class\_ro\_t *ro;
+
+method\_array\_t methods;
+property\_array\_t properties;
+protocol\_array\_t protocols;
+
+Class firstSubclass;
+Class nextSiblingClass;
+
+char *demangledName;
+</code></pre><p>}</p>
+<p>struct class_ro_t {<br>    uint32_t flags;<br>    uint32_t instanceStart;<br>    uint32_t instanceSize;</p>
+<p>#ifdef __LP64__<br>    uint32_t reserved;</p>
+<p>#endif</p>
+<pre><code>const uint8_t * ivarLayout;
+
+const char * name;
+method\_list\_t * baseMethodList;
+protocol\_list\_t * baseProtocols;
+const ivar\_list\_t * ivars;
+
+const uint8_t * weakIvarLayout;
+property\_list\_t *baseProperties;
+
+method\_list\_t *baseMethods() const {
+    return baseMethodList;
+}
+</code></pre><p>};</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-dfecb7c37d335fc6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="10"></p>
+<p>在 objc_class 结构体中的注释写到 class_data_bits_t 相当于 class_rw_t 指针加上 rr/alloc 的标志。</p>
+<p>class_data_bits_t bits; // class_rw_t * plus custom rr/alloc flags</p>
+<p>它为我们提供了便捷方法用于返回其中的 class_rw_t * 指针：</p>
+<p>class_rw_t *data() {<br>    return bits.data();<br>}</p>
+<p>Objc 的类的属性、方法、以及遵循的协议在 obj 2.0 的版本之后都放在 class_rw_t 中。class_ro_t 是一个指向常量的指针，存储来编译器决定了的属性、方法和遵守协议。rw-readwrite、ro-readonly</p>
+<p>在编译期，类的结构中的 class_data_bits_t <em>data 指向的是一个 class_ro_t </em> 指针：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-2dad1ac70ec7dac6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="11"></p>
+<p>在运行时调用 realizeClass方法，会做以下 3 件事情：</p>
+<ol>
+<li><p>从 class_data_bits_t 调用 data 方法，将结果从 class_rw_t 强制转换为 class_ro_t 指针</p>
+</li>
+<li><p>初始化一个 class_rw_t 结构体</p>
+</li>
+<li><p>设置结构体 ro 的值以及 flag</p>
+</li>
+</ol>
+<p>最后调用 methodizeClass 方法，把类里面的属性、协议、方法都加载进来。</p>
+<p>struct method_t {<br>    SEL name;   // 方法名字<br>    const char *types;  // Type Encoding 类型编码<br>    IMP imp;  </p>
+<pre><code>struct SortBySELAddress :
+    public std::binary\_function&lt;const method\_t&amp;,
+                                const method_t&amp;, bool&gt;
+{
+    bool operator() (const method_t&amp; lhs,
+                     const method_t&amp; rhs)
+    { return lhs.name &lt; rhs.name; }
+};
+</code></pre><p>};</p>
+<p>方法 method 的定义如上。里面包含 3 个成员变量。Type Encoding 类型编码可参考 <a href="https://link.jianshu.com?t=https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html" target="_blank" rel="noopener">Type Encoding</a>。</p>
+<p>IMP 是一个函数指针，指向的是函数的具体实现。在 runtime 中消息传递和转发的目的就是为了找到 IMP，并执行函数。</p>
+<p>整个运行时过程描述如下：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-06da58b9bbe05c6f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="12"></p>
+<p>更加详细的分析，请看<a href="https://link.jianshu.com?t=https://github.com/Draveness" target="_blank" rel="noopener">@Draveness</a> 的这篇文章<a href="https://link.jianshu.com?t=https://github.com/Draveness/iOS-Source-Code-Analyze/blob/master/contents/objc/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%20ObjC%20%E4%B8%AD%E6%96%B9%E6%B3%95%E7%9A%84%E7%BB%93%E6%9E%84.md#%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90-objc-%E4%B8%AD%E6%96%B9%E6%B3%95%E7%9A%84%E7%BB%93%E6%9E%84" target="_blank" rel="noopener">深入解析 ObjC 中方法的结构</a></p>
+<p>到此，总结 objc_class 1.0 和 2.0 的差别。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-8b2987b38e6e5d2b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="13"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-cd2c3afd17d40e9f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="14"></p>
+<h5 id="三、测试题"><a href="#三、测试题" class="headerlink" title="三、测试题"></a>三、测试题</h5><p>1、[self class] 与 [super class]</p>
+<p>@implementation Son : Father</p>
+<p>- (id)init<br>{<br>    if (self = [super init])<br>    {<br>        NSLog(@”%@”, NSStringFromClass([self class]));<br>        NSLog(@”%@”, NSStringFromClass([super class]));<br>    }<br>    return self;<br>}<br>@end</p>
+<p>self 和 super 的区别：</p>
+<p>self 是类的一个隐藏参数，每个方法的实现的第一个参数即为 self。</p>
+<p>super 并不是隐藏参数，它实际上只是一个“编译器标示符”，它负责告诉编译器：当调用方法时，去调用父类的方法，而不是本类中的方法。</p>
+<p>在调用 [super class] 的时候，runtime 会去调用 objc_msgSendSuper 方法，而不是 objc_msgSend。</p>
+<p>OBJC_EXPORT void objc_msgSendSuper(void /<em> struct objc_super \</em>super, SEL op, … */ )</p>
+<p>/// Specifies the superclass of an instance.<br>struct objc_super {<br>    /// Specifies an instance of a class.<br>    __unsafe_unretained id receiver;</p>
+<pre><code>/// Specifies the particular superclass of the instance to message. 
+</code></pre><p>#if !defined(__cplusplus)  &amp;&amp;  !__OBJC2__<br>    /* For compatibility with old objc-runtime.h header */<br>    __unsafe_unretained Class class;</p>
+<p>#else<br>    __unsafe_unretained Class super_class;</p>
+<p>#endif<br>    /* super_class is the first class to search */<br>};</p>
+<p>在 objc_msgSendSuper 方法中，第一个参数是一个 objc_super 的结构体，这个结构体里面有两个变量，一个是接收消息的receiver，一个是当前类的父类 super_class。</p>
+<p>objc_msgSendSuper 的工作原理应该是这样的：</p>
+<blockquote>
+<p>从 objc_super 结构体指向的 superClass 父类的方法列表开始查找 selector，找到后以 objc-&gt;receiver 去调用父类的这个 selector。注意，最后的调用者是 objc-&gt;receiver，而不是 super_class。</p>
+</blockquote>
+<p>那么 objc_msgSendSuper 最后就转变成</p>
+<p>// 注意这里是从父类开始 msgSend，而不是从本类开始。<br>objc_msgSend(objc_super-&gt;receiver, @selector(class))</p>
+<p>/// Specifies an instance of a class.  这是类的一个实例<br>    __unsafe_unretained id receiver;   </p>
+<p>// 由于是实例调用，所以是减号方法<br>- (Class)class {<br>    return object_getClass(self);<br>}</p>
+<p>由于找到了父类 NSObject 里面的 class 方法的 IMP，又因为传入的入参 objc_super-&gt;receiver = self。self 就是 son，调用 class，所以父类的方法 class 执行 IMP 之后，输出还是 son，最后输出两个都一样，都是输出 son。</p>
+<p>2、isKindOfClass 与 isMemberOfClass</p>
+<p>@interface Sark : NSObject<br>@end</p>
+<p>@implementation Sark@end</p>
+<p>int main(int argc, const char * argv[]) {<br>    @autoreleasepool {<br>         BOOL res1 = [(id)[NSObject class] isKindOfClass:[NSObject class]];<br>         BOOL res2 = [(id)[NSObject class] isMemberOfClass:[NSObject class]];<br>         BOOL res3 = [(id)[Sark class] isKindOfClass:[Sark class]];<br>         BOOL res4 = [(id)[Sark class] isMemberOfClass:[Sark class]];</p>
+<pre><code>     NSLog(@&quot;%d %d %d %d&quot;, res1, res2, res3, res4);
+}
+return 0;
+</code></pre><p>}</p>
+<p>先来分析一下源码这两个函数的对象实现</p>
+<p>+ (Class)class {<br>    return self;<br>}</p>
+<p>- (Class)class {<br>    return object_getClass(self);<br>}</p>
+<p>Class object_getClass(id obj)<br>{<br>    if (obj) return obj-&gt;getIsa();<br>    else return Nil;<br>}</p>
+<p>inline Class<br>objc_object::getIsa()<br>{<br>    if (isTaggedPointer()) {<br>        uintptr_t slot = ((uintptr_t)this &gt;&gt; TAG_SLOT_SHIFT) &amp; TAG_SLOT_MASK;<br>        return objc_tag_classes[slot];<br>    }<br>    return ISA();<br>}</p>
+<p>inline Class<br>objc_object::ISA()<br>{<br>    assert(!isTaggedPointer());<br>    return (Class)(isa.bits &amp; ISA_MASK);<br>}</p>
+<p>+ (BOOL)isKindOfClass:(Class)cls {<br>    for (Class tcls = object_getClass((id)self); tcls; tcls = tcls-&gt;superclass) {<br>        if (tcls == cls) return YES;<br>    }<br>    return NO;<br>}</p>
+<p>- (BOOL)isKindOfClass:(Class)cls {<br>    for (Class tcls = [self class]; tcls; tcls = tcls-&gt;superclass) {<br>        if (tcls == cls) return YES;<br>    }<br>    return NO;<br>}</p>
+<p>+ (BOOL)isMemberOfClass:(Class)cls {<br>    return object_getClass((id)self) == cls;<br>}</p>
+<p>- (BOOL)isMemberOfClass:(Class)cls {<br>    return [self class] == cls;<br>}</p>
+<p>首先题目中 NSObject 和 Sark 分别调用了 class 方法。</p>
+<p>+ (BOOL)isKindOfClass:(Class)cls 方法内部，会先去获得 object_getClass 的类，而 object_getClass 的源码实现是去调用当前类的 obj-&gt;getIsa()，最后在 ISA() 方法中获得 meta class 的指针。</p>
+<p>接着在 isKindOfClass 中有一个循环，先判断 class 是否等于 meta class，不等就继续循环判断是否等于 super class，不等再继续取 super class，如此循环下去。</p>
+<p>[NSObject class] 执行完之后调用 isKindOfClass，第一次判断先判断 NSObject 和 NSObject 的 meta class 是否相等，之前讲到 meta class 的时候放了一张很详细的图，从图上我们也可以看出，NSObject 的 meta class 与本身不等。接着第二次循环判断 NSObject 与 meta class 的 superclass 是否相等。还是从那张图上面我们可以看到：Root class(meta) 的 superclass 就是 Root class（class），也就是 NSObject 本身。所以第二次循环相等，于是第一行 res1 输出应该为YES。</p>
+<p>同理，[Sark class] 执行完之后调用 isKindOfClass，第一次 for 循环，Sark 的 Meta Class 与 [Sark class] 不等，第二次 for 循环，Sark Meta Class 的 super class 指向的是 NSObject Meta Class，和 Sark Class 不相等。第三次 for 循环，NSObject Meta Class 的 super class 指向的是 NSObject Class，和 Sark Class 不相等。第四次循环，NSObject Class 的 super class 指向 nil， 和 Sark Class 不相等。第四次循环之后，退出循环，所以第三行的 res3 输出为 NO。</p>
+<p>如果把这里的 Sark 改成它的实例对象，[sark isKindOfClass:[Sark class]]，那么此时就应该输出 YES 了。因为在 isKindOfClass 函数中，判断 sark 的 isa 指向是否是自己的类 Sark，第一次 for 循环就能输出 YES 了。</p>
+<p>isMemberOfClass 的源码实现是拿到自己的 isa 指针和自己比较，是否相等。</p>
+<p>第二行 isa 指向 NSObject 的 Meta Class，所以和 NSObject Class 不相等。第四行，isa 指向 Sark 的 Meta Class，和 Sark Class 也不等，所以第二行 res2 和第四行 res4 都输出 NO。</p>
+<p>3、Class 与内存地址</p>
+<p>下面的代码会？Compile Error / Runtime Crash / NSLog…?</p>
+<p>@interface Sark : NSObject<br>@property (nonatomic, copy) NSString *name;<br>- (void)speak;<br>@end</p>
+<p>@implementation Sark<br>- (void)speak {<br>    NSLog(@”my name’s %@”, self.name);<br>}<br>@end</p>
+<p>@implementation ViewController</p>
+<p>- (void)viewDidLoad<br>{<br>    [super viewDidLoad];</p>
+<pre><code>id cls = \[Sark class\];
+void *obj = &amp;cls;
+\[(__bridge id)obj speak\];
+</code></pre><p>}<br>@end</p>
+<p>这道题有两个难点。难点一，obj 调用 speak 方法到底会不会崩溃。难点二，如果 speak 方法不崩溃，应该输出什么？</p>
+<p>首先需要谈谈隐藏参数 self 和 _cmd 的问题。</p>
+<p>当 [receiver message] 调用方法时，系统会在运行时偷偷地动态传入两个隐藏参数 self 和 _cmd，之所以称它们为隐藏参数，是因为在源代码中没有声明和定义这两个参数。self 在上面已经讲解明白了，接下来就来说说 _cmd。_cmd 表示当前调用方法，其实它就是一个方法选择器 SEL。</p>
+<p>难点一：能不能调用 speak 方法？</p>
+<p>id cls = [Sark class];<br>void *obj = &cls;</p>
+<p>答案是可以的。obj 被转换成了一个指向 Sark Class 的指针，然后使用 id 转换成了 objc_object 类型。obj 现在已经是一个 Sark 类型的实例对象了。当然接下来可以调用 speak 的方法。</p>
+<p>难点二：如果能调用 speak，会输出什么呢？</p>
+<p>很多人可能会认为会输出 sark 相关的信息。这样答案就错误了。</p>
+<p>正确的答案会输出</p>
+<p>my name is &lt;ViewController: 0x7ff6d9f31c50&gt;</p>
+<p>内存地址每次运行都不同，但是前面一定是 ViewController。why？</p>
+<p>我们把代码改变一下，打印更多的信息出来。</p>
+<p>- (void)viewDidLoad<br>{<br>    [super viewDidLoad];</p>
+<pre><code>NSLog(@&quot;ViewController = %@ , 地址 = %p&quot;, self, &amp;self);
+
+id cls = \[Sark class\];
+NSLog(@&quot;Sark class = %@ 地址 = %p&quot;, cls, &amp;cls);
+
+void *obj = &amp;cls;
+NSLog(@&quot;Void *obj = %@ 地址 = %p&quot;, obj, &amp;obj);
+
+\[(__bridge id)obj speak\];
+
+Sark *sark = \[\[Sark alloc\]init\];
+NSLog(@&quot;Sark instance = %@ 地址 = %p&quot;,sark, &amp;sark);
+
+\[sark speak\];
+</code></pre><p>}</p>
+<p>我们把对象的指针地址都打印出来。输出结果：</p>
+<p>ViewController = &lt;ViewController: 0x7fb570e2ad00&gt; , 地址 = 0x7fff543f5aa8<br>Sark class = Sark 地址 = 0x7fff543f5a88<br>Void *obj = &lt;Sark: 0x7fff543f5a88&gt; 地址 = 0x7fff543f5a80</p>
+<p>my name is &lt;ViewController: 0x7fb570e2ad00&gt;</p>
+<p>Sark instance = &lt;Sark: 0x7fb570d20b10&gt; 地址 = 0x7fff543f5a78<br>my name is (null)</p>
+<p><img src="//upload-images.jianshu.io/upload_images/1194012-c794987c90515f8e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt></p>
+<p>// objc_msgSendSuper2() takes the current search class, not its superclass.<br>OBJC_EXPORT id objc_msgSendSuper2(struct objc_super *super, SEL op, …)<br>    __OSX_AVAILABLE_STARTING(__MAC_10_6, __IPHONE_2_0);</p>
+<p>objc_msgSendSuper2 方法入参是一个 objc_super *super。</p>
+<p>/// Specifies the superclass of an instance.<br>struct objc_super {<br>    /// Specifies an instance of a class.<br>    __unsafe_unretained id receiver;</p>
+<pre><code>/// Specifies the particular superclass of the instance to message. 
+</code></pre><p>#if !defined(__cplusplus)  &amp;&amp;  !__OBJC2__<br>    /* For compatibility with old objc-runtime.h header */<br>    __unsafe_unretained Class class;</p>
+<p>#else<br>    __unsafe_unretained Class super_class;</p>
+<p>#endif<br>    /* super_class is the first class to search */<br>};</p>
+<p>#endif</p>
+<p>所以按 viewDidLoad 执行时各个变量入栈顺序从高到底为 self、_cmd、super_class（等同于 self.class）、receiver（等同于 self）、obj。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-75370b4b3f3e6c04.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="15"></p>
+<p>第一个 self 和第二个 _cmd 是隐藏参数。第三个 self.class 和第四个 self 是 [super viewDidLoad] 方法执行时候的参数。</p>
+<p>在调用 self.name 的时候，本质上是 self 指针在内存向高位地址偏移一个指针。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-1de5156e2caa715e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="16"></p>
+<p>从打印结果我们可以看到，obj 就是 cls 的地址。在 obj 向上偏移一个指针就到了 0x7fff543f5a90，这正好是 ViewController 的地址。所以输出为 my name is &lt;ViewController: 0x7fb570e2ad00&gt;。</p>
+<p>至此，Objc 中的对象到底是什么呢？</p>
+<p>实质：Objc 中的对象是一个指向 ClassObject 地址的变量，即 id obj = &amp;ClassObject<strong>，</strong>而对象的实例变量 void *ivar = &amp;obj + offset(N)</p>
+<p>加深一下对上面这句话的理解，下面这段代码会输出什么？</p>
+<p>- (void)viewDidLoad {<br>    [super viewDidLoad];</p>
+<pre><code>NSLog(@&quot;ViewController = %@ , 地址 = %p&quot;, self, &amp;self);
+
+NSString *myName = @&quot;halfrost&quot;;
+
+id cls = \[Sark class\];
+NSLog(@&quot;Sark class = %@ 地址 = %p&quot;, cls, &amp;cls);
+
+void *obj = &amp;cls;
+NSLog(@&quot;Void *obj = %@ 地址 = %p&quot;, obj,&amp;obj);
+
+\[(__bridge id)obj speak\];
+
+Sark *sark = \[\[Sark alloc\]init\];
+NSLog(@&quot;Sark instance = %@ 地址 = %p&quot;,sark,&amp;sark);
+
+\[sark speak\];
+</code></pre><p>}</p>
+<p>ViewController = &lt;ViewController: 0x7fff44404ab0&gt; ,  地址  = 0x7fff56a48a78<br>Sark class = Sark  地址  = 0x7fff56a48a50<br>Void *obj = &lt;Sark: 0x7fff56a48a50&gt;  地址 = 0x7fff56a48a48</p>
+<p>my name is halfrost</p>
+<p>Sark instance = &lt;Sark: 0x6080000233e0&gt;  地址 = 0x7fff56a48a40<br>my name is (null)</p>
+<p>由于加了一个字符串，结果输出就完全变了，[(__bridge id)obj speak]; 这句话会输出“my name is halfrost”。</p>
+<p>原因还是和上面的类似。按 viewDidLoad 执行时各个变量入栈顺序从高到底为 self、_cmd、self.class（super_class）、self（receiver）、myName、obj。obj 往上偏移一个指针，就是 myName 字符串，所以输出变成了输出 myName 了。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-86a075b8fd3adf92.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="17"></p>
+<p>这里有一点需要额外说明的是，栈里面有两个 self，可能有些人认为是指针偏移到了第一个 self 了，于是打印出了 ViewController：</p>
+<p>my name is &lt;ViewController: 0x7fb570e2ad00&gt;</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-428635ce01f15146.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="18"></p>
+<p>其实这种想法是不对的，从 obj 往上找 name 属性，完全是指针偏移了一个 offset 导致的，也就是说指针只往下偏移了一个。那么怎么证明指针只偏移了一个，而不是偏移了 4 个到最下面的 self 呢？</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-cccbecc99506dbe5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="19"></p>
+<p>obj 的地址是 0x7fff5c7b9a08，self 的地址是 0x7fff5c7b9a28。每个指针占 8 个字节，所以从 obj 到 self 中间确实有 4 个指针大小的间隔。如果从 obj 偏移一个指针，就到了 0x7fff5c7b9a10。我们需要把这个内存地址里面的内容打印出来。</p>
+<p>LLDB 调试中，可以使用 examine 命令（简写是 x）来查看内存地址中的值。x 命令的语法如下所示：</p>
+<blockquote>
+<p>x/</p>
+<p>n、f、u 是可选的参数。</p>
+<p>n 是一个正整数，表示显示内存的长度，也就是说从当前地址向后显示几个地址的内容。</p>
+<p>f 表示显示的格式，参见上面。如果地址所指的是字符串，那么格式可以是 s，如果是指令地址，那么格式可以是 i。</p>
+<p>u 表示从当前地址往后请求的字节数，如果不指定的话，GDB 默认是 4 个 bytes。</p>
+<p>u 参数可以用下面的字符来代替，b 表示单字节，h 表示双字节，w 表示四字节，g 表示八字节。当我们指定了字节长度后，GDB 会从指内存定的内存地址开始，读写指定字节，并把其当作一个值取出来。</p>
+</blockquote>
+<p><img src="https://upload-images.jianshu.io/upload_images/1194012-3111309aaef61c73.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="20"></p>
+<p>我们用 x 命令分别打印出 0x7fff5c7b9a10 和 0x7fff5c7b9a28 内存地址里面的内容，我们会发现两个打印出来的值是一样的，都是 0x7fbf0d606aa0。</p>
+<p>这两个 self 的地址不同，里面存储的内容是相同的。所以 obj 是偏移了一个指针，而不是偏移到最下面的 self。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/28/isa-e5-92-8c-class/">http://yoursite.com/2019/03/28/isa-e5-92-8c-class/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/31/xcode-build-setting/" class="pre"> Xcode Build Setting		</a><a href="/2019/03/28/if-else-e3-80-81switch-e3-80-81while-e3-80-81for/" class="next"> if-else、switch、while、for		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、Runtime-简介"><span class="toc-text">一、Runtime 简介</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、NSObject-起源"><span class="toc-text">二、NSObject 起源</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、测试题"><span class="toc-text">三、测试题</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

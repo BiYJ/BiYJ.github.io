@@ -1,0 +1,280 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> GCDAsyncSocket 的封装与使用		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> GCDAsyncSocket 的封装与使用		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> GCDAsyncSocket 的封装与使用		</h1><div class="post-meta"><a href="/2019/03/26/gcdasyncsocket-e7-9a-84-e5-b0-81-e8-a3-85-e4-b8-8e-e4-bd-bf-e7-94-a8/#comments" class="comment-count"></a><p><span class="date">Mar 26, 2019</span><span><a href="/categories/网络编程/" class="category">网络编程</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>文章：<a href="https://www.jianshu.com/p/2fc7ec5d0258" target="_blank" rel="noopener">iOS Socket重构设计</a>、Github：<a href="https://link.jianshu.com/?t=https://github.com/Yuzeyang/GCDAsyncSocketManager" target="_blank" rel="noopener">GCDAsyncSocketManager</a></p>
+<p>CocoaAsyncSocket 第三方库的用途：</p>
+<blockquote>
+<p>CocoaAsyncSocket provides easy-to-use and powerful asynchronous socket libraries for Mac and iOS.</p>
+<p>CocoaAsyncSocket 为 Mac 和 iOS 提供了易于使用且强大的异步通信库。</p>
+</blockquote>
+<p>它已经支持 IPv4 和 IPv6。</p>
+<p>简单的 Socket 通信包括了创建连接、断开连接、发送 socket 业务请求、重连这四个基本功能。</p>
+<p>1、创建连接</p>
+<p>GCDAsyncSocket 提供了四种初始化的方法</p>
+<p>/**<br> * GCDAsyncSocket uses the standard delegate paradigm,<br> * but executes all delegate callbacks on a given delegate dispatch queue.<br> * This allows for maximum concurrency, while at the same time providing easy thread safety.<br> *<br> * You MUST set a delegate AND delegate dispatch queue before attempting to<br> * use the socket, or you will get an error.<br> *<br> * The socket queue is optional.<br> * If you pass NULL, GCDAsyncSocket will automatically create it’s own socket queue.<br> * If you choose to provide a socket queue, the socket queue must not be a concurrent queue.<br> * If you choose to provide a socket queue, and the socket queue has a configured target queue,<br> * then please see the discussion for the method markSocketQueueTargetQueue.<br> *<br> * The delegate queue and socket queue can optionally be the same.<br>**/<br>- (id)init;<br>- (id)initWithSocketQueue:(dispatch_queue_t)sq;<br>- (id)initWithDelegate:(id)aDelegate delegateQueue:(dispatch_queue_t)dq;<br>/**<br> * @param aDelegate  socket 的代理<br> * @param dq  delegate 的线程<br> * @param sq  socket 的线程。可选的设置，如果传入 null，GCDAsyncSocket 内部会创建一个它自己的 socket 线程，如果你要自己提供一个 socket 线程，千万不要提供一个并发线程，在频繁 socket 通信过程中，可能会阻塞掉<br> */<br>- (id)initWithDelegate:(id)aDelegate delegateQueue:(dispatch_queue_t)dq socketQueue:(dispatch_queue_t)sq;</p>
+<p>@property (atomic, weak, readwrite) id delegate; </p>
+<p>#if OS_OBJECT_USE_OBJC<br>@property (atomic, strong, readwrite) dispatch_queue_t delegateQueue; </p>
+<p>#else<br>@property (atomic, assign, readwrite) dispatch_queue_t delegateQueue; </p>
+<p>#endif</p>
+<p>必须要需要设置 socket 的代理以及代理的线程，否则接收不到 socket 的回调。比如：</p>
+<p>self.socket = [[GCDAsyncSocket alloc] initWithDelegate:delegate<br>                                         delegateQueue:dispatch_get_main_queue()];</p>
+<p>在设置代理之后，你需要尝试连接到相应的地址来确定你的 socket 是否能连通了。</p>
+<p>- (BOOL)connectToHost:(NSString *)host<br>               onPort:(uint16_t)port<br>          withTimeout:(NSTimeInterval)timeout<br>                error:(NSError **)errPtr;</p>
+<p>host 是主机地址，port 是端口号。</p>
+<p>如果建连成功之后，会收到 socket 成功的回调，在成功里面可以做需要做的一些事情，比如：做了心跳的处理。</p>
+<p>- (void)socket:(GCDAsyncSocket <em>)sock didConnectToHost:(NSString </em>)host port:(uint16_t)port;</p>
+<p>如果建连失败了，会收到失败的回调，在失败里面做重连的操作。</p>
+<p>- (void)socketDidDisconnect:(GCDAsyncSocket <em>)sock withError:(NSError </em>)err;</p>
+<p>2、重连</p>
+<p>重连操作其实比较简单，只需要再调用一次建连请求，重连规则是重连次数为 5 次，每次的时间间隔为 2 的 n 次方，超过次数之后，就不再去重连了。</p>
+<p>- (void)socketDidDisconnect:(GCDAsyncSocket<em>)sock withError:(NSError</em>)err<br>{<br>    self.status= -1;</p>
+<pre><code>if(self.reconnection\_time &gt;= 0 &amp;&amp; self.reconnection\_time &lt;= kMaxReconnection_time) {
+
+\[self.timer invalidate\];
+self.timer = nil;
+
+int time = pow(2, self.reconnection_time);
+
+self.timer = \[NSTimer scheduledTimerWithTimeInterval:time 
+                                                  target:selfselector:@selector(reconnection) 
+                                                userInfo:nil 
+                                                 repeats:NO\];
+self.reconnection_time++;
+
+NSLog(@&quot;socket did reconnection, after %ds try again&quot;, time);    
+}
+else {
+self.reconnection_time = 0;
+
+NSLog(@&quot;socketDidDisconnect:%p withError: %@&quot;, sock, err);
+}
+</code></pre><p>}</p>
+<p>这里用 status 来标记 socket 的连接状态。</p>
+<p>3、socket 通信</p>
+<p>需要和后端开发人员商定好 socket 协议格式，比如：</p>
+<p>[NSString stringWithFormat:@”{\“version\“:%d,\“reqType\“:%d,\“body\“:\“%@\“}\r\n”, PROTOCOL_VERSION, reqType, reqBody];</p>
+<p>为什么后面需要加上 \r\n 呢？</p>
+<p>这个 \r\n 是 socket 消息的边界符，是为了防止发生消息黏连。没有 \r\n，可能由于某种原因，后端会收到两条 socket 请求，但是后端不知道怎么拆分这两个请求。同理，在收到 socket 请求回调时，也会根据这个边界符去拆分。</p>
+<p>那为什么要用 \r\n 呢？</p>
+<p>GCDAsyncSocket 不支持自定义边界符，它提供了四种边界符供你使用 \r\n、\r、\n、空字符串。</p>
+<p>在拼装好 socket 请求之后，你需要调用 GCDAsyncSocket 的写方法，来发送请求，然后在写完成之后会收到写的回调。</p>
+<p>[self.socket writeData:requestData<br>           withTimeout:-1<br>                   tag:0];</p>
+<p>timeout 是超时时间，这个根据实际的需要去设置。</p>
+<p>/**<br> * @brief  写的回调<br> */<br>- (void)socket:(GCDAsyncSocket*)sock didWriteDataWithTag:(long)tag；</p>
+<p>在写之后，需要再调用读方法，这样才能收到你发出请求后从服务器那边收到的数据。</p>
+<p>[self.socket readDataToData:[GCDAsyncSocket CRLFData]<br>                withTimeout:10<br>                  maxLength:50000<br>                        tag:0];</p>
+<p>[GCDAsyncSocket CRLFData] 是设置边界符，maxLength 是设置你收到的请求数据内容的最大值。</p>
+<p>在读回调里面，你可以根据不同业务来执行不同的操作</p>
+<p>- (void)socket:(GCDAsyncSocket <em>)sock<br>   didReadData:(NSData </em>)data<br>       withTag:(long)tag;</p>
+<p>最后一个则是断开连接，这个只需要调用</p>
+<p>[self.socket disconnect];</p>
+<p>这样的话，最简单基础的 socket 通信，就已经大致能完成了。</p>
+<p>4、在网络环境以及其他因素下，很有可能会造成客户端或者后端没有接收到回调或者请求，那该怎么办？</p>
+<p>需要加上消息回执的处理。客户端发出请求的时候，可以将该请求放到存到数组里面，等到后端的相应回调再移除，如果该请求超时或者在一段时间内没有收到确认返回，说明后端没有接收到客户端的请求，可以将该请求重新发送。</p>
+<p>客户端接收请求的时候，后端将数据发给客户端，客户端需要增加回执处理，告诉后端，客户端接收到数据了，如果后端没接收到，也重新推一遍数据，客户端和后端双向保护来解决丢失问题。</p>
+<p>5、问题排查</p>
+<p>不能定位是否是后端问题还是客户端/SDK 问题时，可以用命令行抓一下 socket 包看看（Charles 只能抓 http、https 包）</p>
+<p>~ $ sudo tcpdump -i any -n -X port 6969<br>Password:<br>tcpdump: data link type PKTAP<br>tcpdump: verbose output suppressed, use -v or -vv for full protocol decode<br>listening on any, link-type PKTAP (Apple DLT_PKTAP), capture size 262144 bytes<br>15:46:02.776970 IP 127.0.0.1.65211 &gt; 127.0.0.1.6969: Flags [P.], seq 260276795:260276835, ack 1931027326, win 12752, options [nop,nop,TS val 844986136 ecr 844981142], length 40<br>    0x0000:  0200 0000 4500 005c 0000 4000 4006 0000  ….E..\..@.@…<br>    0x0010:  7f00 0001 7f00 0001 febb 1b39 0f83 823b  ………..9…;<br>    0x0020:  7319 237e 8018 31d0 fe50 0000 0101 080a  s.#~..1..P……<br>    0x0030:  325d 7718 325d 6396 7b22 7573 6572 5f6d  2]w.2]c.{“user_m<br>    0x0040:  6964 223a 302c 2272 6571 5479 7065 223a  id”:0,”reqType”:<br>    0x0050:  312c 2276 6572 7369 6f6e 223a 357d 0d0a  1,”version”:5}..<br>15:46:02.777010 IP 127.0.0.1.65211 &gt; 127.0.0.1.6969: Flags [P.], seq 0:40, ack 1, win 12752, options [nop,nop,TS val 844986136 ecr 844981142], length 40<br>    0x0000:  0200 0000 4500 005c 0000 4000 4006 0000  ….E..\..@.@…<br>    0x0010:  7f00 0001 7f00 0001 febb 1b39 0f83 823b  ………..9…;<br>    0x0020:  7319 237e 8018 31d0 fe50 0000 0101 080a  s.#~..1..P……<br>    0x0030:  325d 7718 325d 6396 7b22 7573 6572 5f6d  2]w.2]c.{“user_m<br>    0x0040:  6964 223a 302c 2272 6571 5479 7065 223a  id”:0,”reqType”:<br>    0x0050:  312c 2276 6572 7369 6f6e 223a 357d 0d0a  1,”version”:5}..<br>15:46:02.777045 IP 127.0.0.1.6969 &gt; 127.0.0.1.65211: Flags [.], ack 40, win 12751, options [nop,nop,TS val 844986136 ecr 844986136], length 0<br>    0x0000:  0200 0000 4500 0034 0000 4000 4006 0000  ....E..4..@.@…<br>    0x0010:  7f00 0001 7f00 0001 1b39 febb 7319 237e  ………9..s.#~<br>    0x0020:  0f83 8263 8010 31cf fe28 0000 0101 080a  …c..1..(……<br>    0x0030:  325d 7718 325d 7718                      2]w.2]w.</p>
+<p>6969 是端口号，根据实际的调试端口号修改。</p>
+<h5 id="0x00-拆分-SocketManager"><a href="#0x00-拆分-SocketManager" class="headerlink" title="0x00 拆分 SocketManager"></a>0x00 拆分 SocketManager</h5><p>拆分 socket 相关的、业务相关的操作。</p>
+<p>在 SocketManager 里只保留服务器读写数据、断开连接、心跳、重连、GCDAsyncSocket 回调设置。</p>
+<p>// .h<br>@interface GCDAsyncSocketManager : NSObject</p>
+<p>@property (nonatomic, assign, readonly) NSInteger connectStatus;     // 连接状态：-1 未连接，0 连接中，1 已连接<br>@property (nonatomic, assign, readonly) NSInteger reconnectionCount; // 建连失败重连次数</p>
+<p>@end</p>
+<p>// .m<br>static const NSInteger TIMEOUT = 30;<br>static const NSInteger kBeatLimit = 3; </p>
+<p>@interface GCDAsyncSocketManager ()</p>
+<p>@property (nonatomic, strong) GCDAsyncSocket * socket;</p>
+<p>@property (nonatomic, assign) NSInteger connectStatus;     // 连接状态<br>@property (nonatomic, assign) NSInteger reconnectionCount; // 建连失败重连次数<br>@property (nonatomic, assign) NSInteger beatCount;         // 发送心跳次数，用于重连<br>@property (nonatomic, strong) NSTimer <em> beatTimer;         // 心跳定时器<br>@property (nonatomic, strong) NSTimer </em> reconnectTimer;    // 重连定时器<br>@property (nonatomic, copy) NSString * host;               // Socket 连接的host地址<br>@property (nonatomic, assign) uint16_t port;               // Sokcet 连接的端口</p>
+<p>@end<br>/**<br> * @brief  单例<br> */<br>+ (nullable GCDAsyncSocketManager <em>)sharedInstance<br>{<br>    static GCDAsyncSocketManager </em> instance = nil;<br>    static dispatch_once_t once;<br>    dispatch_once(&amp;once, ^{<br>        instance = [[self alloc] init];<br>    });<br>    return instance;<br>}</p>
+<p>- (instancetype)init<br>{<br>    if (self = [super init]) {<br>        self.connectStatus = -1;<br>    }<br>    return self;<br>}</p>
+<p>/**<br> * @brief  连接 socket<br> */<br>- (void)connectSocketWithDelegate:(nonnull id)delegate<br>{<br>    if (self.connectStatus != -1) {<br>         NSLog(@”Socket Connect: YES”);<br>         return;<br>    }</p>
+<pre><code>self.connectStatus = 0;
+
+// 创建 socket
+self.socket = \[\[GCDAsyncSocket alloc\] initWithDelegate:delegate delegateQueue:dispatch\_get\_main_queue()\]; 
+
+NSError * error = nil;
+
+// 连接服务器
+if (!\[self.socket connectToHost:self.host onPort:self.port withTimeout:TIMEOUT error:&amp;error\]) {
+
+    self.connectStatus = -1;
+    NSLog(@&quot;connect error: --- %@&quot;, error); 
+}
+</code></pre><p>}</p>
+<p>/**<br> * @brief  socket 连接成功后发送心跳<br> */<br>- (void)socketDidConnectBeginSendBeat:(nonnull NSString *)beatBody<br>{<br>    self.connectStatus = 1;<br>    self.reconnectionCount = 0;</p>
+<pre><code>if (!self.beatTimer) {
+    self.beatTimer = \[NSTimer scheduledTimerWithTimeInterval:5.0 
+                                                      target:self
+                                                    selector:@selector(sendBeat:)
+                                                    userInfo:beatBody
+                                                     repeats:YES\];
+    \[\[NSRunLoop mainRunLoop\] addTimer:self.beatTimer forMode:NSRunLoopCommonModes\];
+}
+</code></pre><p>}</p>
+<p>/**<br> *  socket 连接失败后重连的操作<br> */<br>- (void)socketDidDisconectBeginSendReconnect:(nonnull NSString *)reconnectBody<br>{<br>    self.connectStatus = -1;</p>
+<pre><code>if (self.reconnectionCount &gt;= 0 &amp;&amp; self.reconnectionCount &lt;= kBeatLimit) {
+
+    NSTimeInterval time = pow(2, self.reconnectionCount);
+
+    if (!self.reconnectTimer) {
+
+        self.reconnectTimer = \[NSTimer scheduledTimerWithTimeInterval:time 
+                                                               target:self 
+                                                             selector:@selector(reconnection:) 
+                                                             userInfo:reconnectBody 
+                                                              repeats:NO\]; 
+        \[\[NSRunLoop mainRunLoop\] addTimer:self.reconnectTimer forMode:NSRunLoopCommonModes\];
+    }
+    self.reconnectionCount++;
+}
+else {
+    \[self.reconnectTimer invalidate\];
+    self.reconnectTimer = nil;
+    self.reconnectionCount = 0;
+}
+</code></pre><p>}</p>
+<p>/**<br> * @brief  向服务器发送数据<br> */<br>- (void)socketWriteData:(nonnull NSString <em>)data<br>{<br>    NSData </em> requestData = [data dataUsingEncoding:NSUTF8StringEncoding];</p>
+<pre><code>\[self.socket writeData:requestData withTimeout:-1 tag:0\]; 
+
+\[self socketBeginReadData\];
+</code></pre><p>}</p>
+<p>/**<br> * @brief  socket 读取数据<br> */<br>- (void)socketBeginReadData<br>{<br>    [self.socket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:10 maxLength:0 tag:0];<br>}</p>
+<p>/**<br> *  socket 主动断开连接<br> */<br>- (void)disconnectSocket<br>{<br>    self.reconnectionCount = -1;</p>
+<pre><code>\[self.socket disconnect\];
+\[self.beatTimer invalidate\];
+self.beatTimer = nil;
+</code></pre><p>}</p>
+<p>/**<br> *  重设心跳次数<br> */<br>- (void)resetBeatCount<br>{<br>    self.beatCount = 0;<br>}</p>
+<p>/**<br> *  设置连接的 host 和 port<br> */<br>- (void)changeHost:(nullable NSString *)host port:(NSInteger)port<br>{<br>    self.host = host;<br>    self.port = port;<br>}</p>
+<p>- (void)sendBeat:(NSTimer *)timer<br>{<br>    if (self.beatCount &gt;= kBeatLimit) {<br>        [self disconnectSocket];<br>        return;<br>    }<br>    else {<br>        self.beatCount++;<br>    }</p>
+<pre><code>if (timer != nil) {
+   \[self socketWriteData:timer.userInfo\];
+}
+</code></pre><p>}</p>
+<p>/**<br> * @brief  重连<br> */<br>- (void)reconnection:(NSTimer <em>)timer<br>{<br>    NSError </em> error = nil; </p>
+<pre><code>if (!\[self.socket connectToHost:self.host onPort:self.port withTimeout:TIMEOUT error:&amp;error\]) { 
+    self.connectStatus = -1;
+}
+</code></pre><p>}</p>
+<h5 id="0x01-业务接口改为通用接口"><a href="#0x01-业务接口改为通用接口" class="headerlink" title="0x01 业务接口改为通用接口"></a>0x01 业务接口改为通用接口</h5><p>将不同的业务请求以枚举的方式列出来，方便外部调用的时候查看，并且最好在枚举后面加上注释，例如：</p>
+<p>/**<br> * 业务类型<br> */<br>typedef NS_ENUM(NSInteger, GACRequestType) {<br>    GACRequestType_Beat = 1,                       //心跳<br>    GACRequestType_GetConversationsList,           //获取会话列表<br>    GACRequestType_ConnectionAuthAppraisal = 7,    //连接鉴权<br>};</p>
+<p>这样就可以将业务接口用一个通用的接口替换掉，根据不同的 type 处理不同的业务，body 请求体和 callback 回调。</p>
+<p>/**<br> *  @brief 向服务器发送数据<br> *<br> *  @param type    请求类型<br> *  @param body    请求体<br> */<br>- (void)socketWriteDataWithRequestType:(GACRequestType)type<br>                           requestBody:(nonnull NSDictionary *)body<br>                            completion:(nullable SocketDidReadBlock)callback;</p>
+<p>使用示例：</p>
+<p>NSDictionary * requestBody = @{ @”limit”: @(10), @”offset”: @(0) };</p>
+<p>[[FIMCommunicationManager sharedInstance] socketWriteDataWithRequestType:FIMRequestType_GetConversationsList<br>                                                             requestBody:requestBody<br>                                                              completion:^(NSError * error, id data) {<br>                       // do something</p>
+<pre><code>}\];
+</code></pre><h5 id="0x02-使用-Blcok"><a href="#0x02-使用-Blcok" class="headerlink" title="0x02 使用 Blcok"></a>0x02 使用 Blcok</h5><p>之前会对不同的业务请求，设定相应的 delegate 回调，但是数量一多，使用起来很槽糕，所以参考 AFNetworking 的做法，发起请求时将 block 与一个唯一标识进行绑定，同时将这个唯一标识放到请求里面发给服务器（服务器对该标识不做任何处理），等到 GCDAsyncSocket 回调回来时，通过服务器返回的这个标识，找到对应的 block 回调出去。</p>
+<p>这样对业务方来说，socket 接口用起来其实和 HTTP 请求接口是一模一样的，将请求的上下文也关联了起来。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/744236-fe414435087f6886.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="16"></p>
+<p>具体实现：</p>
+<p>/**<br> * @brief  发起请求<br> */<br>- (void)socketWriteDataWithRequestType:(GACRequestType)type<br>                           requestBody:(nonnull NSDictionary *)body<br>                            completion:(nullable SocketDidReadBlock)callback<br>{<br>    if (self.socketManager.connectStatus == -1) {<br>        NSLog(@”socket 未连通”);<br>        if (callback) {<br>            callback([GACErrorManager errorWithErrorCode:2003], nil);<br>        }<br>        return;<br>    }</p>
+<pre><code>// 生成唯一标识
+NSString * blockRequestID = \[self createRequestID\];
+if (callback) {
+    // 将 block 与标识绑定，存在一个全局变量里
+    \[self.requestsMap setObject:callback forKey:blockRequestID\];
+}
+
+GACSocketModel * socketModel = \[\[GACSocketModel alloc\] init\];
+socketModel.version = PROTOCOL_VERSION;
+socketModel.reqType = type;
+socketModel.reqId   = blockRequestID;
+socketModel.requestChannel = self.currentCommunicationChannel;
+socketModel.body    = body;
+
+\[self.socketManager socketWriteData:\[socketModel socketModelToJSONString\]\];
+</code></pre><p>}</p>
+<p>/**<br> * @brief  接收到数据回调<br> */<br>- (void)socket:(GCDAsyncSocket <em>)sock didReadData:(NSData </em>)data withTag:(long)tag<br>{<br>    // 分界符号处理<br>    NSString * jsonString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];<br>    jsonString = [jsonString stringByReplacingOccurrencesOfString:@”\r\n” withString:@””];</p>
+<pre><code>NSData * jsonData = \[jsonString dataUsingEncoding:NSUTF8StringEncoding\];
+
+NSError * jsonError;
+// 解析 json 数据
+NSDictionary * json = \[NSJSONSerialization JSONObjectWithData:jsonData 
+                                                      options:kNilOptions 
+                                                        error:&amp;jsonError\];
+NSLog(@&quot;socket - receive data %@&quot;, json);
+
+if (jsonError) {
+    // 重新读取数据
+    \[self.socketManager socketBeginReadData\];
+    NSLog(@&quot;json 解析错误: --- error %@&quot;, jsonError);
+    return;
+}
+
+NSInteger requestType = \[json\[@&quot;reqType&quot;\] integerValue\];
+NSInteger errorCode   = \[json\[@&quot;status&quot;\] integerValue\];
+NSDictionary * body   = @{};
+NSString * requestID  = json\[@&quot;reqId&quot;\];
+NSString * requestChannel = nil;
+if (\[\[json allKeys\] containsObject:@&quot;requestChannel&quot;\]) {
+    requestChannel = json\[@&quot;requestChannel&quot;\];
+}
+
+// 获取唯一标识   
+SocketDidReadBlock didReadBlock = self.requestsMap\[requestID\];
+
+if (errorCode != 0) {
+    NSError *error = \[GACErrorManager errorWithErrorCode:errorCode\];
+
+    if (requestType == GACRequestType_ConnectionAuthAppraisal
+        &amp;&amp; \[self.socketDelegate respondsToSelector:@selector(connectionAuthAppraisalFailedWithErorr:)\]) {
+            \[self.socketDelegate connectionAuthAppraisalFailedWithErorr:\[GACErrorManager errorWithErrorCode:1005\]\];
+    }
+    if (didReadBlock) {
+        didReadBlock(error, body);
+    }
+    return;
+}
+
+switch (requestType) {
+    case GACRequestType_ConnectionAuthAppraisal: {
+        \[self didConnectionAuthAppraisal\];
+
+        NSDictionary * systemTimeDic = \[body mutableCopy\];
+        \[self differenceOfLocalTimeAndServerTime:\[systemTimeDic\[@&quot;system_time&quot;\] longLongValue\]\];
+    } 
+        break;
+
+    case GACRequestType_Beat:
+    {
+        \[self.socketManager resetBeatCount\];
+    }
+        break;
+
+    case GACRequestType_GetConversationsList:
+    {
+        if (didReadBlock) {
+            didReadBlock(nil, body);
+        }
+    }
+        break;
+
+    default: {
+        if (\[self.socketDelegate respondsToSelector:@selector(socketReadedData:forType:)\]) {
+            \[self.socketDelegate socketReadedData:body forType:requestType\];
+        }
+    }
+        break;
+}
+
+\[self.socketManager socketBeginReadData\];
+</code></pre><p>}</p>
+<h5 id="0x03-使用模拟服务器时间，来解决缓存消息保序问题"><a href="#0x03-使用模拟服务器时间，来解决缓存消息保序问题" class="headerlink" title="0x03 使用模拟服务器时间，来解决缓存消息保序问题"></a>0x03 使用模拟服务器时间，来解决缓存消息保序问题</h5><p>在 socket 模块里面，基于 FMDB 实现了一套缓存机制。但是聊天页面对数据库读写操作的场景非常复杂，而且对发送失败的消息也进行了缓存，如果使用 msgID 对消息进行保序，你要考虑发送成功和失败消息的排序，以及重发消息之后的排序等场景，这样实现起来比较困难。</p>
+<p>所以我们采用消息的创建时间来进行保序。这样不管消息是怎么操作的，从数据库里面读出来的数据，我们只需要根据创建时间来排下序返回给业务层，如果业务层对数据进行修改的时候，我们更新消息的创建时间，这样下次取出来的顺序和 UI 展示的顺序也还是一样的。</p>
+<p>这个创建时间是由服务器生成的，而且消息发送成功之后，服务器也不会返回给我们这条消息的创建时间，而且失败的消息服务器那边是不会存的，所以就需要我们本地模拟服务器来生成这个时间。</p>
+<p>因为考虑到本地时间和服务器时间存在偏差，所以我们在 socket 建立连接成功之后，返回服务器时间给我们，拿到服务器时间之后和手机的本地时间做个比较，记录下这个偏差值，然后业务层在调用发送消息的接口时，socket 内部模拟出服务器创建时间赋值给该消息，然后存到数据库里面，这样就可以基本保证数据库存储消息的顺序和服务器的顺序是一致的。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/744236-2e740098930a6131.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp" alt="17"></p>
+<h5 id="0x04-监听网络状态来改变-socket-连接状态"><a href="#0x04-监听网络状态来改变-socket-连接状态" class="headerlink" title="0x04 监听网络状态来改变 socket 连接状态"></a>0x04 监听网络状态来改变 socket 连接状态</h5><p>对 socket 连接状态也做了微调，通过测试微信的连接，发现以下两点：</p>
+<p>①、网络断开后，socket 直接断开，显示“未连接”；</p>
+<p>②、有网但是 socket 连接不上时，socket 会一直重连，重连 n 次不成功后，休眠几秒，再重连，如此循环。</p>
+<p>用 AFNetWorking 库里面监测网络状态类 <a href="https://link.jianshu.com?t=http://zeeyang.com/2016/05/23/AFNetWorking-four/" target="_blank" rel="noopener">AFNetworkReachabilityManager</a>：在无网时，判断如果 socket 正在连接或者已连接时，主动调用 disconnect 断开连接；如果有网，判断如果 socket 未连接，主动建立连接，建立连接不成功时，走重连的流程，只是我们依旧保持了重连 n 次后，n 次失败后不再重连了，这个是与微信不同的地方。</p>
+<h5 id="0x05-使用-FIMSocketModel"><a href="#0x05-使用-FIMSocketModel" class="headerlink" title="0x05 使用 FIMSocketModel"></a>0x05 使用 FIMSocketModel</h5><p>因为请求的数据结构基本一样，所以定义了 FIMSocketModel 类来方便对数据的转化，定义几个必传的字段，以及可能请求不同所需的一些非必传字段，由于之前我们 body 体里面的内容是做了 2 次 JSON 转化处理的，所以业务层传入 body 内容时叫苦连天，FIMSocketModel 也增加了 - socketModelToJSONString 方法，方便 Socket 内部转化成 JSON 处理，这样业务层只需要传一个字典进来，Socket 内部就会处理好一切，使用起来就方便了。</p>
+<p>- (NSString <em>)socketModelToJSONString<br>{<br>    NSAssert(self.body != nil, @”Argument must be non-nil”);<br>    if (![self.body isKindOfClass:[NSDictionary class]]) {<br>        return nil;<br>    }<br>    // 实际指向的内容为字符串<br>    self.body = [self dictionnaryObjectToString:self.body];<br>    NSString </em> jsonString = [self toJSONString];<br>    jsonString = [jsonString stringByAppendingString:@”\r\n”];<br>    return jsonString;<br>}</p>
+<p>/**<br> * NSDictionary -&gt; NSString<br> */<br>- (NSString <em>)dictionnaryObjectToString:(NSDictionary </em>)object<br>{<br>    NSError <em> error = nil;<br>    NSData </em> stringData = [NSJSONSerialization dataWithJSONObject:object<br>                                                          options:NSJSONWritingPrettyPrinted<br>                                                            error:&amp;error];<br>    if (error) {<br>        return nil;<br>    }</p>
+<pre><code>NSString * jsonString = \[\[NSString alloc\] initWithData:stringData encoding:NSUTF8StringEncoding\];
+// 字典对象用系统 JSON 序列化之后得到的 data，经过转 UTF-8 后的 jsonString 里面会包含 &quot;\\n&quot; 及 &quot; &quot;，需要替换掉
+jsonString = \[jsonString stringByReplacingOccurrencesOfString:@&quot;\\n&quot; withString:@&quot;&quot;\];
+jsonString = \[jsonString stringByReplacingOccurrencesOfString:@&quot; &quot; withString:@&quot;&quot;\];
+return jsonString;
+</code></pre><p>}</p>
+<p>数据传输层用 protobuf 更方便，比 json 好。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/26/gcdasyncsocket-e7-9a-84-e5-b0-81-e8-a3-85-e4-b8-8e-e4-bd-bf-e7-94-a8/">http://yoursite.com/2019/03/26/gcdasyncsocket-e7-9a-84-e5-b0-81-e8-a3-85-e4-b8-8e-e4-bd-bf-e7-94-a8/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/26/ios-e5-86-85-e5-ad-98-e7-ae-a1-e7-90-86-ef-bc-9a-e4-bb-8e-mrc-e5-88-b0-arc-e5-ae-9e-e8-b7-b5/" class="pre"> iOS 内存管理：从 MRC 到 ARC 实践		</a><a href="/2019/03/26/tcp-e7-9a-84-e6-96-ad-e5-8c-85-e3-80-81-e7-b2-98-e5-8c-85/" class="next"> TCP 的断包、粘包		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#0x00-拆分-SocketManager"><span class="toc-text">0x00 拆分 SocketManager</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#0x01-业务接口改为通用接口"><span class="toc-text">0x01 业务接口改为通用接口</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#0x02-使用-Blcok"><span class="toc-text">0x02 使用 Blcok</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#0x03-使用模拟服务器时间，来解决缓存消息保序问题"><span class="toc-text">0x03 使用模拟服务器时间，来解决缓存消息保序问题</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#0x04-监听网络状态来改变-socket-连接状态"><span class="toc-text">0x04 监听网络状态来改变 socket 连接状态</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#0x05-使用-FIMSocketModel"><span class="toc-text">0x05 使用 FIMSocketModel</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

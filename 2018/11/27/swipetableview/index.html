@@ -1,0 +1,118 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> SwipeTableView		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> SwipeTableView		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> SwipeTableView		</h1><div class="post-meta"><a href="/2018/11/27/swipetableview/#comments" class="comment-count"></a><p><span class="date">Nov 27, 2018</span><span><a href="/categories/阅读源码/" class="category">阅读源码</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p><a href="https://github.com/Roylee-ML/SwipeTableView" target="_blank" rel="noopener">代码</a></p>
+<p><strong>Mode1</strong></p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/11/SwipeTableViewStruct1.png" alt></p>
+<p><strong>Mode2</strong></p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/11/SwipeTableViewStruct2.png" alt></p>
+<p>Mode1 与 Mode2 的不同在于 SwipTableView 顶部留白的方式：</p>
+<ul>
+<li>Mode1 使用contentInset</li>
+<li>Mode2 使用tableHeaderView</li>
+</ul>
+<p>Mode1 的刷新控件在contentInset 底部，Mode2 的刷新控件在SwipTableView 的顶部。</p>
+<p>SwipTableView 实现：1、底层视图        2、刷新控件的处理      3、滚动视图的逻辑     4、监听</p>
+<p>问题 &amp; 解决：<a href="http://www.dzliving.com/2018/12/07/uitableview/" target="_blank" rel="noopener">http://www.dzliving.com/2018/12/07/uitableview/</a></p>
+<p>STCollectionView 实现：1、UICollectionView 代理     2、自定义 FlowLayout(重点看下)</p>
+<p>/**<br> * 重写系统方法<br> */<br>- (void)prepareLayout { }<br>- (UICollectionViewLayoutAttributes <em>)layoutAttributesForSupplementaryViewOfKind:(NSString </em>)kind<br>                                                                     atIndexPath:(NSIndexPath <em>)indexPath { }<br>- (UICollectionViewLayoutAttributes </em>)layoutAttributesForItemAtIndexPath:(NSIndexPath <em>)indexPath { }<br>- (NSArray </em>)layoutAttributesForElementsInRect:(CGRect)rect { }<br>- (CGSize)collectionViewContentSize { }<br>- (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds { }</p>
+<p>/**<br> * 自定义方法<br> */<br>- (void)calculateTopHeaderAttributes { }   // 计算顶部高度<br>- (void)prepareLayoutInSection:(NSUInteger)section numberOfItems:(NSUInteger)items { }  // 计算 item 的高度<br>- (CGFloat)heightOfItemsContentInSection:(NSUInteger)sectionIdx { }  // 计算 section 的高度<br>- (NSInteger)numberOfItemsForColumn:(NSInteger)columnIdx inSection:(NSInteger)sectionIdx { }<br>- (CGFloat)lastItemMaxYForColumn:(NSInteger)columnIdx inSection:(NSInteger)sectionIdx { }  // 最后一个 item 的 MaxY<br>- (NSInteger)shortestColumnIndexInSection:(NSInteger)sectionIdx { }  // 最短列 item 的索引<br>- (CGRect)rectForSectionAtIndex:(NSInteger)sectionIdx { }<br>- (NSArray <em>)searchVisibleLayoutAttributesInRect:(CGRect)rect { }  // 查找可见的 items<br>- (NSIndexSet </em>)sectionIndexesInRect:(CGRect)rect { }  // rect 范围内的 item 索引数组</p>
+<p>STHeaderView 实现：可拖拽 &amp; 同时触发底部滚动视图滚动。重点关注 UIDynamic 的相关处理。</p>
+<p>@property (nonatomic, strong) UIPanGestureRecognizer <em> panGestureRecognizer;  // 手势<br>@property (nonatomic, strong) UIDynamicAnimator </em> animator;<br>@property (nonatomic, strong) UIDynamicItemBehavior <em> decelerationBehavior;<br>@property (nonatomic, strong) UIAttachmentBehavior </em> springBehavior;<br>@property (nonatomic, strong) STDynamicItem *dynamicItem;</p>
+<p>STRefreshHeader 实现：下拉控件。重点关注动画效果。</p>
+<p>- (void)startLoadingAnimation { }  // 开始动画。对圆环进行 strokeStart、strokeEnd 动画<br>- (void)stopLoadingAnimation { }   // 结束动画。直接设置 strokeStart、strokeEnd、strokeColor 属性值<br>- (void)willMoveToSuperview:(UIView *)newSuperview { }  // 添加到父视图。需判断父视图是否是 UIScrollView，然后对 contentOffset 字段进行监听</p>
+<p>- (void)observeValueForKeyPath:(NSString <em>)keyPath ofObject:(id)object change:(NSDictionary&lt;NSString </em>,id&gt; <em>)change context:(void </em>)context<br>{<br>    // 拖拽<br>    if (self.scrollView.isDragging) {</p>
+<pre><code>    CGFloat pullPercent = fmin(moveOffsetY/kSTRefreshHeaderHeight, 1);  // 计算出下拉比例，用于 layer 的状态
+    _circleLayer.strokeEnd = pullPercent;
+    _contentView.alpha = pullPercent;
+    \_headerImageV.transform = CGAffineTransformMakeRotation(pullPercent * (M\_PI - 0.001));
+
+    if (self.state == STRefreshStateRefeshing) {
+        return;
+    }
+    self.state = STRefreshStatePulling;
+
+    if (moveOffsetY &gt; kSTRefreshHeaderHeight) {
+        self.state = STRefreshStateWillRefesh;
+    }
+}
+// 松手刷新 或 返回
+else {
+    if (self.state == STRefreshStateWillRefesh) {
+        \[self beganRefreshing\];
+    }
+    else if (self.state != STRefreshStateNormal) {        
+        CGFloat pullPercent = fmin(moveOffsetY/kSTRefreshHeaderHeight, 1);
+        _circleLayer.strokeEnd = pullPercent;
+        _contentView.alpha = pullPercent;
+        \_headerImageV.transform = CGAffineTransformMakeRotation(pullPercent * (M\_PI - 0.001));     
+    }
+}
+</code></pre><p>}</p>
+<p>- (void)executeRefreshingCallback { }  // 执行回调</p>
+<p>STTransitions  实现：自定义转场动画，遵守 UIViewControllerAnimatedTransitioning 协议</p>
+<p>- (NSTimeInterval)transitionDuration:(id <uiviewcontrollercontexttransitioning>)transitionContext<br>{<br>    return _transitionDuration;  // 转场时间<br>}</uiviewcontrollercontexttransitioning></p>
+<p>- (void)animateTransition:(id <uiviewcontrollercontexttransitioning>)transitionContext<br>{<br>    UIView <em> containerView = [transitionContext containerView];<br>    UIViewController </em> fromVC = [transitionContext viewControllerForKey:UITransitionContextFromViewControllerKey];<br>    UIViewController <em> toVC = [transitionContext viewControllerForKey:UITransitionContextToViewControllerKey];<br>    UIView </em> fromView = fromVC.view;<br>    UIView * toView = toVC.view;</uiviewcontrollercontexttransitioning></p>
+<pre><code>// 展示视图
+if (_isPresenting) {
+
+    STImageController * imageVC = (STImageController *)toVC;
+    UIImageView * fromImageView = _fromView.imageView;
+    UIImageView * toImageView = imageVC.imageView;
+    CGFloat imageH = fromImageView.image.size.height/fromImageView.image.size.width * kScreenWidth;
+    CGRect toFrame = CGRectMake(0, (kScreenHeight - imageH)/2, kScreenWidth, imageH);  // 结束位置为居中
+    toImageView.image = fromImageView.image;
+    toImageView.frame = toFrame;
+    UIImageView * transitionView = \[\[UIImageView alloc\] initWithImage:fromImageView.image\];
+
+    fromView.alpha = 1.0f;
+    toView.alpha = 0.3f;
+    fromImageView.hidden = YES;
+    toImageView.hidden = YES;
+
+    transitionView.frame = \[containerView convertRect:fromImageView.frame fromView:fromImageView.superview\];
+    \[containerView addSubview:toVC.view\];
+    \[containerView addSubview:transitionView\];
+
+    \[UIView animateWithDuration:\[self transitionDuration:transitionContext\] animations:^{
+        transitionView.frame = \[containerView convertRect:toFrame fromView:toImageView.superview\];
+        fromView.alpha       = 0.0f;
+        toView.alpha         = 1.0f;
+    } completion:^(BOOL finished) {
+        toImageView.hidden   = NO;
+        \[transitionView removeFromSuperview\];
+        \[transitionContext completeTransition:YES\];
+    }\];
+}
+// 隐藏视图
+else {
+    STImageController * imageVC = (STImageController *)fromVC;
+    UIImageView * fromImageView = imageVC.imageView;
+    UIImageView * toImageView = _fromView.imageView;
+    UIImageView * transitionView = \[\[UIImageView alloc\] initWithImage:fromImageView.image\];
+
+    fromView.alpha = 1.0f;
+    toView.alpha = 0;
+    fromImageView.hidden = YES; // presenting 时的 toImageView
+    toImageView.hidden = YES;   // presenting 时的 fromImageView
+    transitionView.frame = \[containerView convertRect:fromImageView.frame fromView:fromImageView.superview\];
+    \[containerView addSubview:toVC.view\];
+    \[containerView addSubview:transitionView\];
+
+    \[UIView animateWithDuration:\[self transitionDuration:transitionContext\] animations:^{
+        transitionView.frame = \[containerView convertRect:toImageView.frame fromView:toImageView.superview\];
+        fromView.alpha       = 0.0f;
+        toView.alpha         = 1.0f;
+
+    } completion:^(BOOL finished) {
+        toImageView.hidden   = NO;
+        \[transitionView removeFromSuperview\];
+        \[transitionContext completeTransition:YES\];
+    }\];
+}
+</code></pre><p>}</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-c8298e9e0ddc0d64.png" alt></p>
+<p>另一种思路实现</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/11/SwipTableView22.jpg" alt></p>
+<p>使用 UITableView &amp; UIScrollView &amp; UITableView 的方式实现，因为 sectionHeader 自然吸顶（plain + numberOfSection），剩下就只需要更新 tableView 的 cell 高度和处理滚动问题。</p>
+<p>@implementation CYEMSimultaneouslyTV</p>
+<p>/**<br> *  @brief   同时识别多个手势<br> */<br>- (BOOL)gestureRecognizer:(UIGestureRecognizer <em>)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer </em>)otherGestureRecognizer<br>{<br>    return YES;<br>}</p>
+<p>@end</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2018/11/27/swipetableview/">http://yoursite.com/2018/11/27/swipetableview/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2018/11/28/e8-bf-aa-e7-b1-b3-e7-89-b9-e6-b3-95-e5-88-99/" class="pre"> 迪米特法则		</a><a href="/2018/11/27/vue/" class="next"> Vue		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

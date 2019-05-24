@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 多个异步网络请求全部返回		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 多个异步网络请求全部返回		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 多个异步网络请求全部返回		</h1><div class="post-meta"><a href="/2019/01/02/e5-a4-9a-e4-b8-aa-e5-bc-82-e6-ad-a5-e7-bd-91-e7-bb-9c-e8-af-b7-e6-b1-82-e5-85-a8-e9-83-a8-e8-bf-94-e5-9b-9e/#comments" class="comment-count"></a><p><span class="date">Jan 02, 2019</span><span><a href="/categories/多线程/" class="category">多线程</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="https://www.cnblogs.com/breezemist/p/5667776.html" target="_blank" rel="noopener">iOS 多个异步网络请求全部返回后再执行具体逻辑的方法</a></p>
+<p>提起 ios 中多个异步函数后的同步问题，自然会想到 dispatch group，那么它能够解决异步网络请求的问题吗？</p>
+<p>/*!<br> * @function dispatch_group_async<br> *<br> * @abstract<br> * Submits a block to a dispatch queue and associates the block with the given dispatch group.<br> *<br> * @discussion<br> * Submits a block to a dispatch queue and associates the block with the given<br> * dispatch group. The dispatch group may be used to wait for the completion<br> * of the blocks it references.<br> */</p>
+<p>#ifdef __BLOCKS__<br>API_AVAILABLE(macos(10.6), ios(4.0))<br>DISPATCH_EXPORT DISPATCH_NONNULL_ALL DISPATCH_NOTHROW<br>void<br>dispatch_group_async(dispatch_group_t group,<br>    dispatch_queue_t queue,<br>    dispatch_block_t block);</p>
+<p>#endif /<em> __BLOCKS__ </em>/</p>
+<p>从官方对 dispatch_group_async 的介绍可以看出，是用于同步工作的，但是，它的判断标准是放入的 block 是否执行完毕，如果我们放入 block 中包含异步的网络请求，这个方法无法在网络数据返回后再进行同步。</p>
+<p>看一段使用 dispatch_group_async 处理网络问题的代码：</p>
+<p>- (void)viewDidLoad {<br>    [super viewDidLoad];</p>
+<pre><code>NSURLSession * session = \[NSURLSession sharedSession\];
+
+dispatch\_queue\_t dispatchQueue = dispatch\_queue\_create(&quot;test.queue&quot;, DISPATCH\_QUEUE\_CONCURRENT);
+dispatch\_group\_t dispatchGroup = dispatch\_group\_create();
+dispatch\_group\_async(dispatchGroup, dispatchQueue, ^(){
+
+    NSURLSessionDataTask \*task = \[session dataTaskWithURL:\[NSURL URLWithString:@&quot;https://www.baidu.com&quot;\] completionHandler:^(NSData \* \_Nullable data, NSURLResponse * \_Nullable response, NSError * _Nullable error) {
+        NSLog(@&quot;任务一完成&quot;);
+    }\];
+    \[task resume\];
+
+});
+dispatch\_group\_async(dispatchGroup, dispatchQueue, ^(){
+    NSURLSessionDataTask \*task = \[session dataTaskWithURL:\[NSURL URLWithString:@&quot;https://www.baidu.com&quot;\] completionHandler:^(NSData \* \_Nullable data, NSURLResponse * \_Nullable response, NSError * _Nullable error) {
+        NSLog(@&quot;任务二完成&quot;);
+    }\];
+    \[task resume\];
+});
+
+dispatch\_group\_notify(dispatchGroup, dispatch\_get\_main_queue(), ^(){
+    NSLog(@&quot;Group End！&quot;);
+});
+</code></pre><p>}</p>
+<p>2019-01-02 10:43:15.715637+0800 Demo[46351:695969] Group End！<br>2019-01-02 10:43:15.776094+0800 Demo[46351:696017] 任务二完成<br>2019-01-02 10:43:15.838367+0800 Demo[46351:696016] 任务一完成</p>
+<p>完全没有达到效果。这是因为这里的网络请求是个异步的方法，没有等待具体的数据返回，放入的 dispatch queue 的 block 就执行完毕了。所以没收到 2 个网络数据，就提前调用了 dispatch_group_notify 指定的结束方法。</p>
+<p>看完了错误的方法，再看看正确的方法：</p>
+<p>- (void)viewDidLoad<br>{<br>    [super viewDidLoad];</p>
+<pre><code>NSURLSession * session = \[NSURLSession sharedSession\];
+
+dispatch\_group\_t group = dispatch\_group\_create();
+
+dispatch\_group\_enter(group);  // 任务 + 1
+
+NSURLSessionDataTask * task = \[session dataTaskWithURL:\[NSURL URLWithString:@&quot;https://www.baidu.com&quot;\] completionHandler:^(NSData * \_Nullable data, NSURLResponse * \_Nullable response, NSError * _Nullable error) {
+    NSLog(@&quot;任务一完成&quot;);
+
+    dispatch\_group\_leave(group);  // 任务 - 1
+}\];
+\[task resume\];
+
+NSLog(@&quot;*********&quot;);
+
+dispatch\_group\_enter(group);  // 任务 + 1
+
+NSURLSessionDataTask * task2 = \[session dataTaskWithURL:\[NSURL URLWithString:@&quot;https://www.baidu.com&quot;\] completionHandler:^(NSData * \_Nullable data, NSURLResponse * \_Nullable response, NSError * _Nullable error) {
+    NSLog(@&quot;任务二完成&quot;);
+
+    dispatch\_group\_leave(group);  // 任务 - 1
+}\];
+\[task2 resume\];
+
+NSLog(@&quot;#########&quot;);
+
+dispatch\_group\_notify(group, dispatch\_get\_main_queue(), ^(){
+    NSLog(@&quot;Group End！&quot;);
+});
+</code></pre><p>}</p>
+<p>2019-01-02 10:49:49.629628+0800 Demo[46476:700259] <strong><strong>*</strong></strong><br>2019-01-02 10:49:49.629893+0800 Demo[46476:700259] #########<br>2019-01-02 10:49:49.810857+0800 Demo[46476:700300] 任务一完成<br>2019-01-02 10:49:49.930557+0800 Demo[46476:700297] 任务二完成<br>2019-01-02 10:49:49.930675+0800 Demo[46476:700259] Group End！</p>
+<p>我们看看关于 dispatch_group_enter 的具体说明</p>
+<blockquote>
+<p>Calling this function increments the current count of outstanding tasks in the group. Using this function (with dispatch_group_leave) allows your application to properly manage the task reference count if it explicitly adds and removes tasks from the group by a means other than using the dispatch_group_async function. A call to this function must be balanced with a call to dispatch_group_leave. You can use this function to associate a block with more than one group at the same time.</p>
+</blockquote>
+<p>/*!<br> * @function dispatch_group_enter<br> *<br> * @abstract<br> * Manually indicate a block has entered the group<br> *<br> * @discussion<br> * Calling this function indicates another block has joined the group through<br> * a means other than dispatch_group_async(). Calls to this function must be<br> * balanced with dispatch_group_leave().<br> */<br>API_AVAILABLE(macos(10.6), ios(4.0))<br>DISPATCH_EXPORT DISPATCH_NONNULL_ALL DISPATCH_NOTHROW<br>void<br>dispatch_group_enter(dispatch_group_t group);</p>
+<p>简单来说，就是 dispatch_group_enter 会对 group 的内部计数 +1，dispatch_group_leave 会对 group 的内部计数 -1，就类似以前的 retain 和 release 方法。也就是维护了一个计数器。</p>
+<p>自己维护计数器的做法：在发送网络请求前，记下发送总数，数据返回后，在同一个 thread 中（或者在一个DISPATCH_QUEUE_SERIAL 类型的 dispatch_queue 中），对计数器进行 +1 操作，当计数器和网络请求数相等时，调用最后的处理。</p>
+<p>相比自己处理的计数器，dispatch_group_enter 处理方法可能显得更正规一些，代码更规范了，但执行效果是一样的。</p>
+<p>有一个值，需要 2 个异步操作查询回 2 个值进行计算，因此必须在 2 个异步操作结束后才能进行计算操作。开始试着使用了OperationQueue，想用 addDependency(依赖，顺序执行) 方法，但是这个方法无法灵活地控制，只适合 block 内容已经确定的情况。对于我遇到的这种异步操作，block 的内容是不定的，需要依赖异步的返回，用 operation queue 会遇到各种问题，无法解决问题，十分复杂！</p>
+<p>今天看到了 dispatch_barrier_async 函数，说明如下：</p>
+<blockquote>
+<p>Calls to this function always return immediately after the block has been submitted and never wait for the block to be invoked. When the barrier block reaches the front of a private concurrent queue, it is not executed immediately. Instead, the queue waits until its currently executing blocks finish executing. At that point, the barrier block executes by itself. Any blocks submitted after the barrier block are not executed until the barrier block completes.</p>
+<p>The queue you specify should be a concurrent queue that you create yourself using the dispatch_queue_create function. If the queue you pass to this function is a serial queue or one of the global concurrent queues, this function behaves like the dispatch_async function.</p>
+</blockquote>
+<p>简单地说，就是在这个函数之前被提交到 quque 里的 block 一定会被先执行，之后执行 dispatch_barrier_async 设定的 block，最后执行调用 dispatch_barrier_async 之后才提交到 queue 里的 block。</p>
+<p>- (void)viewDidLoad<br>{<br>    [super viewDidLoad];</p>
+<pre><code>NSURLSession * session = \[NSURLSession sharedSession\];
+
+dispatch\_queue\_t dispatchQueue = dispatch\_queue\_create(&quot;test.queue&quot;, DISPATCH\_QUEUE\_CONCURRENT);
+
+dispatch_async(dispatchQueue, ^{
+    NSURLSessionDataTask * task1 = \[session dataTaskWithURL:\[NSURL URLWithString:@&quot;https://www.baidu.com&quot;\] completionHandler:^(NSData * \_Nullable data, NSURLResponse * \_Nullable response, NSError * _Nullable error) {
+        NSLog(@&quot;任务一完成&quot;);
+    }\];
+    \[task1 resume\];
+});
+
+dispatch_async(dispatchQueue, ^{
+    NSURLSessionDataTask * task2 = \[session dataTaskWithURL:\[NSURL URLWithString:@&quot;https://www.baidu.com&quot;\] completionHandler:^(NSData * \_Nullable data, NSURLResponse * \_Nullable response, NSError * _Nullable error) {
+        NSLog(@&quot;任务二完成&quot;);
+    }\];
+    \[task2 resume\];
+});
+
+dispatch\_barrier\_async(dispatchQueue, ^{
+    NSLog(@&quot;Barrier block is called！&quot;);
+});
+
+dispatch_async(dispatchQueue, ^{
+    NSLog(@&quot;The last block is called！&quot;);
+});
+</code></pre><p>}</p>
+<p>2019-01-02 11:01:39.209755+0800 Demo[46644:705935] Barrier block is called！<br>2019-01-02 11:01:39.209893+0800 Demo[46644:705935] The last block is called！<br>2019-01-02 11:01:39.912047+0800 Demo[46644:705938] 任务一完成<br>2019-01-02 11:01:39.935593+0800 Demo[46644:705937] 任务二完成</p>
+<p>完全没有达到 2 个网络请求都返回后，再执行 the last block 的效果。</p>
+<p>原因和 dispatch_group_async 无法达到目的的原因是一样的：它认为一个 block 返回后就是逻辑结束了，就会继续执行其他代码，对于 block 中异步返回的网络数据，没有对应的处理手段。</p>
+<p>NSUrlSession 用的是 NSOperation Queue，能不能直接利用 Operation Queue 来解决这个问题？</p>
+<p>我们知道NSOperation中有addDependency这个方法，我们能不能把几个网络请求分别封装一下：</p>
+<pre><code>\[NSBlockOperation blockOperationWithBlock:^{
+    NSURLSessionDataTask * task = \[session dataTaskWithURL:\[NSURL URLWithString:@&quot;https://www.baidu.com&quot;\] completionHandler:^(NSData * \_Nullable data, NSURLResponse * \_Nullable response, NSError * _Nullable error) {
+        NSLog(@&quot;任务一完成&quot;);
+    }\];
+    \[task resume\];
+}\];
+
+// 再添加依赖
+</code></pre><p>结论：仅仅使用 NSBlockOperation 来构建 operation 是不可以的。 这里的错误原因和使用 dispatch_group_async 是一样的。</p>
+<p>但是，如果把 NSUrlConnection 的请求封装成 NSOperation 子类，使这个子类有这个效果：”当网络数据返回时，才算这个operation 的结束”，就可以利用这个子类和 NSOperationQueue 达到我们的目的！</p>
+<p>题外话：NSOperationQueue 不同于 dispatch_queue，它没有 dispatch_queue 中的并行、串行类型，但是，有个类似功能的属性 maxConcurrentOperationCount，当 maxConcurrentOperationCount = 1 时，自然就是串行了。</p>
+<p>以下总结出了使用 urlSession 进行下载的通用方法，这个方法加入了对最大并发数的限制，也加入了全部完成后的回调。</p>
+<p>- (void)viewDidLoad<br>{<br>    [super viewDidLoad];</p>
+<pre><code>dispatch\_semaphore\_t semaphore = dispatch\_semaphore\_create(3);  // 初始信号量 = 3
+dispatch\_group\_t group = dispatch\_group\_create();
+
+NSURLSession * session = \[NSURLSession sharedSession\];
+
+for (int i = 0; i &lt; 10; i++) {
+
+    NSURLSessionDownloadTask * task =\[session downloadTaskWithURL:\[NSURL URLWithString:@&quot;https://www.baidu.com&quot;\] completionHandler:^(NSURL * \_Nullable location, NSURLResponse * \_Nullable response, NSError * _Nullable error) {
+
+        sleep(5.0);
+
+        dispatch\_group\_leave(group);  // 任务 + 1
+        dispatch\_semaphore\_signal(semaphore); // 信号 + 1
+
+    }\];
+
+    dispatch\_group\_enter(group); //为了所有下载完成后能调用函数，引入 dispatch group。如果信号量是 1 的话，可以不使用 group
+    dispatch\_semaphore\_wait(semaphore, DISPATCH\_TIME\_FOREVER); // 为了最大并发数，加入信号量机制
+
+    \[task resume\];
+}
+
+dispatch\_group\_notify(group, dispatch\_get\_main_queue(), ^(){
+    NSLog(@&quot;End！&quot;);
+});
+</code></pre><p>}</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/01/02/e5-a4-9a-e4-b8-aa-e5-bc-82-e6-ad-a5-e7-bd-91-e7-bb-9c-e8-af-b7-e6-b1-82-e5-85-a8-e9-83-a8-e8-bf-94-e5-9b-9e/">http://yoursite.com/2019/01/02/e5-a4-9a-e4-b8-aa-e5-bc-82-e6-ad-a5-e7-bd-91-e7-bb-9c-e8-af-b7-e6-b1-82-e5-85-a8-e9-83-a8-e8-bf-94-e5-9b-9e/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/01/02/ios-app-e7-9a-84-e5-90-af-e5-8a-a8-e8-bf-87-e7-a8-8b/" class="pre"> iOS App的启动过程		</a><a href="/2019/01/01/opengl-4-e7-9d-80-e8-89-b2-e5-99-a8/" class="next"> OpenGL - 4 着色器		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

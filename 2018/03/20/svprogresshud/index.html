@@ -1,0 +1,311 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> SVProgressHUD		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> SVProgressHUD		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> SVProgressHUD		</h1><div class="post-meta"><a href="/2018/03/20/svprogresshud/#comments" class="comment-count"></a><p><span class="date">Mar 20, 2018</span><span><a href="/categories/阅读源码/" class="category">阅读源码</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="http://blog.csdn.net/thanklife/article/details/78150398" target="_blank" rel="noopener">http://blog.csdn.net/thanklife/article/details/78150398</a></p>
+<p>SVProgerssHUD 是一款由第三方提供的等待视图控件。常见用于发起请求之后，页面数据加载完成之前这段时间的界面展示，可以阻隔用户的交互操作。</p>
+<p>使用的场景： 比较合理的场景是用户操作之前确定需要执行其他任务的时候，而不是在刷新、无限的滑动或者发送消息等场景。</p>
+<h5 id="一、SVPIndefiniteAnimatedView-无限旋转视图组件"><a href="#一、SVPIndefiniteAnimatedView-无限旋转视图组件" class="headerlink" title="一、SVPIndefiniteAnimatedView 无限旋转视图组件"></a>一、SVPIndefiniteAnimatedView 无限旋转视图组件</h5><p><img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUD1.gif" alt><img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUD2.gif" alt></p>
+<p>原理：不断地旋转一张具有渐变颜色的图片。通过设置 layer 层的 mask 来遮住不需要的部分。</p>
+<p>下面先讲一讲 iOS 动画中的 CALayer 以及 Mask。常见的场景就是通过 CAShapeLayer 和 mask 结合使用。</p>
+<p>/* A layer whose alpha channel is used as a mask to select between the<br> * layer’s background and the result of compositing the layer’s<br> * contents with its filtered background. Defaults to nil. When used as<br> * a mask the layer’s `compositingFilter’ and `backgroundFilters’<br> * properties are ignored. When setting the mask to a new layer, the<br> * new layer must have a nil superlayer, otherwise the behavior is<br> * undefined. Nested masks (mask layers with their own masks) are<br> * unsupported. <em>/<br>@property (nullable, strong) CALayer </em> mask;</p>
+<p>以上是 CALayer 的头文件关于 mask 的说明，mask 实际上 layer 内容的一个遮罩。</p>
+<p>如果把 mask 设置为透明的，那么实际看到的 layer 也会是完全透明的，也就是说只有 mask 不透明的内容和 layer 的叠加部分才会显示。如下图：</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/03/CALayerMask.png" alt></p>
+<p>有许多很炫酷的动画效果都是通过这样实现的。比如：</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUDGIF1.gif" alt></p>
+<p>组件的绘制由 willMoveToSuperview: 方法触发。其中整个显示图层采用的是懒加载方式，在更新参数之后，直接修改图层的绘制属性或者重新绘制。</p>
+<p>UIBezierPath <em> smoothedPath = [UIBezierPath bezierPathWithArcCenter:arcCenter<br>                                                             radius:self.radius<br>                                                         startAngle:(CGFloat)(M_PI</em>3/2)<br>                                                           endAngle:(CGFloat)(M_PI/2 + M_PI*5)<br>                                                          clockwise:YES];  // 圆环<br>_indefiniteAnimatedLayer = [CAShapeLayer layer];<br>…   // 设置图层参数<br>_indefiniteAnimatedLayer.path = smoothedPath.CGPath;</p>
+<p>// 初始化 mask, 从资源库中读取图片，将图片设置为 maskLayer 的 contents<br>CALayer * maskLayer = [CALayer layer];<br>…<br>maskLayer.contents = (__bridge id)[[UIImage imageWithContentsOfFile:path] CGImage];<br>maskLayer.frame = _indefiniteAnimatedLayer.bounds;<br>_indefiniteAnimatedLayer.mask = maskLayer;</p>
+<p>// 动画：1、图片旋转   2、动画组，处理圆环转圈圈。两个动画的时间相同<br>CABasicAnimation * animation = [CABasicAnimation animationWithKeyPath:@”transform.rotation”];</p>
+<p>…<br>animation.removedOnCompletion = NO;<br>animation.repeatCount = INFINITY;  // 很大的数<br>…<br>[_indefiniteAnimatedLayer.mask addAnimation:animation forKey:@”rotate”]; </p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUDRotation.gif" alt> </p>
+<p>CAAnimationGroup <em> animationGroup = [CAAnimationGroup animation];<br>// strokeStart 动画<br>CABasicAnimation </em> strokeStartAnimation = [CABasicAnimation animationWithKeyPath:@”strokeStart”];<br>strokeStartAnimation.fromValue = @0.015;<br>strokeStartAnimation.toValue = @0.515;<br>// strokeEnd 动画<br>CABasicAnimation * strokeEndAnimation = [CABasicAnimation animationWithKeyPath:@”strokeEnd”];<br>strokeEndAnimation.fromValue = @0.485;<br>strokeEndAnimation.toValue = @0.985;<br>// 将动画加到动画组<br>animationGroup.animations = @[strokeStartAnimation, strokeEndAnimation];<br>[_indefiniteAnimatedLayer addAnimation:animationGroup forKey:@”progress”];</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUDGroup.gif" alt></p>
+<p>可以仔细考虑 strokeStart 的执行时间 0.015~0.515 和 strokeEnd 的执行时间 0.485~0.985 的巧妙，可以通过修改数值来看效果。</p>
+<p>其他的内容就是懒加载和 setter 方法。</p>
+<h5 id="二、SVProgressAnimatedView-进度视图组件"><a href="#二、SVProgressAnimatedView-进度视图组件" class="headerlink" title="二、SVProgressAnimatedView 进度视图组件"></a>二、SVProgressAnimatedView 进度视图组件</h5><p>用于处理进度的视图组件，实现进度的原理就是不断改变 strokeEnd 的值。</p>
+<p>.m 文件的实现大致和 SVIndefiniteAnimatedView 一样。在 willMoveToSuperview: 方法中添加 layer。实现进度的关键就是重写 strokeEnd 属性的 setter 方法。</p>
+<p>- (void)setStrokeEnd:(CGFloat)strokeEnd<br>{<br>      …</p>
+<pre><code>\_ringAnimatedLayer.strokeEnd = \_strokeEnd;
+</code></pre><p>}</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUDProgress.gif" alt></p>
+<h5 id="三、SVProgressHUD-管理类"><a href="#三、SVProgressHUD-管理类" class="headerlink" title="三、SVProgressHUD 管理类"></a>三、SVProgressHUD 管理类</h5><p>这个类相当于管理类的作用，负责和外部交互和调用视图组件。进行重要逻辑判断。</p>
+<p><strong>.h 文件</strong></p>
+<p>5 个通知的 name 值：</p>
+<p>DidReceiveTouchEventNotification     接收点击事件通知<br>DidTouchDownInsideNotification       按下通知<br>WillAppearNotification               控件即将显示的通知<br>DidAppearNotification                控件已经显示的通知<br>WillDisappearNotification            控件即将消失的通知<br>DidDisappearNotification             控件已经消失的通知</p>
+<p>SVProgressHUDStatusUserInfoKey   获取通知传递的数据的 key 值</p>
+<p>3 个样式枚举值：</p>
+<p>SVProgressHUDStyle   Light(白色控件，黑色文本)、Dark(黑色控件，白色文本)、Custom(自定义前景色和背景色)</p>
+<p>5 个 mask 类型枚举值：</p>
+<p>SVProgressHUDMaskType   None(允许交互)、Clear | Black | Gradient | Custom(不允许交互)</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUDMaskType.gif" alt></p>
+<p>2 个转圈样式枚举值：</p>
+<p>SVProgressHUDAnimationType   Flat(自定义的转圈动画)、Native(系统的菊花动画)</p>
+<p>UI_APPEARANCE_SELECTOR:</p>
+<p>用于外观属性。遵守 UIAppearance 协议的类可以通过 appearance 实例方法调用属性。实例说明：</p>
+<p>[[UIBarButtonItem appearance] setTintColor:[UIColor redColor]];</p>
+<p>可以定制应用中所有条形按钮的颜色为 redColor。没有它之前，只能一个个的去修改控件，现在可以批量设置控件的颜色了。深入了解可以看看<a href="http://www.ituring.com.cn/article/30658" target="_blank" rel="noopener">使用UIAppearance协议自定义视图</a></p>
+<p>属性：</p>
+<p>containerView    父视图(容器)，如果为空使用默认窗口(default window level)</p>
+<p>类方法：</p>
+<p>一种是 setXX 一种是 showXX。前者用于设置外观样式，后者是直接使用的方式。</p>
+<p>__attribute__((deprecated(“Use XX: and YY: instead.”)))  // 注意废弃方法的写法</p>
+<p><strong>.m文件</strong></p>
+<p>常量的定义：</p>
+<p>可以查查 define 和 static const 定义常量的区别。提醒一下，尽量用 static const 来定义更符合风格吧。</p>
+<p>readonly 及 getter 的使用。虽然这样的用法有些麻烦，对于有强迫症的程序员还是蛮推荐这种写法的</p>
+<p>@property (nonatomic, readonly, getter = isClear) BOOL clear;</p>
+<p>- (BOOL)isClear  // 自定义 getter 方法名<br>{<br>     return …;<br>}</p>
+<p>事先定义好私有方法，也就是外界不能直接调用的实例方法</p>
+<p>使用单例：</p>
+<p>常见的一些关于 UI 的第三方都是通过类方法调用，而且全局可以只用一个实例对象来维护。</p>
+<p>+ (SVProgressHUD <em>)sharedView<br>{<br>     static dispatch_once_t once;<br>     static SVProgressHUD </em> sharedView;</p>
+<p>#if !defined(SV_APP_EXTENSIONS)<br>     // 创建单例对象。设置 frame<br>     dispatch_once( &amp;once, ^{<br>          sharedView = [[self alloc] initWithFrame:[[[UIApplication sharedApplication] delegate] window].bounds];<br>     });</p>
+<p>#else<br>     dispatch_once( &amp;once, ^{<br>          sharedView = [[self alloc] initWithFrame:[[UIScreen mainScreen] bounds]];<br>     });</p>
+<p>#endif<br>     return sharedView;<br>}</p>
+<p>图层：</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUDViews.png" alt>     <img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUDLayers.png" alt></p>
+<p>黄色图层：controlView     白色图层：SVProgressHUD 绿色图层：backgroundView </p>
+<p>红色图层：hudView(包括透明的)  橙色图层：indefiniteAnimatedView(左图)</p>
+<p>具体可以查看代码，或者设置颜色查看图层<img src="http://www.dzliving.com/wp-content/uploads/2018/03/SVProgressHUDDebug.jpg" alt></p>
+<p>show 方法参数化：</p>
+<p>方法的参数化就是为了实现代码的复用。因为有存在相同的逻辑，则把相同部分抽离出来，不同的部分通过传入不同参数来控制来达到代码的复用。在实际工作中，这一点也非常重要。</p>
+<p>经过整理，最终得出所有调用 showXX 方法最终调用的只有两个方法：</p>
+<p>1、+ (void)showProgress:(float)progress status:(NSString *)status</p>
+<p>// 当显示的是无限旋转提示的时候，会传入 progrerss = -1 来区别显示进度的样式。<br>[self showProgress:SVProgressHUDUndefinedProgress status:status]; // SVProgressHUDUndefinedProgress = -1;</p>
+<p>这里需要提一提的是，设置遮罩样式没有通过参数传递来设置而是通过设置属性的方式来做的。</p>
+<p>{<br>     // 设置新的遮罩样式<br>     [self setDefaultMaskType:maskType];<br>        …<br>     // 显示完后回到默认的遮罩样式<br>     [self setDefaultMaskType:existingMaskType];<br>}</p>
+<p>简单分析一下不通过参数来传递遮罩样式的原因应该是为了每次显示完之后保证下一次遮罩的样式依然是默认的样式。可以看到每次调用完 showXX 之后都会把 mask 恢复到默认值。</p>
+<p>下面分析实际操作的过程：</p>
+<p>- (void)showProgress:(float)progress status:(NSString <em>)status<br>{<br>     __weak SVProgressHUD </em> weakSelf = self; // 与 __strong 结合处理循环引用问题</p>
+<pre><code>\[\[NSOperationQueue mainQueue\] addOperationWithBlock:^{
+     __strong SVProgressHUD * strongSelf = weakSelf;
+
+     if(strongSelf){
+          if(strongSelf.fadeOutTimer) {  // 如果正处于隐藏阶段，设置活动数量为 0
+               strongSelf.activityCount = 0;
+          }
+
+          strongSelf.graceTimer = nil;  // 淡入等待时的计时器，执行 fadeIn:
+          strongSelf.fadeOutTimer = nil; // 淡出等待时的计时器，执行 dismiss
+
+          // 检查和更新视图的层级以确保 HUD 能够显示。见下面解释
+          \[strongSelf updateViewHierarchy\];
+
+          strongSelf.imageView.hidden = YES;
+          strongSelf.imageView.image = nil; // 隐藏掉图片。与旋转 ring 互斥
+
+          strongSelf.statusLabel.hidden = status.length == 0;
+          strongSelf.statusLabel.text = status;  // 设置文本信息
+
+          strongSelf.progress = progress;  // 设置当前进度
+
+          // 如果进度数值大于 0，说明当前使用进度圆环，移除无限旋转动画
+          if (progress &gt;= 0) { 
+               \[strongSelf cancelIndefiniteAnimatedViewAnimation\]; 
+
+               // 开启进度，修改 strokeEnd 属性
+               \[CATransaction begin\];
+               \[CATransaction setDisableActions:YES\];
+               strongSelf.ringView.strokeEnd = progress;
+               \[CATransaction commit\];
+          }
+          else {
+               \[strongSelf cancelRingLayerAnimation\];
+
+               \[(id)strongSelf.indefiniteAnimatedView startAnimating\];
+          }
+      }   
+
+      // 添加淡入定时器
+      if (self.graceTimeInterval &gt; 0.0 &amp;&amp; self.backgroundView.alpha == 0.0f) {
+          \[... selector:@selector(fadeIn:) userInfo:nil repeats:NO\]
+
+          \[\[NSRunLoop mainRunLoop\] addTimer:strongSelf.graceTimer forMode:NSRunLoopCommonModes\];
+      }
+      else {
+          \[strongSelf fadeIn:nil\];
+      }
+
+      // Tell the Haptics Generator to prepare for feedback, which may come soon
+</code></pre><p>#if TARGET_OS_IOS &amp;&amp; __IPHONE_OS_VERSION_MAX_ALLOWED &gt;= 100000<br>           if (@available(iOS 10.0, *)) {<br>               [strongSelf.hapticGenerator prepare];<br>           }</p>
+<p>#endif<br>        }<br>    }];<br>}</p>
+<p>2、+ (void)showImage:(UIImage <em>)image status:(NSString </em>)status</p>
+<p>显示信息后自动消失。最终调用的方法为 -showImage:status:duration:, 显示的时长：</p>
+<p>+ (NSTimeInterval)displayDurationForString:(NSString <em>)string<br>{<br>     CGFloat minimum = MAX((CGFloat)string.length </em> 0.06 + 0.5, [self sharedView].minimumDismissTimeInterval);  // 显示时间根据文本长度来判断</p>
+<pre><code>return MIN(minimum, \[self sharedView\].maximumDismissTimeInterval);
+</code></pre><p>}</p>
+<p>每次调用方法之后，在系统 iOS 10 以后的手机上，触发振动效果：</p>
+<p>#if TARGET_OS_IOS &amp;&amp; __IPHONE_OS_VERSION_MAX_ALLOWED &gt;= 100000</p>
+<p>if (@available(iOS 10, *)) {   // 只有 iOS10 及以上能执行<br>     dispatch_async(dispatch_get_main_queue(), ^{  // 进入主线程</p>
+<pre><code>     \[... notificationOccurred:UINotificationFeedbackTypeSuccess\];
+});  // 发送&quot;警告&quot;振动反馈通知。其它的还有：success、error 通知
+</code></pre><p>}</p>
+<p>#endif</p>
+<p>下面分析实际操作 UI 的方法：</p>
+<p>- (void)showImage:(UIImage <em>)image status:(NSString </em>)status duration:(NSTimeInterval)duration<br>{<br>     __weak SVProgressHUD * weakSelf = self;  // 与 __strong 结合处理循环引用问题</p>
+<pre><code>\[\[NSOperationQueue mainQueue\] addOperationWithBlock:^{
+     __strong SVProgressHUD * strongSelf = weakSelf;
+
+     if (strongSelf) {
+          strongSelf.fadeOutTimer = nil;  // 淡出等待时的计时器，执行 dismiss
+          strongSelf.graceTimer = nil;  // 淡入等待时的计时器，执行 fadeIn:
+
+          /*  检查和更新视图的层级以确保 HUD 能够显示
+
+              内部逻辑：1、_controlView存在父视图 -》移至父视图最上层
+                      2、_controlView不存在父视图
+                          ①、开发人员自定的 _containerView 存在，设为父视图;
+                          ②、开发人员没有定义宏 SV\_APP\_EXTENSIONS，使用指定窗口;
+                          ③、定义了宏，使用开发人员自定义的 viewForExtension
+           */
+          \[strongSelf updateViewHierarchy\];
+
+          strongSelf.progress = SVProgressHUDUndefinedProgress; // 重设进度
+          \[strongSelf cancelRingLayerAnimation\];  // 取消进度圆环的动画
+          \[strongSelf cancelIndefiniteAnimatedViewAnimation\];// 取消无限旋转圆环的动画
+
+          /\* 需要统一设置图片的颜色。那么图片的绘制模式需要设置为 Template */
+          if (self.shouldTintImages) {  
+               {
+                    \[image imageWithRenderingMode:...AlwaysTemplate\]; 
+               }
+               strongSelf.imageView.tintColor = ...;
+          }
+          else {
+               strongSelf.imageView.image = image;
+          }
+          strongSelf.imageView.hidden = NO; 
+
+          // 设置、显示/隐藏文本
+          strongSelf.statusLabel.hidden = status.length == 0;
+          strongSelf.statusLabel.text = status;
+
+          // Fade in delayed if a grace time is set
+          // An image will be dismissed automatically. Thus pass the duration as userInfo.
+          // 淡入等待时间大于 0 &amp; 当前 HUD 是隐藏状态 -》设置定时器，展示淡入动画
+          if (self.graceTimeInterval &gt; 0.0 &amp;&amp; self.backgroundView.alpha == 0.0f) { 
+               \[... @selector(fadeIn:) userInfo:@(duration) repeats:NO\];
+
+               \[\[NSRunLoop mainRunLoop\] addTimer:strongSelf.graceTimer forMode:NSRunLoopCommonModes\];
+          }
+          else {
+               \[strongSelf fadeIn:@(duration)\];  // 直接执行淡入动画
+          }
+     }
+}\];
+</code></pre><p>}</p>
+<p>dismiss 方法参数化：</p>
+<p>最终调用 + (void)dismissWithDelay:completion: 方法。</p>
+<p>- (void)dismissWithDelay:(NSTimeInterval)delay completion:(…)completion<br>{<br>      __weak SVProgressHUD * weakSelf = self;</p>
+<pre><code>\[\[NSOperationQueue mainQueue\] addOperationWithBlock:^{
+      __strong SVProgressHUD * strongSelf = weakSelf;
+
+      if (strongSelf) {
+           strongSelf.graceTimer = nil;
+
+           \[\[NSNotificationCenter defaultCenter\] postNotificationName:SVProgressHUDWillDisappearNotification object:nil userInfo:\[strongSelf notificationUserInfo\]\];  // 即将消失的通知 
+
+           // Reset activity count
+           strongSelf.activityCount = 0;
+
+           // 动画完成时的状态回调
+           __block void (^ animationsBlock)(void) = ^{
+                // 缩小 loading 视图的大小
+                strongSelf.hudView.transform = CGAffineTransformScale(strongSelf.hudView.transform, 1/1.3f, 1/1.3f);
+
+                // Fade out all effects (colors, blur, etc.)
+                \[strongSelf fadeOutEffects\];
+           };
+
+           // 动画完成时的回调
+           __block void (^ completionBlock)(void) = ^{ 
+
+               // 确保界面已经隐藏，取消所有动画，为下一次 show 做准备
+               if (self.backgroundView.alpha == 0.0f){
+
+                    \[strongSelf.controlView removeFromSuperview\];\[strongSelf.backgroundView removeFromSuperview\];
+                    \[strongSelf.hudView removeFromSuperview\];
+                    \[strongSelf removeFromSuperview\];
+                    strongSelf.progress = SVProgressHUDUndefinedProgress;
+                    \[strongSelf cancelRingLayerAnimation\];
+                    \[strongSelf cancelIndefiniteAnimatedViewAnimation\];         
+                    \[\[NSNotificationCenter defaultCenter\] removeObserver:...\];
+
+                    \[\[NSNotificationCenter defaultCenter\] postNotificationName:SVProgressHUDDidDisappearNotification object:strongSelf userInfo:\[strongSelf notificationUserInfo\]\];  // 发送已经隐藏的通知
+
+                    // Tell the rootViewController to update the StatusBar appearance
+</code></pre><p>#if !defined(SV_APP_EXTENSIONS) &amp;&amp; TARGET_OS_IOS<br>                          [rootController setNeedsStatusBarAppearanceUpdate];</p>
+<p>#endif<br>                          if (completion) {<br>                               completion();<br>                          }<br>                     }<br>                 };</p>
+<pre><code>          dispatch\_time\_t dipatchTime = dispatch\_time(DISPATCH\_TIME\_NOW, (int64\_t)(delay * NSEC\_PER\_SEC));
+
+          dispatch\_after(dipatchTime, dispatch\_get\_main\_queue(), ^{
+
+               if (strongSelf.fadeOutAnimationDuration &gt; 0) {
+
+                    \[UIView animateWithDuration:strongSelf.fadeOutAnimationDuration
+                                          delay:0
+                                        options:option
+                                     animations:^{
+
+                         animationsBlock();
+
+                    } completion:^(BOOL finished) {
+
+                         completionBlock();
+                    }\];
+               }
+               else {
+                    animationsBlock();
+                    completionBlock();
+               }
+          });
+
+          \[strongSelf setNeedsDisplay\];
+     }
+}\];
+</code></pre><p>}</p>
+<h5 id="四、UIAccessibility"><a href="#四、UIAccessibility" class="headerlink" title="四、UIAccessibility"></a>四、UIAccessibility</h5><p>UIAccessibility 协议用于让外界程序了解到自身的执行情况。Accessibility 是一个交互协议，基于查询 <->应答，通知 <-> 监听模型的协议。外部程序通过查询来获取 APP 应答，从而了解程序。另外通过监听来自 APP 的消息，来通知用户当前状态。</-></-></p>
+<p>UIAccessibility 是在 UIKit 里的一个非正式协议，提供关于 UI 元素的辅助功能信息。这个信息能够通过 VoiceOver(iOS11为”旁白”) 和其他辅助科技帮助肢体障碍者用户与 App 进行交互。</p>
+<p>在 UIKit 里的所有标准视图和控件都实现了 UIAccessibility 协议，所以你的应用默认是可以被肢体障碍者使用的。于是提高你应用的肢体障碍者可用性其实只需要一些细微的调整，而不必全盘重新实现。</p>
+<p>1、常用的协议与元素包括：</p>
+<p>UIAccessibility           核心协议。<br>UIAccessibilityAction     添加行为的协议。 UIAccessibilityElement 类。<br>UIAccessibilityContainer  容器协议。</p>
+<p>2、常用函数 UIAccessibilityPostNotification。</p>
+<p>可以看到 SVProgressHUD 支持 UIAccessibility</p>
+<p>self.accessibilityIdentifier = @”SVProgressHUD”;<br>self.accessibilityLabel      = @”SVProgressHUD”;<br>self.isAccessibilityElement  = YES;</p>
+<p>官方介绍：</p>
+<blockquote>
+<p>UIAccessibility is implemented on all standard UIKit views and controls so that assistive applications can present them to users with disabilities.</p>
+<p>Custom items in a user interface should override aspects of UIAccessibility to supply details where the default value is incomplete.</p>
+<p>For example, a UIImageView subclass may need to override accessibilityLabel, but it does not need to override accessibilityFrame.</p>
+<p>A completely custom subclass of UIView might need to override all of the UIAccessibility methods except accessibilityFrame.</p>
+</blockquote>
+<p>官方地址：<a href="https://developer.apple.com/documentation/uikit/accessibility/uiaccessibility" target="_blank" rel="noopener">https://developer.apple.com/documentation/uikit/accessibility/uiaccessibility</a></p>
+<p><a href="http://developer.apple.com/library/ios/#documentation/UserExperience/Conceptual/iPhoneAccessibility/Introduction/Introduction.html" target="_blank" rel="noopener">iOS 辅助功能编程指南</a>、<a href="https://blog.csdn.net/csdn_liuzongyi/article/details/53535579" target="_blank" rel="noopener">参考文章</a></p>
+<h5 id="五、SVProgressHUD-的缺点"><a href="#五、SVProgressHUD-的缺点" class="headerlink" title="五、SVProgressHUD 的缺点"></a>五、SVProgressHUD 的缺点</h5><p>依次发起两个请求 A 和请求 B，请求 A 和 请求 B 都需要 show loading。因为 SVProgressHUD 某一时刻只能显示一个视图，所以会显示请求 B 的 loading 视图，当请求完成时都执行 dismiss。请求的过程异步的，无法知道先来后到的顺序，很可能请求 A 先完成，执行了 dismiss，将与自己不匹配的 loading 视图给隐藏，导致界面出现空白，然而此时请求 B 还未完成。</p>
+<p>SVProgressHUD 只显示一个 loading 视图的机制是合理的，且不大好更改。所以将修改的目光转向 dismiss 方法的执行。</p>
+<p>既然只显示一个 loading 视图，那必然是显示最后一个 show 出来的，此时可以思考是否用一个 key 值作为判断条件，每次 show 时重置 SVProgressHUD 的 key 参数，如果当前 dismiss 的 key 值与当前 SVProgressHUD 保存的 key 不匹配，dismiss 操作无效；如果匹配，那么可以隐藏。</p>
+<p>在上面的基础上思考一下，如果某一个很重要的 loading，不希望被别人覆盖掉，希望一直显示直到自己来 dismiss，那么该怎么处理？</p>
+<p>这里可以使用设置优先级的方法来处理。</p>
+<p>一般的 loading 的优先级设为很低，想长期保持的优先级设为大的数值。在显示 loading 的时候，永远显示最高优先级的。</p>
+<p><strong>.h 文件</strong></p>
+<p>typedef NS_ENUM(NSUInteger, SVProgressHUDPriority) {<br>     SVProgressHUDPriorityDefault = 0,  // default<br>     SVProgressHUDPriorityLow     = 1,<br>     SVProgressHUDPriorityMid     = 500,<br>     SVProgressHUDPriorityHigh    = 1000,<br>};</p>
+<p>@property (assign, nonatomic) SVProgressHUDPriority svPriorty;<br>// 设置优先级。(方法可以优化)<br>+ (void)setSVPriority:(SVProgressHUDPriority)priority;<br>// 需要匹配时调用，如果只是普通的 loading 视图，可以调用 dismiss<br>+ (void)dismissWithPriority:(SVProgressHUDPriority)priority;</p>
+<p><strong><strong>.m 文件</strong></strong></p>
+<p>@property (nonatomic, readwrite) BOOL isGreaterPriority;  // 当前有更大优先级的需要显示</p>
+<p>- (instancetype)initWithFrame:(CGRect)frame<br>{<br>    if((self = [super initWithFrame:frame])) {<br>         _isGreaterPriority = NO;<br>         _svPriorty = SVProgressHUDPriorityDefault;<br>    }<br>}</p>
+<p>+ (void)setSVPriority:(SVProgressHUDPriority)priority<br>{<br>    // 设置上限为 1000<br>    if (priority &gt; SVProgressHUDPriorityHigh) {<br>         priority = SVProgressHUDPriorityHigh;<br>    }</p>
+<pre><code>// 如果设置的优先级大于/等于当前的优先级，则重新设置
+if (\[self sharedView\].svPriorty &lt;= priority) {
+     \[self sharedView\].isGreaterPriority = YES;
+     \[self sharedView\].svPriorty = priority;
+}
+else {
+     \[self sharedView\].isGreaterPriority = NO;
+}
+</code></pre><p>}</p>
+<p>+ (void)showProgress:(float)progress status:(NSString *)status<br>{<br>    // 当前为非默认(default)的优先级 &amp;&amp; 当前优先级没有比上一次更大<br>    if ( [self sharedView].svPriorty != SVProgressHUDPriorityDefault &amp;&amp; [self sharedView].isGreaterPriority == NO)<br>         return;</p>
+<pre><code>\[self sharedView\].isGreaterPriority = NO;
+\[\[self sharedView\] showProgress:progress status:status\];
+</code></pre><p>}</p>
+<p>/// 根据优先级来 dismiss<br>+ (void)dismissWithPriority:(SVProgressHUDPriority)priority<br>{<br>    if ([self sharedView].svPriorty == priority) {<br>         [[self sharedView] dismissWithDelay:0.0 completion:nil];<br>         [self sharedView].svPriorty = SVProgressHUDPriorityDefault;<br>    }<br>}</p>
+<p>/// 如果当前有优先级高的 loading 在显示，不能调用 dismiss<br>+ (void)dismissWithDelay:(NSTimeInterval)delay completion:(SVProgressHUDDismissCompletion)completion<br>{<br>    if ([self sharedView].svPriorty == SVProgressHUDPriorityDefault) {<br>         [[self sharedView] dismissWithDelay:delay completion:completion];<br>    }<br>}</p>
+<p>目前这些可以解决一些问题，代码还可以完善。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2018/03/20/svprogresshud/">http://yoursite.com/2018/03/20/svprogresshud/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2018/04/03/html-e9-9d-99-e6-80-81-e8-b5-84-e6-ba-90-e7-bc-93-e5-ad-98-e4-b8-8e-e6-9b-b4-e6-96-b0/" class="pre"> html 静态资源缓存与更新		</a><a href="/2018/03/19/nsdata-imagecontenttype/" class="next"> NSData + ImageContentType		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、SVPIndefiniteAnimatedView-无限旋转视图组件"><span class="toc-text">一、SVPIndefiniteAnimatedView 无限旋转视图组件</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、SVProgressAnimatedView-进度视图组件"><span class="toc-text">二、SVProgressAnimatedView 进度视图组件</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、SVProgressHUD-管理类"><span class="toc-text">三、SVProgressHUD 管理类</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、UIAccessibility"><span class="toc-text">四、UIAccessibility</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、SVProgressHUD-的缺点"><span class="toc-text">五、SVProgressHUD 的缺点</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

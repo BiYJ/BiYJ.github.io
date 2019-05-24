@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 重构 AppDelegate		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 重构 AppDelegate		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 重构 AppDelegate		</h1><div class="post-meta"><a href="/2018/12/01/e9-87-8d-e6-9e-84-appdelegate/#comments" class="comment-count"></a><p><span class="date">Dec 01, 2018</span><span><a href="/categories/性能优化/" class="category">性能优化</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="https://mp.weixin.qq.com/s?__biz=MjM5NTQ2NzE0NQ==&amp;mid=2247484070&amp;idx=1&amp;sn=8f784d2931c90bbc10c1d07bb634f01d&amp;chksm=a6f95840918ed156b8333751242eab54caacc5502af2e177018f0fc9df8f8955cee36e92eaf8&amp;mpshare=1&amp;scene=23&amp;srcid=1201w1cWjo0tBpIGir7EcNQD#rd" target="_blank" rel="noopener">最佳实践：重构AppDelegate</a></p>
+<h5 id="一、Massive-AppDelegate"><a href="#一、Massive-AppDelegate" class="headerlink" title="一、Massive AppDelegate"></a>一、Massive AppDelegate</h5><p>AppDelegate 是应用程序的根对象，它连接应用程序和系统，确保应用程序与系统以及其他应用程序正确的交互，通常被认为是每个 iOS 项目的核心。随着开发的迭代升级，不断增加新的功能和业务，它的代码量也不断增长，最终导致了 Massive AppDelegate。</p>
+<p>在复杂 AppDelegate 里修改任何东西的成本都是很高的，因为它将会影响你的整个 APP，一不留神产生 bug。毫无疑问，保持AppDelegate 的简洁和清晰对于健康的 iOS 架构来说是至关重要的。本文将使用多种方法来重构，使之简洁、可重用和可测。</p>
+<p>AppDelegate 常见的业务代码如下：</p>
+<ul>
+<li>日志埋点统计数据分析</li>
+<li>初始化数据存储系统</li>
+<li>配置 UIAppearance</li>
+<li>管理 App Badge 数字</li>
+<li>管理通知：请求权限，存储令牌，处理自定义操作，将通知传播到应用程序的其余部分</li>
+<li>管理 UI 堆栈配置：选择初始视图控制器，执行根视图控制器转换</li>
+<li>管理 UserDefaults：设置首先启动标志，保存和加载数据</li>
+<li>管理后台任务</li>
+<li>管理设备方向</li>
+<li>更新位置信息</li>
+<li>初始化第三方库（如分享、日志、第三方登陆、支付）</li>
+</ul>
+<p>这些臃肿的代码是反模式的，导致难于维护，显然支持扩展和测试这样的类非常复杂且容易出错。Massive AppDelegates 与我们经常谈的 Massive ViewController 的症状非常类似。</p>
+<p>看看以下可能的解决方案，每个 Recipe（方案）遵循单一职责、易于扩展、易于测试原则。</p>
+<h5 id="二、命令模式-Command-Design-Pattern"><a href="#二、命令模式-Command-Design-Pattern" class="headerlink" title="二、命令模式 Command Design Pattern"></a>二、命令模式 Command Design Pattern</h5><p>命令模式是一种数据驱动的设计模式，属于行为型模式。</p>
+<p>请求以命令的形式包裹在对象中，并传给调用对象。调用对象寻找可以处理该命令的合适的对象，并把该命令传给相应的对象，该对象执行命令。因此命令的调用者无需关心命令做了什么以及响应者是谁。</p>
+<p>可以为 AppDelegate 的每一个职责定义一个命令，这个命令的名字自行指定。</p>
+<p>/// 命令协议<br>@protocol Command <nsobject><br>- (void)execute;<br>@end</nsobject></p>
+<p>/// 初始化第三方库<br>@interface InitializeThirdPartiesCommand : NSObject <command></p>
+<p>@end</p>
+<p>/// 初始化主视图<br>@interface InitializeRootViewControllerCommand : NSObject <command><br>@property (nonatomic, strong) UIWindow * keyWindow;<br>@end</p>
+<p>/// 初始化视图全局配置<br>@interface InitializeAppearanceCommand : NSObject <command></p>
+<p>@end</p>
+<p>/// …</p>
+<p>然后定义一个统一调用的类 StartupCommandsBuilder 来封装如何创建命令的详细信息。AppDelegate 调用这个 builder 去初始化命令并执行这些命令。</p>
+<p>@implementation StartupCommandsBuilder</p>
+<p>// 返回数组，元素为遵守 Command 协议的对象<br>- (NSArray&lt;id<command>&gt; *)build<br>{<br>    return @[ [InitializeAppearanceCommand new],<br>              [InitializeRootViewControllerCommand new],<br>              [InitializeThirdPartiesCommand new] ];<br>}</p>
+<p>@end</p>
+<p>- (BOOL)application:(UIApplication <em>)application didFinishLaunchingWithOptions:(NSDictionary </em>)launchOptions<br>{<br>    [[[[StartupCommandsBuilder alloc] init] build] enumerateObjectsUsingBlock:^(id<command> _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {<br>        [obj execute];<br>    }];</p>
+<pre><code>return YES;
+</code></pre><p>}</p>
+<p>如果 AppDelegate 需要添加新的职责，则可以创建新的命令，然后把命令添加到 Builder 里而无需去改变 AppDelegate。解决方案满足单一职责、易于扩展、易于测试原则。</p>
+<h5 id="三、组合设计模式-Composite-Design-Pattern"><a href="#三、组合设计模式-Composite-Design-Pattern" class="headerlink" title="三、组合设计模式 Composite Design Pattern"></a>三、组合设计模式 Composite Design Pattern</h5><p>组合模式又叫部分整体模式，用于把一组相似的对象当作一个单一的对象。</p>
+<p>组合模式依据树形结构来组合对象，用来表示部分以及整体层次。这种类型的设计模式属于结构型模式，它创建了对象组的树形结构。一个很明显的例子就是 iOS 里的 UIView 以及它的 subviews。</p>
+<p>这个想法主要是有一个组装类和叶子类，每个叶子类负责一个职责，而组装类负责调用所有叶子类的方法。</p>
+<p>/// 组装类<br>@interface CompositeAppDelegate : UIResponder <uiapplicationdelegate><br>+ (instancetype)makeDefault;<br>@end</uiapplicationdelegate></p>
+<p>@implementation CompositeAppDelegate</p>
+<p>+ (instancetype)makeDefault<br>{<br>    // 这里要实现单例<br>    return [[CompositeAppDelegate alloc] init];<br>}</p>
+<p>- (BOOL)application:(UIApplication <em>)application didFinishLaunchingWithOptions:(NSDictionary </em>)launchOptions<br>{<br>    [[PushNotificationAppDelegate new] application:application didFinishLaunchingWithOptions:launchOptions];<br>    [[ThirdPartiesConfiguratorAppDelegate new] application:application didFinishLaunchingWithOptions:launchOptions];</p>
+<pre><code>return YES;
+</code></pre><p>}</p>
+<p>@end</p>
+<p>实现执行具体职责的叶子类。</p>
+<p>/// 叶子类。推送消息处理<br>@interface PushNotificationAppDelegate : UIResponder <uiapplicationdelegate></uiapplicationdelegate></p>
+<p>@end</p>
+<p>/// 叶子类。初始化第三方库<br>@interface ThirdPartiesConfiguratorAppDelegate : UIResponder <uiapplicationdelegate></uiapplicationdelegate></p>
+<p>@end</p>
+<p>@implementation PushNotificationAppDelegate</p>
+<p>- (BOOL)application:(UIApplication <em>)application didFinishLaunchingWithOptions:(NSDictionary </em>)launchOptions<br>{<br>    NSLog(@”PushNotificationAppDelegate”);</p>
+<pre><code>return YES;
+</code></pre><p>}</p>
+<p>@end</p>
+<p>@implementation ThirdPartiesConfiguratorAppDelegate</p>
+<p>- (BOOL)application:(UIApplication <em>)application didFinishLaunchingWithOptions:(NSDictionary </em>)launchOptions<br>{<br>    NSLog(@”ThirdPartiesConfiguratorAppDelegate”);</p>
+<pre><code>return YES;
+</code></pre><p>}</p>
+<p>@end</p>
+<p>在 AppDelegate 通过工厂方法创建组装类，然后通过它去调用所有的方法</p>
+<p>- (BOOL)application:(UIApplication <em>)application didFinishLaunchingWithOptions:(NSDictionary </em>)launchOptions<br>{<br>    [[CompositeAppDelegate makeDefault] application:application didFinishLaunchingWithOptions:launchOptions];</p>
+<pre><code>return YES;
+</code></pre><p>}</p>
+<p>它满足我们在开始时提出的所有要求，如果要添加一个新的功能，很容易添加一个叶子类，无需改变 AppDelegate，解决方案满足单一职责、易于扩展、易于测试原则。</p>
+<h5 id="四、中介者模式-Mediator-Design-Pattern"><a href="#四、中介者模式-Mediator-Design-Pattern" class="headerlink" title="四、中介者模式 Mediator Design Pattern"></a>四、中介者模式 Mediator Design Pattern</h5><p>中介者模式是用来降低多个对象和类之间的通信复杂性。这种模式提供了一个中介类，该类通常处理不同类之间的通信，并支持松耦合，使代码易于维护。中介者模式属于行为型模式。</p>
+<p>如果想了解有关此模式的更多信息，建议查看 Mediator Pattern Case Study。或者阅读文末老峰也给出关于设计模式比较经典的书籍。</p>
+<p>让我们定义 AppLifecycleMediator 将 UIApplication 的生命周期通知底下的监听者，这些监听者必须遵循AppLifecycleListener 协议，如果需要监听者要能扩展新的方法。</p>
+<p>@interface APPLifeCycleMediator : NSObject</p>
+<p>+ (instancetype)makeDefaultMediator;</p>
+<p>@end</p>
+<p>@implementation APPLifeCycleMediator<br>{<br>    @private<br>        NSArray&lt;id<applifecyclelistener>&gt; * _listeners;<br>}<br>- (void)dealloc<br>{<br>    [[NSNotificationCenter defaultCenter] removeObserver:self];<br>}</applifecyclelistener></p>
+<p>- (instancetype)initWithListeners:(NSArray&lt;id<applifecyclelistener>&gt; *)listeners<br>{<br>    if (self = [super init]) {</applifecyclelistener></p>
+<pre><code>    _listeners = listeners;
+
+    // 通知
+    \[\[NSNotificationCenter defaultCenter\] addObserver:self
+                                             selector:@selector(onAppWillEnterForeground)
+                                                 name:UIApplicationWillEnterForegroundNotification
+                                               object:nil\];
+    \[\[NSNotificationCenter defaultCenter\] addObserver:self
+                                             selector:@selector(onAppDidEnterBackgroud)
+                                                 name:UIApplicationDidEnterBackgroundNotification
+                                               object:nil\];
+    \[\[NSNotificationCenter defaultCenter\] addObserver:self
+                                             selector:@selector(onAppDidFinishLaunching)
+                                                 name:UIApplicationDidFinishLaunchingNotification
+                                               object:nil\];
+}
+
+return self;
+</code></pre><p>}</p>
+<p>/// 定义好静态类方法，初始化所有监听者<br>+ (instancetype)makeDefaultMediator<br>{<br>    static APPLifeCycleMediator * mediator;<br>    static dispatch_once_t onceToken;<br>    dispatch_once(&amp;onceToken, ^{<br>        mediator = [[APPLifeCycleMediator alloc] initWithListeners:@[[VideoListener new], [SocketListener new]]];<br>    });<br>    return mediator;<br>}</p>
+<p>- (void)onAppWillEnterForeground<br>{<br>    [_listeners[1] onAppWillEnterForeground];<br>}</p>
+<p>- (void)onAppDidEnterBackgroud<br>{<br>    [_listeners[0] onAppDidEnterBackgroud];<br>}</p>
+<p>- (void)onAppDidFinishLaunching<br>{</p>
+<p>}</p>
+<p>@end</p>
+<p>定义 AppLifecycleListener 协议，以及协议的的实现者。</p>
+<p>/// 监听协议<br>@protocol AppLifeCycleListener <nsobject><br>@optional<br>- (void)onAppWillEnterForeground;<br>- (void)onAppDidEnterBackgroud;<br>- (void)onAppDidFinishLaunching;</nsobject></p>
+<p>@end</p>
+<p>@interface VideoListener : NSObject <applifecyclelistener></applifecyclelistener></p>
+<p>@end</p>
+<p>@interface SocketListener : NSObject <applifecyclelistener></applifecyclelistener></p>
+<p>@end</p>
+<p>@implementation VideoListener</p>
+<p>- (void)onAppDidEnterBackgroud<br>{<br>    NSLog(@”停止视频播放”);<br>}</p>
+<p>@end</p>
+<p>@implementation SocketListener</p>
+<p>- (void)onAppWillEnterForeground<br>{<br>    NSLog(@”开启长链接”);<br>}</p>
+<p>@end</p>
+<p>加入到 AppDelegate 中</p>
+<p>- (BOOL)application:(UIApplication <em>)application didFinishLaunchingWithOptions:(NSDictionary </em>)launchOptions<br>{<br>    [APPLifeCycleMediator makeDefaultMediator];</p>
+<pre><code>return YES;
+</code></pre><p>}</p>
+<p>这个中介者自动订阅了所有的事件。AppDelegate 仅仅需要初始化它一次，就能让它正常工作。每个监听者都有一个单一职责，很容易添加一个监听者，而无需改变 Appdelgate 的内容，每个监听者以及中介者能够容易的被单独测试。</p>
+<h5 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h5><p>大多数 AppDelegates 的设计都不太合理，过于复杂并且职责过多。我们称这样的类为 Massive App Delegates。</p>
+<p>通过应用软件设计模式，Massive App Delegate 可以分成几个单独的类，每个类都有单一的责任，可以单独测试。</p>
+<p>这样的代码很容易更改维护，因为它不会在您的应用程序中产生一连串的更改。它非常灵活，可以在将来提取和重用。</p>
+<h5 id="六、学习文章"><a href="#六、学习文章" class="headerlink" title="六、学习文章"></a>六、学习文章</h5><p><a href="https://www.vadimbulavin.com/refactoring-massive-app-delegate/" target="_blank" rel="noopener">Refactoring Massive App Delegate</a></p>
+<p><a href="https://github.com/GesanTung/iOSTips" target="_blank" rel="noopener">iOSTips</a></p>
+<p>OC设计模式：《Objective-C 编程之道：iOS 设计模式解析》</p>
+<p> Swift 设计模式：《<a href="http://mp.weixin.qq.com/s?__biz=MjM5NTQ2NzE0NQ==&amp;mid=2247483977&amp;idx=1&amp;sn=5994f8456884df158e7263be8179b79f&amp;chksm=a6f958af918ed1b92625986d22a19e7ddaf85367386b9edf19b93e8ce836f83e0c5556997d13&amp;scene=21#wechat_redirect" target="_blank" rel="noopener">Design_Patterns_by_Tutorials_v0.9.1</a>》</p>
+<p>重构：《重构改善既有代码的设计》</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2018/12/01/e9-87-8d-e6-9e-84-appdelegate/">http://yoursite.com/2018/12/01/e9-87-8d-e6-9e-84-appdelegate/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2018/12/02/kvo/" class="pre"> KVO		</a><a href="/2018/11/30/runloop2/" class="next"> RunLoop(2)		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、Massive-AppDelegate"><span class="toc-text">一、Massive AppDelegate</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、命令模式-Command-Design-Pattern"><span class="toc-text">二、命令模式 Command Design Pattern</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、组合设计模式-Composite-Design-Pattern"><span class="toc-text">三、组合设计模式 Composite Design Pattern</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、中介者模式-Mediator-Design-Pattern"><span class="toc-text">四、中介者模式 Mediator Design Pattern</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、总结"><span class="toc-text">五、总结</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、学习文章"><span class="toc-text">六、学习文章</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

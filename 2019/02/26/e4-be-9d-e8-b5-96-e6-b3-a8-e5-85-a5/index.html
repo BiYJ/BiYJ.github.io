@@ -1,0 +1,523 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 依赖注入		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 依赖注入		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 依赖注入		</h1><div class="post-meta"><a href="/2019/02/26/e4-be-9d-e8-b5-96-e6-b3-a8-e5-85-a5/#comments" class="comment-count"></a><p><span class="date">Feb 26, 2019</span><span><a href="/categories/底层原理/" class="category">底层原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>依赖注入可以通过初始化方法（或构造函数）传递所需要的参数，或者通过属性（setter）传递。这里将对这两种方法进行讲解。</p>
+<p>初始化方法注入：</p>
+<p>- (instancetype)initWithDependency1:(Dependency1 <em>)d1 dependency2:(Dependency2 </em>)d2;</p>
+<p>属性注入：</p>
+<p>@property (nonatomic, retain) Dependency1 <em> dependency1;<br>@property (nonatomic, retain) Dependency2 </em> dependency2;</p>
+<p>一般更趋向于初始化注入，如果在初始化（构造函数）的时候没办法进行注入，才通过属性进行注入。在通过初始化注入的情况下，这些依赖可能仍然需要作为属性存在，但是这些属性应该被设置为只读（readonly）的。</p>
+<h5 id="一、为什么使用依赖注入"><a href="#一、为什么使用依赖注入" class="headerlink" title="一、为什么使用依赖注入"></a>一、为什么使用依赖注入</h5><p>依赖注入的几个重要之处：</p>
+<p>①、明确的定义。使用依赖注入很明确的告诉了使用者要操作这个类对象需要做什么事情，初始化哪些变量，并且可以隐藏一些危险的依赖，如全局变量；</p>
+<p>②、使用构成。 即一直坚持的多构成少继承原则。它能提高代码的可重用性；</p>
+<p>③、更简单的自定义。在创建一个对象的时候通过传入指定的参数，更容易自定义。</p>
+<p>④、明确的所有者。</p>
+<p>⑤、可测试性。因为只需根据初始化方法，传入需要的参数即可进行操作，不需要去管理被隐藏的依赖。</p>
+<h5 id="二、使用依赖注入"><a href="#二、使用依赖注入" class="headerlink" title="二、使用依赖注入"></a>二、使用依赖注入</h5><p>1、注入类的类型</p>
+<p>首先，将类（Class）的分为两种类型（type）：简单的类和复杂的类。</p>
+<p>简单的类是一个没有任何依赖或者只是依赖于其他简单的类，这个简单类是不可能被子类化的，因为它们的功能是很明确的并且不可变的，也没有引用其他额外的资源。在 Cocoa 框架中就有很多简单类，如：NSString、NSArray、NSDictionary、NSNumber 等。</p>
+<p>复杂类则相反。它们有其他复杂的依赖，包括应用程序等级逻辑（根据应用程序的逻辑不同可能改变）。又或者它们需要访问其他外部的资源，如硬盘、网络或全局变量。这些类在你的应用程序中将变得很复杂，它们可能包含所有的控制器对象或所有的 model对象。Cocoa 框架中的复杂类有：NSURLConnection、UIViewController 等。</p>
+<p>分类后，我们就可以很容易的在应用程序中选出哪些是复杂类了，然后开始对它们进行优化。</p>
+<p>2、在初始化时依赖分配</p>
+<p>原始代码：</p>
+<p>@interface RCRaceCar ()<br>@property (nonatomic, readonly) RCEngine * engine;<br>@end</p>
+<p>@implementation RCRaceCar</p>
+<p>- (instancetype)init<br>{<br>     if (self = [super init]) {<br>         …<br>         _engine = [[RCEngine alloc] init];<br>     }<br>     return self;<br>}</p>
+<p>@end</p>
+<p>使用依赖注入改版后：</p>
+<p>@interface RCRaceCar ()<br>@property (nonatomic, readonly) RCEngine * engine;<br>@end</p>
+<p>@implementation RCRaceCar</p>
+<p>- (instancetype)initWithEngine:(RCEngine *)engine<br>{<br>     if (self = [super init]) {</p>
+<pre><code>    ...
+    _engine = engine;
+}
+return self;
+</code></pre><p>}</p>
+<p>@end</p>
+<p>3、延迟初始化依赖</p>
+<p>通常，有一些对象是初始化之后才需要用到的，甚至有时可能几乎用不到，如在用户的一个收藏列表中，当一个收藏都没有的时候显示一个和谐的页面，但这种情况有时很少遇到，因为只要用户收藏了一个资源，这个页面就不需要了。如下面以灭火器为例子：</p>
+<p>@implementation RCRaceCar</p>
+<p>- (void)recoverFromCrash<br>{<br>     if (self.fire != nil) {<br>          RCFireExtinguisher * fireExtinguisher = [[RCFireExtinguisher alloc] init];<br>          [fireExtinguisher extinguishFire:self.fire];<br>     }<br>}</p>
+<p>@end</p>
+<p>在这种情况，汽车当然是希望永远都没事，所以我们可能永远不需要灭火器。因为用到这个灭火器对象的几率很低，我们不想使得每一辆车创建得缓慢直接通过初始化方法创建它。或者，如果我们的汽车需要为多次车祸去恢复，这将需要创建多个灭火器。这种情况，我们可以使用一个工厂方法。</p>
+<p>工厂方法是一个标准的 Objective-C 的 block, 它要求没有参数并且返回一个具体的实例对象。当一个对象依赖使用这个 block 创建时它不需要知道它具体是怎样被创建的。</p>
+<p>下面，通过一个工厂，使用依赖注入创建一个灭火器。</p>
+<p>typedef RCFireExtinguisher *(^RCFireExtinguisherFactory)();</p>
+<p>@interface RCRaceCar ()<br>@property (nonatomic, readonly) RCEngine * engine;<br>@property (nonatomic, copy, readonly) RCFireExtinguisherFactory fireExtinguisherFactory;<br>@end</p>
+<p>@implementation RCRaceCar</p>
+<p>- (instancetype)initWithEngine:(RCEngine *)engine fireExtinguisherFactory:(RCFireExtinguisherFactory)extFactory<br>{<br>     if (self = [super init]) { </p>
+<pre><code>     ...
+     _engine = engine;  
+     _fireExtinguisherFactory = \[extFactory copy\];   
+}
+return self;
+</code></pre><p>}</p>
+<p>- (void)recoverFromCrash<br>{<br>     if (self.fire != nil) {<br>          RCFireExtinguisher * fireExtinguisher = self.fireExtinguisherFactory();<br>          [fireExtinguisher extinguishFire:self.fire];<br>     }<br>}</p>
+<p>@end</p>
+<p>工厂在下面的情况下也很有用。当我们需要去创建一个不知道数量的依赖，甚至它是知道初始化之后才被创建的。如下：</p>
+<p>@implementation RCRaceCar</p>
+<p>- (instancetype)initWithEngine:(RCEngine <em>)engine transmission:(RCTransmission </em>)transmission wheelFactory:(RCWheel *(^)())wheelFactory;<br>{<br>     if (self = [super init]) {      </p>
+<pre><code>     _engine = engine;   
+     _transmission    = transmission;   
+     _leftFrontWheel  = wheelFactory();   
+     _leftRearWheel   = wheelFactory();   
+     _rightFrontWheel = wheelFactory();  
+     _rightRearWheel  = wheelFactory();   // 保留轮子工厂，之后还需要一个备胎。   
+     _wheelFactory    = \[wheelFactory copy\];   
+}
+return self;
+</code></pre><p>}</p>
+<p>@end</p>
+<h5 id="三、避免多余的配置"><a href="#三、避免多余的配置" class="headerlink" title="三、避免多余的配置"></a>三、避免多余的配置</h5><p>如果一个对象不应该在其他对象内部进行配置，那就用便利构造器（如 +[NSDictionary dictionary]）。我们将把配置从我们的对象图中移出到我们普通的对象，分开它们使得代码更整洁，可测试，业务逻辑更清晰。</p>
+<p>在添加一个便利构造器时，应该先确保是否是必须的。如果一个对象在 init 方法中只有几个参数，并且这些参数没有确切的默认值，那添加一个便利构造器是没必要的并且调用者应该直接使用标准的 init 方法。</p>
+<p>为了配置我们的对象，将从 4 个点来收集我们的依赖：</p>
+<p>①、没有一个确切的默认值。 包括 boolean 值或 number 值，他们可能根据在不同实例变量中的值各不相同。所以这些值应该作为参数传递到便利构造器中；</p>
+<p>②、存在共享对象。 这个也需要作为参数传递到便利构造器中（比如一个无线电频率）。这些对象之前可能已经作为单例或通过父类指针被赋值；</p>
+<p>③、被新创建的对象。 如果一个对象没有把这个依赖分享给其他对象，那其他对象（同一个类）应该在遍历构造器内创建一个新的依赖对象。</p>
+<p>④、系统单例。 Cocoa 内提供的单例是可以直接被访问的，比如文件管理者单例 [NSFileManager defaultManager]， 这里很明确在你的应用程序中只有一个实例将会被使用。</p>
+<p>下面是关于赛车的简单初便利构造器</p>
+<p>+ (instancetype)raceCarWithPitRadioFrequency:(RCRadioFrequency <em>)frequency<br>{<br>     RCEngine </em> engine = [[RCEngine alloc] init];<br>     RCTransmission * transmission = [[RCTransmission alloc] init];   </p>
+<pre><code>RCWheel *(^wheelFactory)() = ^{      
+     return \[\[RCWheel alloc\] init\];   
+};   
+return \[\[self alloc\] initWithEngine:engine
+                       transmission:transmission 
+                  pitRadioFrequency:frequency
+                       wheelFactory:wheelFactory\];
+</code></pre><p>}</p>
+<p>便利构造器应该放置在一个更加适合的地方与类分离。通常情况下都是放置在相同的 *.m 文件中，但是当指定通过如 Foo 对象配置的时候就应该将它放置在 @interface RaceCar(FooConfiguration) 这个 category 中，并且命名为类似 fooRaceCar 之类的。</p>
+<h5 id="四、系统单例"><a href="#四、系统单例" class="headerlink" title="四、系统单例"></a>四、系统单例</h5><p>在 Cocoa 中有许多对象只有一个实例存在，如 [UIApplication sharedApplication]、[NSFileManager defaultManager]、[NSUserDefaults standardUserDefaults] 和 [UIDevice currentDevice] 等。如果一个对象依赖于这些对象中的一个，那就应该被作为参数包含进来。即使在你的应用程序中只有这样一个实例。在你的测试中可能想要模拟实例或在测试前创建一个实例来避免测试依赖。</p>
+<p>这里建议避免在你的代码中创建全局的单例，而是在一个对象中创建一个单一的实例，当它第一次被使用时，将它注入到其他依赖它的对象中去。</p>
+<h5 id="五、不可修改的构造函数"><a href="#五、不可修改的构造函数" class="headerlink" title="五、不可修改的构造函数"></a>五、不可修改的构造函数</h5><p>有些时候，一个类的初始化方法/构造方法不能被修改或不能被直接调用。在这种情况下，你需要使用 setter 注入。如下代码：</p>
+<p>// 一个我们不能直接调用初始化方法的例子。<br>RCRaceTrack * raceTrack = [objectYouCantModify createRaceTrack];<br>// 我们仍然可以使用属性来配置我们的赛车路径<br>raceTrack.width = 10;<br>raceTrack.numberOfHairpinTurns = 2;</p>
+<p>setter 注入允许你配置这个对象，但是它引入了额外的可变性使得在这个类的设计中必须做额外的测试和处理。幸运的是，这里有两种主要的场景导致无法访问和修改初始化方法，并且这两种情况都是可以避免的。</p>
+<h5 id="六、类注册"><a href="#六、类注册" class="headerlink" title="六、类注册"></a>六、类注册</h5><p>“类注册” 工厂模式的使用意味着对象不能修改它们的初始化方法。见代码：</p>
+<p>NSArray <em> raceCarClasses = @[ [RCFastRaceCar class], [RCSlowRaceCar class] ];<br>NSMutableArray </em>raceCars = [[NSMutableArray alloc] init];</p>
+<p>for (Class raceCarClass in raceCarClasses) {<br>     // 所有赛车必须有相同的初始化方法 (在这个例子中是 “init” 方法).<br>     // 这里意味着我们不能自定义不同的子类<br>     [raceCars addObject:[[raceCarClass alloc] init]];<br>}</p>
+<p>// 一个简单的替换方法是：使用工厂 block 来代替</p>
+<p>typedef RCRaceCar *(^RCRaceCarFactory)();</p>
+<p>NSArray <em> raceCarFactories = @[ ^{ return [[RCFastRaceCar alloc] initWithTopSpeed:200]; },<br>                                ^{ return [[RCSlowRaceCar alloc] initWithLeatherPlushiness:11]; } ];<br>NSMutableArray </em>  raceCars = [[NSMutableArray alloc] init];</p>
+<p>for (RCRaceCarFactory raceCarFactory in raceCarFactories) {<br>    // 现在这样，我们就不用关心到底是那个初始化方法被调用了<br>    [raceCars addObject:raceCarFactory()];<br>}</p>
+<h5 id="七、Storyboards"><a href="#七、Storyboards" class="headerlink" title="七、Storyboards"></a>七、Storyboards</h5><p>Storyboards 提供了很方便的方法来构建界面，但是在依赖注入中它也带来了问题。 特别是当在 Storyboard 中实例化一个初始化的视图控制器，它不允许你选择调用哪一个初始化方法。 类似的，当在 storyboard 中定义一个 segue 时，目标控制器在实例化时也不能让你指定调用那个初始化方法。</p>
+<p>解决方法是避免使用 storyboard。这看起来是一种极端的解决方案，但是我们发现在大型团队开发中， storyboard 带来了其他问题。另外，不适用 storyboard 并没有丢掉它的所有好处，除了 storyboard 提供的 segues 外，xib 也提供了和 storyboard 相同的好处，而且 xib 可以让你自定义初始化方法。</p>
+<h5 id="八、公有和私有"><a href="#八、公有和私有" class="headerlink" title="八、公有和私有"></a>八、公有和私有</h5><p>依赖注入鼓励在你的共有接口上暴露出更多的是对象。正如上面提到的，这有很多好处。但是当在构建框架时，它使你的共有 API变得臃肿。使用依赖注入之前，公有对象 A 已经使用私有对象 B（对象 B 反过来使用私有对象 C），但是对象 B 和对象 C 从来没有从框架中暴露。通过依赖注入，对象 A 在它的公有初始化方法中有对象 B ，而对象 B 反过来使得对象 C 在它的初始化方法中公开。</p>
+<p>// In public ObjectA.h.<br>@interface ObjectA</p>
+<p>// 因为初始化方法使用了对象 B 的引用，所以我们需要在使用对象 B 之前引入它的头文件<br>- (instancetype)initWithObjectB:(ObjectB *)objectB;<br>@end</p>
+<p>@interface ObjectB</p>
+<p>// 这里也一样：需要暴露 ObjectC.h<br>- (instancetype)initWithObjectC:(ObjectC *)objectC;<br>@end</p>
+<p>@interface ObjectC<br>- (instancetype)init;<br>@end</p>
+<p>对象 B 和对象 C 都是具体的实现，而你不想让框架的使用者去关心它们。这时可以通过协议（protocol）来解决。</p>
+<p>@interface ObjectA<br>- (instancetype)initWithObjectB:(id <objectb>)objectB;<br>@end</objectb></p>
+<p>// 这个协议只暴露 ObjectA 需要原始的 ObjectB。<br>// 我们并不是在具体的 ObjectB(或 ObjectC）实现创建一个硬依赖 </p>
+<p>@protocol ObjectB<br>- (void)methodNeededByObjectA;<br>@end</p>
+<h5 id="九、一次高效的依赖注入"><a href="#九、一次高效的依赖注入" class="headerlink" title="九、一次高效的依赖注入"></a>九、一次高效的依赖注入</h5><p>1、问题场景</p>
+<p>如果基于 Cocoapods 和 Git Submodules 来做组件化的时候，我们的依赖关系是这样的：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-ee8e7de4eb46f0b2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>这里依赖路径有两条：</p>
+<p>①、主项目依赖第三方 pods。</p>
+<p>②、组件依赖第三方 pods，主项目再依赖组件。</p>
+<p>单向的依赖关系决定了从组件到项目的通讯是单向的，即主项目可以主动向组件发起通讯，组件却没有办法主动和主项目通讯。</p>
+<p>可以用通知来与主项目通讯，但是这一点都不优雅，也不好维护和拓展。更加优雅、更加方便日常开发的拓展和维护的方式，叫做“依赖注入”。</p>
+<p>2、依赖注入</p>
+<p>依赖注入有另外一个名字，叫做“控制反转”。</p>
+<p>像上面的组件化的例子，主项目依赖组件，现在有一个需求，组件需要依赖主项目，这种情况就叫做“控制反转”。能把这部分“控制反转”的代码统一起来解耦维护，方便日后拓展和维护的服务，我们就可以叫做依赖注入。</p>
+<p>所以依赖注入有两个比较重要的点：</p>
+<p>①、要实现这种反转控制的功能。</p>
+<p>②、要解耦。</p>
+<blockquote>
+<p>不是我自身的，却是我需要的，都是我所依赖的。一切需要外部提供的，都是需要进行依赖注入的。</p>
+<p>出自这篇文章：<a href="https://laravel-china.org/topics/2104/understanding-dependency-injection-and-inversion-of-control" target="_blank" rel="noopener">理解依赖注入与控制反转</a></p>
+</blockquote>
+<p>3、iOS 依赖注入调查</p>
+<p>iOS 平台实现依赖注入功能的开源项目有两个大头：<a href="https://github.com/atomicobject/objection" target="_blank" rel="noopener">objection</a>、<a href="https://github.com/appsquickly/typhoon" target="_blank" rel="noopener">typhoon</a>。</p>
+<p>详细对比发现这两个框架都是严格遵循依赖注入的概念来实现的，并没有将 Objective-C 的 runtime 特性发挥到极致，所以使用起来很麻烦。</p>
+<p>还有一点，这两个框架使用继承的方式实现注入功能，对项目的侵入性不容小视。如果你觉得这个侵入性不算什么，那等到项目大到一定程度，发现之前选择的技术方案有考虑不周，想切换到其他方案的时，你一定会后悔当时没选择那个不侵入项目的方案。</p>
+<p>那有没有其他没那么方案呢？<a href="https://github.com/jspahrsummers/libextobjc" target="_blank" rel="noopener">libextobjc</a></p>
+<p>libextobjc 里有一个 EXTConcreteProtocol 虽然没有直接叫做依赖注入，而是叫做混合协议。它的优点：</p>
+<p>①、充分使用了 OC 动态语言的特性，不侵入项目</p>
+<p>②、高度自动化</p>
+<p>③、框架十分轻量（只有一个 .h 和 .m 文件）</p>
+<p>④、使用非常简单（只需要一个 @conreteprotocol 关键字就已经注入好了）。</p>
+<p>4、EXTConcreteProtocol 实现原理</p>
+<p>有两个比较重要的概念需要提前明白才能继续往下讲。</p>
+<p>①、容器。这里的容器是指，我们注入的方法需要有类（class）来装，而装这些方法的器皿就统称为容器。</p>
+<p>②、_attribute__() 这是一个 GNU 编译器语法，被 constructor 这个关键字修饰的方法会在所有类的 +load 方法之后，在 main 函数之前被调用。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-d6694cba798f0df6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>如上图，用一句话来描述注入的过程：将待注入的容器中的方法在 load 方法之后 main 函数之前注入指定的类中。</p>
+<p>4.1、EXTConcreteProtocol 的使用</p>
+<p>比方说有一个协议 ObjectProtocol。我们只要这样写就已经实现了依赖注入。</p>
+<p>@protocol ObjectProtocol<nsobject></nsobject></p>
+<ul>
+<li>(void)sayHello;</li>
+</ul>
+<ul>
+<li>(int)age;</li>
+</ul>
+<p>@end</p>
+<p>@concreteprotocol(ObjectProtocol)</p>
+<ul>
+<li>(void)sayHello<br>{<br>   NSLog(@”Hello”);<br>}</li>
+</ul>
+<ul>
+<li>(int)age<br>{<br>   return 18;<br>}</li>
+</ul>
+<p>@end</p>
+<p>之后比方说一个 Person 类想要拥有这个注入方法，就只需要遵守这个协议就可以了。</p>
+<p>@interface Person : NSObject<objectprotocol></objectprotocol></p>
+<p>@end</p>
+<p>我们接下来就可以对 Person 调用注入的方法。</p>
+<p>int main(int argc, char <em> argv[]) {<br>     Person </em> p = [Person new];<br>     NSLog(@”%@”, [p age]);<br>     [p.class sayHello];<br>}</p>
+<p>18<br>Hello</p>
+<p>4.2、源码解析</p>
+<p>先来看一下头文件：</p>
+<p>#define concreteprotocol(NAME) \<br>    /*<br>     * create a class used to contain all the methods used in this protocol<br>     <em>/ \<br>     // 定义一个容器类<br>    interface NAME ## _ProtocolMethodContainer : NSObject &lt; NAME &gt; {} \<br>    @end \<br>    \<br>    @implementation NAME ## _ProtocolMethodContainer \<br>    /\</em><br>     * when this class is loaded into the runtime, add the concrete protocol<br>     * into the list we have of them<br>     <em>/ \<br>    // load 方法添加混合协议<br>    + (void)load { \<br>        /\</em><br>         * passes the actual protocol as the first parameter, then this class as<br>         * the second<br>         <em>/ \<br>        if (!ext_addConcreteProtocol(objc_getProtocol(metamacro_stringify(NAME)), self)) \<br>            fprintf(stderr, “ERROR: Could not load concrete protocol %s\n”, metamacro_stringify(NAME)); \<br>    } \<br>    \<br>    /\</em><br>     * using the “constructor” function attribute, we can ensure that this<br>     * function is executed only AFTER all the Objective-C runtime setup (i.e.,<br>     * after all +load methods have been executed)<br>     <em>/ \<br>    // 在 load 之后，main 之前执行方法注入<br>    __attribute__((constructor)) \<br>    static void ext_ ## NAME ## _inject (void) { \<br>        /\</em><br>         * use this injection point to mark this concrete protocol as ready for<br>         * loading<br>         */ \<br>        ext_loadConcreteProtocol(objc_getProtocol(metamacro_stringify(NAME))); \<br>    }</p>
+<p>/*** implementation details follow <em>**/<br>// load 方法添加混合协议<br>BOOL ext_addConcreteProtocol (Protocol </em>protocol, Class methodContainer);<br>// load 之后，main 之前执行方法注入<br>void ext_loadConcreteProtocol (Protocol *protocol);</p>
+<p>可以在源码中清楚看到 concreteprotocol 这个宏定义为我们的协议添加了一个容器类，我们主要注入的比如 +sayHello 和 -age 方法都被定义在这个容器类之中。</p>
+<p>然后在 +load 方法中调用了 ext_addConcreteProtocol 方法。</p>
+<p>// contains the information needed to reference a full special protocol<br>typedef struct {<br>    // the actual protocol declaration (@protocol block)  用户定义的协议.<br>    __unsafe_unretained Protocol *protocol;</p>
+<pre><code>// the injection block associated with this protocol
+//
+// this block is RETAINED and must eventually be released by transferring it
+// back to ARC
+// 在 \_\_attribute\_\_((constructor)) 时往指定类里注入方法的 block.
+void *injectionBlock;
+
+// whether this protocol is ready to be injected to its conforming classes
+//
+// this does NOT refer to a special protocol having been injected already
+// 对应的协议是否已经准备好注入.
+BOOL ready;
+</code></pre><p>} EXTSpecialProtocol;</p>
+<p>BOOL ext_addConcreteProtocol (Protocol *protocol, Class containerClass) {<br>    return ext_loadSpecialProtocol(protocol, ^(Class destinationClass){<br>        ext_injectConcreteProtocol(protocol, containerClass, destinationClass);<br>    });<br>}</p>
+<p>BOOL ext_loadSpecialProtocol (Protocol *protocol, void (^injectionBehavior)(Class destinationClass)) {<br>    @autoreleasepool {<br>        NSCParameterAssert(protocol != nil);<br>        NSCParameterAssert(injectionBehavior != nil);</p>
+<pre><code>    // lock the mutex to prevent accesses from other threads while we perform
+    // this work    加锁
+    if (pthread\_mutex\_lock(&amp;specialProtocolsLock) != 0) {
+        fprintf(stderr, &quot;ERROR: Could not synchronize on special protocol data\\n&quot;);
+        return NO;
+    }
+
+    // if we&apos;ve hit the hard maximum for number of special protocols, we can&apos;t
+    // continue
+    if (specialProtocolCount == SIZE_MAX) {
+        pthread\_mutex\_unlock(&amp;specialProtocolsLock);
+        return NO;
+    }
+
+    // if the array has no more space, we will need to allocate additional
+    // entries
+    // specialProtocols 是一个链表，每个协议都会被组织成为一个 EXTSpecialProtocol，这个 specialProtocols 里存放了了这些 specialProtocols.
+    if (specialProtocolCount &gt;= specialProtocolCapacity) {
+        size_t newCapacity;
+        if (specialProtocolCapacity == 0)
+            // if there are no entries, make space for just one
+            newCapacity = 1;
+        else {
+            // otherwise, double the current capacity
+            newCapacity = specialProtocolCapacity &lt;&lt; 1;
+
+            // if the new capacity is less than the current capacity, that&apos;s
+            // unsigned integer overflow
+            if (newCapacity &lt; specialProtocolCapacity) {
+                // set it to the maximum possible instead
+                newCapacity = SIZE_MAX;
+
+                // if the new capacity is still not greater than the current
+                // (for instance, if it was already SIZE_MAX), we can&apos;t continue
+                if (newCapacity &lt;= specialProtocolCapacity) {
+                    pthread\_mutex\_unlock(&amp;specialProtocolsLock);
+                    return NO;
+                }
+            }
+        }
+
+        // we have a new capacity, so resize the list of all special protocols
+        // to add the new entries
+        void * restrict ptr = realloc(specialProtocols, sizeof(\*specialProtocols) \* newCapacity);
+        if (!ptr) {
+            // the allocation failed, abort
+            pthread\_mutex\_unlock(&amp;specialProtocolsLock);
+            return NO;
+        }
+
+        specialProtocols = ptr;
+        specialProtocolCapacity = newCapacity;
+    }
+
+    // at this point, there absolutely must be at least one empty entry in the
+    // array
+    assert(specialProtocolCount &lt; specialProtocolCapacity);
+
+    // disable warning about &quot;leaking&quot; this block, which is released in
+    // ext_injectSpecialProtocols()
+    #ifndef \_\_clang\_analyzer__
+    ext_specialProtocolInjectionBlock copiedBlock = \[injectionBehavior copy\];
+
+    // construct a new EXTSpecialProtocol structure and add it to the first
+    // empty space in the array
+    // 将协议保存为一个 EXTSpecialProtocol 结构体。
+    specialProtocols\[specialProtocolCount\] = (EXTSpecialProtocol){
+        .protocol = protocol,
+        .injectionBlock = (\_\_bridge\_retained void *)copiedBlock,
+        .ready = NO
+    };
+    #endif
+
+    ++specialProtocolCount;
+    pthread\_mutex\_unlock(&amp;specialProtocolsLock);
+}
+
+// success!
+return YES;
+</code></pre><p>}</p>
+<p>ext_loadSpecialProtocol 方法里传进去一个 block，这个 block 里调用了 ext_injectConcreteProtocol 这个方法。</p>
+<p>ext_injectConcreteProtocol 这个方法接受三个参数，第一个是协议，就是我们要注入的方法的协议；第二个是容器类，就是框架为我们添加的那个容器；第三个参数是目标注入类，就是我们要把这个容器里的方法注入到哪个类。</p>
+<p>static void ext_injectConcreteProtocol (Protocol <em>protocol, Class containerClass, Class class) {<br>    // get the full list of instance methods implemented by the concrete<br>    // protocol   获取容器类里所有的实例方法.<br>    unsigned imethodCount = 0;<br>    Method </em>imethodList = class_copyMethodList(containerClass, &amp;imethodCount);</p>
+<pre><code>// get the full list of class methods implemented by the concrete
+// protocol   获取容器类里所有的类方法方法.
+unsigned cmethodCount = 0;
+Method *cmethodList = class\_copyMethodList(object\_getClass(containerClass), &amp;cmethodCount);
+
+// get the metaclass of this class (the object on which class
+// methods are implemented)  拿到要注入方法的类的元类.
+Class metaclass = object_getClass(class);
+
+// inject all instance methods in the concrete protocol   注入实例方法.
+for (unsigned methodIndex = 0;methodIndex &lt; imethodCount;++methodIndex) {
+    Method method = imethodList\[methodIndex\];
+    SEL selector = method_getName(method);
+
+    // first, check to see if such an instance method already exists
+    // (on this class or on a superclass)
+    // 如果该类已经实现了这个方法，就跳过注入，不至于覆盖用户自定义的实现.
+    if (class_getInstanceMethod(class, selector)) {
+        // it does exist, so don&apos;t overwrite it
+        continue;
+    }
+
+    // add this instance method to the class in question
+    IMP imp = method_getImplementation(method);
+    const char *types = method_getTypeEncoding(method);
+    if (!class_addMethod(class, selector, imp, types)) {
+        fprintf(stderr, &quot;ERROR: Could not implement instance method -%s from concrete protocol %s on class %s\\n&quot;,
+            sel\_getName(selector), protocol\_getName(protocol), class_getName(class));
+    }
+}
+
+// inject all class methods in the concrete protocol   注入类方法.
+for (unsigned methodIndex = 0;methodIndex &lt; cmethodCount;++methodIndex) {
+    Method method = cmethodList\[methodIndex\];
+    SEL selector = method_getName(method);
+
+    // +initialize is a special case that should never be copied
+    // into a class, as it performs initialization for the concrete
+    // protocol
+    // +initialize 不能被注入.
+    if (selector == @selector(initialize)) {
+        // so just continue looking through the rest of the methods
+        continue;
+    }
+
+    // first, check to see if a class method already exists (on this
+    // class or on a superclass)
+    //
+    // since &apos;class&apos; is considered to be an instance of &apos;metaclass&apos;,
+    // this is actually checking for class methods (despite the
+    // function name)
+    // 如果该类已经实现了这个方法，就跳过注入，不至于覆盖用户自定义的实现.
+    if (class_getInstanceMethod(metaclass, selector)) {
+        // it does exist, so don&apos;t overwrite it
+        continue;
+    }
+
+    // add this class method to the metaclass in question
+    IMP imp = method_getImplementation(method);
+    const char *types = method_getTypeEncoding(method);
+    if (!class_addMethod(metaclass, selector, imp, types)) {
+        fprintf(stderr, &quot;ERROR: Could not implement class method +%s from concrete protocol %s on class %s\\n&quot;,
+            sel\_getName(selector), protocol\_getName(protocol), class_getName(class));
+    }
+}
+
+// free the instance method list  管理内存
+free(imethodList); imethodList = NULL;
+
+// free the class method list
+free(cmethodList); cmethodList = NULL;
+
+// use \[containerClass class\] and discard the result to call +initialize
+// on containerClass if it hasn&apos;t been called yet
+//
+// this is to allow the concrete protocol to perform custom initialization
+// 允许用户在容器类里复写 +initialize 方法，这里调用是保证用户复写的实现能够被执行.
+(void)\[containerClass class\];
+</code></pre><p>}</p>
+<p>我们再看一下在 +load 之后 main 之前调用 ext_loadConcreteProtocol 方法。</p>
+<p>void ext_specialProtocolReadyForInjection (Protocol *protocol) {<br>    @autoreleasepool {<br>        NSCParameterAssert(protocol != nil);</p>
+<pre><code>    // lock the mutex to prevent accesses from other threads while we perform
+    // this work   加锁
+    if (pthread\_mutex\_lock(&amp;specialProtocolsLock) != 0) {
+        fprintf(stderr, &quot;ERROR: Could not synchronize on special protocol data\\n&quot;);
+        return;
+    }
+
+    // loop through all the special protocols in our list, trying to find the
+    // one associated with &apos;protocol&apos;
+    // 检查要对应的 protocol 是否已经加载进上面的链表中了，如果找到了，就将对应的 EXTSpecialProtocol 结构体的 ready 置为 YES.
+    for (size_t i = 0;i &lt; specialProtocolCount;++i) {
+        if (specialProtocols\[i\].protocol == protocol) {
+            // found the matching special protocol, check to see if it&apos;s
+            // already ready
+            if (!specialProtocols\[i\].ready) {
+                // if it&apos;s not, mark it as being ready now
+                specialProtocols\[i\].ready = YES;
+
+                // since this special protocol was in our array, and it was not
+                // loaded, the total number of protocols loaded must be less
+                // than the total count at this point in time
+                assert(specialProtocolsReady &lt; specialProtocolCount);
+
+                // ... and then increment the total number of special protocols
+                // loaded – if it now matches the total count of special
+                // protocols, begin the injection process
+                if (++specialProtocolsReady == specialProtocolCount)
+                    // 如果所有的 EXTSpecialProtocol 结构体都准备好了，就开始执行注入.
+                    ext_injectSpecialProtocols();
+            }
+
+            break;
+        }
+    }
+
+    pthread\_mutex\_unlock(&amp;specialProtocolsLock);
+}
+</code></pre><p>}</p>
+<p>上面都是准备工作，接下来开始进入核心方法进行注入。</p>
+<p>/**<br> * This function actually performs the hard work of special protocol injection.<br> * It obtains a full list of all classes registered with the Objective-C<br> * runtime, finds those conforming to special protocols, and then runs the<br> * injection blocks as appropriate.<br> <em>/<br>static void ext_injectSpecialProtocols (void) {<br>    /\</em><br>     * don’t lock specialProtocolsLock in this function, as it is called only<br>     * from public functions which already perform the synchronization<br>     */</p>
+<pre><code>/\*
+ \* This will sort special protocols in the order they should be loaded. If
+ \* a special protocol conforms to another special protocol, the former
+ \* will be prioritized above the latter.
+ */
+// 对协议进行排序.
+// 比方说 A 协议继承自 B 协议，但是不一定是 B 协议对应的容器类的  load 方法先执行，A 的后执行. 所以如果 B 协议的类方法中复写了 A 协议中的方法，那么应该保证 B 协议复写的方法被注入，而不是 A 协议的容器方法的实现.
+// 为了保证这个循序，所以要对协议进行排序，上面说的 A 继承自 B，那么循序应该是 A 在 B 前面.
+qsort_b(specialProtocols, specialProtocolCount, sizeof(EXTSpecialProtocol), ^(const void \*a, const void \*b){
+    // if the pointers are equal, it must be the same protocol
+    if (a == b)
+        return 0;
+
+    const EXTSpecialProtocol *protoA = a;
+    const EXTSpecialProtocol *protoB = b;
+
+    // A higher return value here means a higher priority
+    int (^protocolInjectionPriority)(const EXTSpecialProtocol *) = ^(const EXTSpecialProtocol *specialProtocol){
+        int runningTotal = 0;
+
+        for (size_t i = 0;i &lt; specialProtocolCount;++i) {
+            // the pointer passed into this block is guaranteed to point
+            // into the &apos;specialProtocols&apos; array, so we can compare the
+            // pointers directly for identity
+            if (specialProtocol == specialProtocols + i)
+                continue;
+
+            if (protocol_conformsToProtocol(specialProtocol-&gt;protocol, specialProtocols\[i\].protocol))
+                runningTotal++;
+        }
+
+        return runningTotal;
+    };
+
+    /\*
+     \* This will return:
+     \* 0 if the protocols are equal in priority (such that load order does not matter)
+     \* &lt; 0 if A is more important than B
+     \* \&gt; 0 if B is more important than A
+     */
+    return protocolInjectionPriority(protoB) - protocolInjectionPriority(protoA);
+});
+
+// 获取项目中所有的类
+unsigned classCount = objc_getClassList(NULL, 0);
+if (!classCount) {
+    fprintf(stderr, &quot;ERROR: No classes registered with the runtime\\n&quot;);
+    return;
+}
+
+Class \*allClasses = (Class \*)malloc(sizeof(Class) * (classCount + 1));
+if (!allClasses) {
+    fprintf(stderr, &quot;ERROR: Could not allocate space for %u classes\\n&quot;, classCount);
+    return;
+}
+
+// use this instead of ext_copyClassList() to avoid sending +initialize to
+// classes that we don&apos;t plan to inject into (this avoids some SenTestingKit
+// timing issues)
+classCount = objc_getClassList(allClasses, classCount);
+
+/\*
+ \* set up an autorelease pool in case any Cocoa classes get used during
+ \* the injection process or +initialize
+ */
+@autoreleasepool {
+    // loop through the special protocols, and apply each one to all the
+    // classes in turn
+    //
+    // ORDER IS IMPORTANT HERE: protocols have to be injected to all classes in
+    // the order in which they appear in specialProtocols. Consider classes
+    // X and Y that implement protocols A and B, respectively. B needs to get
+    // its implementation into Y before A gets into X.
+    // 遍历所有的要注入的协议结构体.
+    for (size_t i = 0;i &lt; specialProtocolCount;++i) {
+        Protocol *protocol = specialProtocols\[i\].protocol;
+
+        // transfer ownership of the injection block to ARC and remove it
+        // from the structure
+        // 使用 \_\_bridge\_transfer 把对象的内存管理交给 ARC.
+        ext\_specialProtocolInjectionBlock injectionBlock = (\_\_bridge_transfer id)specialProtocols\[i\].injectionBlock;
+        specialProtocols\[i\].injectionBlock = NULL;
+
+        // loop through all classes   遍历所有的类
+        for (unsigned classIndex = 0;classIndex &lt; classCount;++classIndex) {
+            Class class = allClasses\[classIndex\];
+
+            // if this class doesn&apos;t conform to the protocol, continue to the
+            // next class immediately
+            // 如果这个类遵守了要注入的协议，那么就执行注入
+            // 注意： 这里是 continue 不是 break，因为一个类可以注入多个协议的方法.
+            if (!class_conformsToProtocol(class, protocol))
+                continue;
+
+            injectionBlock(class);
+        }
+    }
+}
+
+// 管理内存.
+// free the allocated class list
+free(allClasses);
+
+// now that everything&apos;s injected, the special protocol list can also be
+// destroyed
+free(specialProtocols); specialProtocols = NULL;
+specialProtocolCount = 0;
+specialProtocolCapacity = 0;
+specialProtocolsReady = 0;
+</code></pre><p>}</p>
+<p>这一路看下来，原理看的明明白白，是不是也没什么特别的，都是 runtime 的知识。主要看思路。 </p>
+<p>4.3、问题在哪？</p>
+<p>接下来讨论 EXTConcreteProtocol 的缺点。</p>
+<p>如果项目不大，只有几百个类，这些都没有问题的，但是当项目有接近 30000 个类或者更多时。我们使用注入的地方有几十上百处，两套 for 循环算下来是一个百万级别的。而且 objc_getClassList 这个方法是非常耗时的而且没有缓存。</p>
+<p>这个方法在 iPhone 6Plus 上要耗时一秒，在更老的 iPhone 6 上耗时要 3 秒，iPhone 5 可以想象要更久。而且随着项目迭代，项目中的类会越来越多， 这个耗时也会越来越长。</p>
+<p>这个耗时是 pre-main 耗时，就是用户看那个白屏启动图的时候在做这个操作，严重影响用户体验。我们的产品就因为这个点导致闪屏广告展示出现问题，直接影响业务。</p>
+<p>5、解决方案</p>
+<p>从上面的分析可以知道，导致耗时的原因就是原框架获取所有的类进行遍历。其实这是一个自动化的牛逼思路，这也是这个框架高于前面两个框架的核心原因。但是因为项目规模的原因导致这个点成为了实践中的短板，这也是作者始料未及的。</p>
+<p>那我们怎么优化这个点呢？因为要注入方法的类没有做其他的标记，只能扫描所有的类，找到那些遵守了这个协议的再进行注入，这是要注入的类和注入行为的唯一联系点。从设计的角度来说，如果要主动实现注入，确实是这样的，没有更好方案来实现相同的功能。</p>
+<p>但是有一个下策，能显著提高这部分性能，就是退回到上面两个框架所做的那样，让用户自己去标识哪些类需要注入。这样我把这些需要注入的类放到一个集合里，遍历注入，这样做性能是最好的。如果我从头设计一个方案，这也是不错的选择。</p>
+<p>如果换个思路，我不主动注入，我懒加载，等你调用注入的方法我再执行注入操作呢？如果能实现这个，那问题就解决了。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-3f80ece7045a2e25.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<p>①、开始仍然在 +load 方法中做准备工作，和原有的实现一样，把所有的协议都存到链表中。</p>
+<p>②、在 __attribute__((constructor)) 中仍然做是否能执行注入的检查。</p>
+<p>③、现在我们 hook NSObject 的 +resolveInstanceMethod: 和  +resolveClassMethod:。</p>
+<p>④、在 hook 中进行检查，如果该类有遵守了我们实现了注入的协议，那么就给该类注入容器中的方法。</p>
+<p><a href="https://github.com/newyjp/BLMethodInjecting" target="_blank" rel="noopener">https://github.com/newyjp/BLMethodInjecting</a></p>
+<h5 id="十、结语"><a href="#十、结语" class="headerlink" title="十、结语"></a>十、结语</h5><p>依赖注入在 Objective-C、Swift 中是很自然的存在。合理的使用它能让代码可读性更强，可测试性更好，可维护性更高。</p>
+<p>文章：<a href="https://blog.csdn.net/linshaolie/article/details/47037941" target="_blank" rel="noopener">依赖注入——让iOS代码更简洁</a>、<a href="https://blog.csdn.net/Px01Ih8/article/details/84207382" target="_blank" rel="noopener">[iOS]一次高效的依赖注入</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/02/26/e4-be-9d-e8-b5-96-e6-b3-a8-e5-85-a5/">http://yoursite.com/2019/02/26/e4-be-9d-e8-b5-96-e6-b3-a8-e5-85-a5/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/02/27/e7-bb-84-e4-bb-b6-e5-8c-96-xib-e5-9b-be-e7-89-87-e8-ae-be-e7-bd-ae-e6-96-b9-e6-a1-88/" class="pre"> 组件化 xib 图片设置方案		</a><a href="/2019/02/26/e5-8d-95-e4-be-8b/" class="next"> 单例		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、为什么使用依赖注入"><span class="toc-text">一、为什么使用依赖注入</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、使用依赖注入"><span class="toc-text">二、使用依赖注入</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、避免多余的配置"><span class="toc-text">三、避免多余的配置</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、系统单例"><span class="toc-text">四、系统单例</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、不可修改的构造函数"><span class="toc-text">五、不可修改的构造函数</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、类注册"><span class="toc-text">六、类注册</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#七、Storyboards"><span class="toc-text">七、Storyboards</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#八、公有和私有"><span class="toc-text">八、公有和私有</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#九、一次高效的依赖注入"><span class="toc-text">九、一次高效的依赖注入</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十、结语"><span class="toc-text">十、结语</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> NSDateFormatter 性能		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> NSDateFormatter 性能		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> NSDateFormatter 性能		</h1><div class="post-meta"><a href="/2019/03/01/nsdateformatter-e6-80-a7-e8-83-bd/#comments" class="comment-count"></a><p><span class="date">Mar 01, 2019</span><span><a href="/categories/性能优化/" class="category">性能优化</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>文章：<a href="https://www.jianshu.com/p/b000518c3eb8" target="_blank" rel="noopener">NSDateFormatter 性能测试</a></p>
+<p>NSDateFormatter <em> dateFormatter = [[NSDateFormatter alloc] init];<br>[dateFormatter setDateFormat:@”yyyy-MM-dd”];<br>NSString </em> current = [dateFormatter stringFromDate:[NSDate date]];</p>
+<p>关于 NSDateFormatter 创建耗时的资料很多，下面开始测试一下，究竟有多耗时。</p>
+<p>double begin = 0.0;<br>double end   = 0.0;<br>NSDateFormatter * formatter = nil;</p>
+<p>{<br>    begin = CACurrentMediaTime();</p>
+<pre><code>for (int i = 0; i &lt; 1000; i++) {
+    formatter  = \[\[NSDateFormatter alloc\] init\];
+    \[formatter setDateFormat:@&quot;yyyy-MM-dd&quot;\];
+    \[formatter stringFromDate:\[NSDate date\]\];
+}
+
+end = CACurrentMediaTime();
+NSLog(@&quot;NSDateFormatter:       %8.2f ms&quot;, (end - begin) * 1000);
+</code></pre><p>}</p>
+<p>{<br>    begin = CACurrentMediaTime();</p>
+<pre><code>formatter  = \[\[NSDateFormatter alloc\] init\];
+
+for (int i = 0; i &lt; 1000; i++) {
+    \[formatter setDateFormat:@&quot;yyyy-MM-dd&quot;\];
+    \[formatter stringFromDate:\[NSDate date\]\];
+}
+
+end = CACurrentMediaTime();
+NSLog(@&quot;NSDateFormatter once: %8.2f ms&quot;, (end - begin) * 1000);
+</code></pre><p>}</p>
+<p>———–Xcode 10.1 iPhone 6s(10.0)———-</p>
+<p>2019-03-01 10:08:42.184 Demo[95118:1359994] NSDateFormatter:          48.73 ms<br>2019-03-01 10:08:42.188 Demo[95118:1359994] NSDateFormatter once:     3.57 ms</p>
+<p>2019-03-01 10:11:18.871 Demo[95164:1361958] NSDateFormatter:          61.18 ms<br>2019-03-01 10:11:18.875 Demo[95164:1361958] NSDateFormatter once:     3.85 ms</p>
+<p>2019-03-01 10:12:03.123 Demo[95178:1362677] NSDateFormatter:          79.80 ms<br>2019-03-01 10:12:03.129 Demo[95178:1362677] NSDateFormatter once:     6.08 ms</p>
+<p>上面可以看出两者之间消耗时间差距很大。创建单例很有必要。</p>
+<p>那是 [[NSDateFormatter alloc] init] 初始化消耗太高吗？</p>
+<p>NSDateFormatter * formatter = nil;<br>double begin = 0.0;<br>double end   = 0.0;<br>double a = 0, b = 0, c = 0;</p>
+<p>for (int i = 0; i &lt; 1000; i++) {<br>    begin = CACurrentMediaTime();<br>    formatter  = [[NSDateFormatter alloc] init];<br>    end = CACurrentMediaTime();<br>    a += (end - begin);</p>
+<pre><code>begin = CACurrentMediaTime();
+\[formatter setDateFormat:@&quot;yyyy-MM-dd&quot;\];
+end = CACurrentMediaTime();
+b += (end - begin);
+
+begin = CACurrentMediaTime();
+\[formatter stringFromDate:\[NSDate date\]\];
+end = CACurrentMediaTime();
+c += (end - begin);
+</code></pre><p>}</p>
+<p>NSLog(@”NSDateFormatter:alloc          %8.2f ms”, a <em> 1000);<br>NSLog(@”NSDateFormatter:setFormat      %8.2f ms”, b </em> 1000);<br>NSLog(@”NSDateFormatter:stringFromDate %8.2f ms”, c * 1000);</p>
+<p>————-Xcode 10.1 iPhone 6s(10.0)————-</p>
+<p>2019-03-01 10:11:18.939 Demo[95164:1361958] NSDateFormatter:alloc              7.01 ms<br>2019-03-01 10:11:18.939 Demo[95164:1361958] NSDateFormatter:setFormat          0.28 ms<br>2019-03-01 10:11:18.939 Demo[95164:1361958] NSDateFormatter:stringFromDate    55.98 ms</p>
+<p>2019-03-01 10:12:03.198 Demo[95178:1362677] NSDateFormatter:alloc              7.69 ms<br>2019-03-01 10:12:03.199 Demo[95178:1362677] NSDateFormatter:setFormat          0.25 ms<br>2019-03-01 10:12:03.199 Demo[95178:1362677] NSDateFormatter:stringFromDate    60.97 ms</p>
+<p>2019-03-01 10:18:43.946 Demo[95261:1366071] NSDateFormatter:alloc              6.01 ms<br>2019-03-01 10:18:43.946 Demo[95261:1366071] NSDateFormatter:setFormat          0.20 ms<br>2019-03-01 10:18:43.946 Demo[95261:1366071] NSDateFormatter:stringFromDate    49.06 ms</p>
+<p>从上面可以看出，实际最耗时的方法是 stringFromDate:/dateFromString:。再往下细究。</p>
+<p>double begin = 0.0;<br>double end   = 0.0;<br>NSDateFormatter * formatter = [[NSDateFormatter alloc] init];</p>
+<p>for (int i = 0; i &lt; 1000; i++) {</p>
+<pre><code>\[formatter setDateFormat:@&quot;yyyy-MM-dd&quot;\];
+
+begin = CACurrentMediaTime();
+\[formatter stringFromDate:\[NSDate date\]\];
+end = CACurrentMediaTime();
+
+NSLog(@&quot;%8.2f ms&quot;, (end - begin) * 1000);
+</code></pre><p>}</p>
+<p>————-Xcode 10.0 iPhone 6s(10.0)————-</p>
+<p>2019-03-01 10:27:06.218 Demo[95456:1372764]     1.43 ms<br>2019-03-01 10:27:06.218 Demo[95456:1372764]     0.03 ms<br>2019-03-01 10:27:06.219 Demo[95456:1372764]     0.02 ms<br>2019-03-01 10:27:06.219 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.219 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.219 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.219 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.219 Demo[95456:1372764]     0.02 ms<br>2019-03-01 10:27:06.220 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.220 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.220 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.220 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.220 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.221 Demo[95456:1372764]     0.01 ms<br>2019-03-01 10:27:06.221 Demo[95456:1372764]     0.01 ms</p>
+<p>从上面可以看出，只有首次调用 stringFromDate:/dateFromString: 方法才会很耗时。再往下细究。</p>
+<p>还有人说应该针对 format 格式创建对应的单例对象。</p>
+<p>double begin = 0.0;<br>double end   = 0.0;</p>
+<p>// 不同的对象不同的 format 格式<br>{<br>    begin = CACurrentMediaTime();</p>
+<pre><code>NSDateFormatter * formatter1  = \[\[NSDateFormatter alloc\] init\];
+NSDateFormatter * formatter2  = \[\[NSDateFormatter alloc\] init\];
+NSDateFormatter * formatter3  = \[\[NSDateFormatter alloc\] init\];
+NSDateFormatter * formatter4  = \[\[NSDateFormatter alloc\] init\];
+
+for (int i = 0; i &lt; 1000; i++) {
+    \[formatter1 setDateFormat:@&quot;yyyy-MM-dd&quot;\];
+    \[formatter1 stringFromDate:\[NSDate date\]\];
+
+    \[formatter2 setDateFormat:@&quot;MM-dd-yyyy&quot;\];
+    \[formatter2 stringFromDate:\[NSDate date\]\];
+
+    \[formatter3 setDateFormat:@&quot;MM-dd&quot;\];
+    \[formatter3 stringFromDate:\[NSDate date\]\];
+
+    \[formatter4 setDateFormat:@&quot;MM-yyyy&quot;\];
+    \[formatter4 stringFromDate:\[NSDate date\]\];
+}
+end = CACurrentMediaTime();
+
+printf(&quot;NSDateFormatter: different format  %8.2f ms\\n&quot;, (end - begin) * 1000);
+</code></pre><p>}</p>
+<p>// 同一个对象不同的 format 格式<br>{<br>    begin = CACurrentMediaTime();<br>    NSDateFormatter * formatter  = [[NSDateFormatter alloc] init];</p>
+<pre><code>for (int i = 0; i &lt; 1000; i++) {
+    \[formatter setDateFormat:@&quot;yyyy-MM-dd&quot;\];
+    \[formatter stringFromDate:\[NSDate date\]\];
+
+    \[formatter setDateFormat:@&quot;MM-dd-yyyy&quot;\];
+    \[formatter stringFromDate:\[NSDate date\]\];
+
+    \[formatter setDateFormat:@&quot;MM-dd&quot;\];
+    \[formatter stringFromDate:\[NSDate date\]\];
+    \[formatter setDateFormat:@&quot;MM-yyyy&quot;\];
+    \[formatter stringFromDate:\[NSDate date\]\];
+}
+end = CACurrentMediaTime();
+
+printf(&quot;NSDateFormatter:                   %8.2f ms\\n&quot;, (end - begin) * 1000);
+</code></pre><p>}</p>
+<p>—————Xcode 10.1 iPhone 6s(10.0)—————</p>
+<p>NSDateFormatter: different format     23.26 ms<br>NSDateFormatter:                      16.25 ms</p>
+<p>如果不计 NSDateFormatter 对象的初始化时间，那么打印输出：</p>
+<p>NSDateFormatter:different format     23.81 ms<br>NSDateFormatter:                     23.02 ms</p>
+<p>两者相差不大，创建一个单例即可。dateFormatter 初次使用时消耗较大，设置 format 格式却并没有什么影响。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/01/nsdateformatter-e6-80-a7-e8-83-bd/">http://yoursite.com/2019/03/01/nsdateformatter-e6-80-a7-e8-83-bd/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/01/ios-e5-86-85-e7-bd-ae-e5-9b-be-e7-89-87-e7-98-a6-e8-ba-ab/" class="pre"> iOS 内置图片瘦身		</a><a href="/2019/03/01/uiimage-e5-8a-a0-e8-bd-bd-e5-9b-be-e7-89-87-e7-9a-84-e6-96-b9-e5-bc-8f/" class="next"> UIImage 加载图片的方式		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

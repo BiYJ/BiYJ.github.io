@@ -1,0 +1,484 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> LLDB		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> LLDB		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> LLDB		</h1><div class="post-meta"><a href="/2019/04/03/lldb-2/#comments" class="comment-count"></a><p><span class="date">Apr 03, 2019</span><span><a href="/categories/Xcode/" class="category">Xcode</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>官网：<a href="https://link.jianshu.com?t=http://lldb.llvm.org/lldb-gdb.html" target="_blank" rel="noopener">The LLDB Debugger</a>、<a href="https://www.jianshu.com/u/93254f32c54f" target="_blank" rel="noopener">JoySeeDog</a>/<a href="https://www.jianshu.com/p/8e9fc9a8ab78?from=jiantop.com" target="_blank" rel="noopener">iOS开发断点调试高级技巧</a>、<a href="https://www.jianshu.com/p/17600324656a" target="_blank" rel="noopener">Xcode 常用 LLDB 指令</a></p>
+<h5 id="一、breakpoint"><a href="#一、breakpoint" class="headerlink" title="一、breakpoint"></a>一、breakpoint</h5><p>1、给某个文件的某一行设置断点</p>
+<p>(lldb) breakpoint set –file ViewController.m –line 123<br>Breakpoint 14: where = Demo`-[ViewController viewDidLoad] + 87 at ViewController.m:139, address = 0x00000001029b1de7</p>
+<p>给 ViewController.m 文件的 123 行设置断点，出现提示则说明设置断点成功。</p>
+<p>也可以使用简写的形式：</p>
+<p>(lldb) breakpoint set -f ViewController.m -l 145<br>Breakpoint 15: where = Demo`-[ViewController viewDidLoad] + 125 at ViewController.m:146, address = 0x00000001029b1e0d</p>
+<p>2、给某个函数设置断点</p>
+<p>(lldb) breakpoint set –name MyDesignRetain<br>Breakpoint 16: where = Demo`MyDesignRetain + 16 at ViewController.m:94, address = 0x00000001029b2080</p>
+<p>简写形式：</p>
+<p>(lldb) breakpoint set -n MyDesignRelease<br>Breakpoint 18: where = Demo`MyDesignRelease + 16 at ViewController.m:99, address = 0x00000001029b20a0</p>
+<p>也可以在一次命令中为多个函数设置断点：</p>
+<p>(lldb) breakpoint set –name MyDesignRetain –name MyDesignRelease<br>Breakpoint 19: 2 locations.</p>
+<p>如果是 C 的方法，可以使用如下两种的方法打断点，第二种 M 需要大写。</p>
+<p>/**<br> *  自定义的 c 方法没有设置成功<br> */<br>void cfunc(int i) {<br>    printf(“%d”, i);<br>}</p>
+<p>(lldb) breakpoint set –method cfunc<br>Breakpoint 10: no locations (pending).<br>WARNING:  Unable to resolve breakpoint to any actual locations.<br>(lldb) breakpoint set -M cfunc<br>Breakpoint 11: no locations (pending).<br>WARNING:  Unable to resolve breakpoint to any actual locations.<br>(lldb) breakpoint set -M main<br>Breakpoint 12: where = JavaScriptCore<code>WTF::RunLoop::main(), address = 0x000000011e18b060
+(lldb) breakpoint set --method main Breakpoint 17: where = JavaScriptCore</code>WTF::RunLoop::main(), address = 0x000000011e18b060</p>
+<p>如果是 OC 的方法，可以使用以下两种方式打断点，第二种 S 需要大写。</p>
+<p>- (UIImage <em>)drawImage:(UIImage </em>)image<br>{<br>    return nil;<br>}</p>
+<p>(lldb) breakpoint set –selector drawImage<br>Breakpoint 20: no locations (pending).<br>WARNING: Unable to resolve breakpoint to any actual locations.<br>(lldb) breakpoint set –selector drawImage:<br>Breakpoint 21: where = Demo<code>-\[ViewController drawImage:\] + 23 at ViewController.m:65, address = 0x000000010d6cba97
+(lldb) breakpoint set -S drawImage:
+Breakpoint 22: where = Demo</code>-[ViewController drawImage:] + 23 at ViewController.m:65, address = 0x000000010d6cba97</p>
+<p>(lldb) breakpoint set –selector viewDidLoad<br>Breakpoint 23: 104 locations.<br>(lldb) breakpoint set -S viewDidLoad<br>Breakpoint 24: 104 locations.</p>
+<p>如果是 C 语言，还是只能使用上面介绍的 –name 的方式，不能直接指定对应的方法。</p>
+<p>(lldb) breakpoint set –name cfunc<br>Breakpoint 27: where = Demo`cfunc + 18 at ViewController.m:118, address = 0x000000010d6cbd72</p>
+<p>还可以使用正则匹配要打断点的函数，这个不限语言。</p>
+<p>(lldb) breakpoint set -r cfunc<br>Breakpoint 28: where = Demo`cfunc + 18 at ViewController.m:118, address = 0x000000010d6cbd72<br>(lldb) breakpoint set -r drawImage<br>Breakpoint 29: 43 locations.</p>
+<p>3、指定加载的动态库</p>
+<p>(lldb) breakpoint set –shlib libobjc.A.dylib –name alloc<br>Breakpoint 12: where = libobjc.A.dylib<code>+\[NSObject alloc\], address = 0x000000010de6c179
+(lldb) breakpoint set -s libobjc.A.dylib --name alloc
+Breakpoint 13: where = libobjc.A.dylib</code>+[NSObject alloc], address = 0x000000010de6c179</p>
+<p>简写形式：</p>
+<p>(lldb) breakpoint set -n “[RACStream zipWith:]“<br>Breakpoint 33: where = Demo<code>-\[RACStream zipWith:\] + 47 at RACStream.m:46, address = 0x000000010d73088f
+(lldb) br s -n &quot;\[RACStream zipWith:\]&quot; 
+Breakpoint 34: where = Demo</code>-[RACStream zipWith:] + 47 at RACStream.m:46, address = 0x000000010d73088f</p>
+<p>4、查看有多少断点可以使用</p>
+<p>(lldb) breakpoint list<br>Current breakpoints:<br>1: file = ‘/Users/cykj/Desktop/Demo/Demo/ImageSource/HookTool.m’, line = 172, exact_match = 0, locations = 0 (pending)</p>
+<p>2: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageDownloaderOperation.m’, line = 205, exact_match = 0, locations = 4, resolved = 4, hit count = 0</p>
+<p>  2.1: where = Demo<code>-\[SDWebImageDownloaderOperation start\] + 218 at SDWebImageDownloaderOperation.m:205, address = 0x000000010d75771a, resolved, hit count = 0 
+  2.2: where = Demo</code>-[SDWebImageDownloaderOperation start] + 761 at SDWebImageDownloaderOperation.m:205, address = 0x000000010d757939, resolved, hit count = 0<br>  2.3: where = Demo<code>-\[SDWebImageDownloaderOperation start\] + 1797 at SDWebImageDownloaderOperation.m:205, address = 0x000000010d757d45, resolved, hit count = 0 
+  2.4: where = Demo</code>-[SDWebImageDownloaderOperation start] + 3999 at SDWebImageDownloaderOperation.m:205, address = 0x000000010d7585df, resolved, hit count = 0 </p>
+<p>3: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageDownloaderOperation.m’, line = 400, exact_match = 0, locations = 1, resolved = 1, hit count = 0</p>
+<p>  3.1: where = Demo`-[SDWebImageDownloaderOperation URLSession:task:didCompleteWithError:] + 660 at SDWebImageDownloaderOperation.m:400, address = 0x000000010d75ad04, resolved, hit count = 0 </p>
+<p>4: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageDownloaderOperation.m’, line = 444, exact_match = 0, locations = 2, resolved = 2, hit count = 0</p>
+<p>  4.1: where = Demo<code>-\[SDWebImageDownloaderOperation URLSession:task:didCompleteWithError:\] + 1345 at SDWebImageDownloaderOperation.m:445, address = 0x000000010d75afb1, resolved, hit count = 0 
+  4.2: where = Demo</code>-[SDWebImageDownloaderOperation URLSession:task:didCompleteWithError:] + 1986 at SDWebImageDownloaderOperation.m:445, address = 0x000000010d75b232, resolved, hit count = 0 </p>
+<p>5: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageManager.m’, line = 176, exact_match = 0, locations = 1, resolved = 1, hit count = 0</p>
+<p>  5.1: where = Demo`__65-[SDWebImageManager loadImageWithURL:options:progress:completed:]_block_invoke + 615 at SDWebImageManager.m:176, address = 0x000000010d761d67, resolved, hit count = 0 </p>
+<p>6: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageManager.m’, line = 342, exact_match = 0, locations = 1, resolved = 1, hit count = 0</p>
+<p>  6.1: where = Demo`-[SDWebImageManager callCompletionBlockForOperation:completion:image:data:error:cacheType:finished:url:] + 283 at SDWebImageManager.m:344, address = 0x000000010d76447b, resolved, hit count = 0 </p>
+<p>7: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageManager.m’, line = 201, exact_match = 0, locations = 1, resolved = 1, hit count = 0</p>
+<p>  7.1: where = Demo`__65-[SDWebImageManager loadImageWithURL:options:progress:completed:]_block_invoke_2 + 168 at SDWebImageManager.m:201, address = 0x000000010d762548, resolved, hit count = 0 </p>
+<p>8: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageManager.m’, line = 243, exact_match = 0, locations = 1, resolved = 1, hit count = 0</p>
+<p>  8.1: where = Demo`__65-[SDWebImageManager loadImageWithURL:options:progress:completed:]_block_invoke_2 + 1855 at SDWebImageManager.m:244, address = 0x000000010d762bdf, resolved, hit count = 0 </p>
+<p>9: file = ‘/Users/cykj/Desktop/Demo/Demo/ViewController.m’, line = 123, exact_match = 0, locations = 1, resolved = 1, hit count = 1</p>
+<p>  9.1: where = Demo`-[ViewController viewDidLoad] + 23 at ViewController.m:123, address = 0x000000010d6cbda7, resolved, hit count = 1 </p>
+<p>10: name = ‘cfunc’, locations = 0 (pending)</p>
+<p>11: name = ‘cfunc’, locations = 0 (pending)</p>
+<p>12: name = ‘main’, locations = 1, resolved = 1, hit count = 0<br>  12.1: where = JavaScriptCore`WTF::RunLoop::main(), address = 0x000000011e18b060, resolved, hit count = 0<br>…</p>
+<p>我们可以对断点进行相关的操作，比如在执行到 2.1 断点的时候打印追踪轨迹。</p>
+<p>(lldb) breakpoint command add 2.1<br>Enter your debugger command(s).  Type ‘DONE’ to end.<br>> bt<br>> DONE</p>
+<p>除了 add，还要 delete 等命令，使用 help 命令查找这些命令。</p>
+<p>(lldb) help break command<br>     Commands for adding, removing and listing LLDB commands executed when a<br>     breakpoint is hit.</p>
+<p>Syntax: command <sub-command> [<sub-command-options>] <breakpoint-id></breakpoint-id></sub-command-options></sub-command></p>
+<p>The following subcommands are supported:</p>
+<pre><code>add    -- Add LLDB commands to a breakpoint, to be executed whenever the
+          breakpoint is hit.  If no breakpoint is specified, adds the
+          commands to the last created breakpoint.
+delete -- Delete the set of commands from a breakpoint.
+list   -- List the script or set of commands to be executed when the
+          breakpoint is hit.
+</code></pre><p>For more help on any particular subcommand, type ‘help <command> <subcommand>‘.</subcommand></p>
+<p>要查看更详细的命令用途，使用 help <command> <subcommand>。比如查看 add 命令用法</subcommand></p>
+<p>help break command add<br>     Add LLDB commands to a breakpoint, to be executed whenever the breakpoint<br>     is hit.  If no breakpoint is specified, adds the commands to the last<br>     created breakpoint.</p>
+<p>Syntax: breakpoint command add <cmd-options> [<breakpt-id>]</breakpt-id></cmd-options></p>
+<p>Command Options Usage:<br>  breakpoint command add [-D] [-o <one-line-command>] [-e <boolean>] [-s <none>] [<breakpt-id>]<br>  breakpoint command add [-D] [-e <boolean>] [-s <none>] [-F <python-function>] [<breakpt-id>]</breakpt-id></python-function></none></boolean></breakpt-id></none></boolean></one-line-command></p>
+<pre><code>-D ( --dummy-breakpoints )
+     Sets Dummy breakpoints - i.e. breakpoints set before a file is
+     provided, which prime new targets.
+
+-F &lt;python-function&gt; ( --python-function &lt;python-function&gt; )
+     Give the name of a Python function to run as command for this
+     breakpoint. Be sure to give a module name if appropriate.
+
+-e &lt;boolean&gt; ( --stop-on-error &lt;boolean&gt; )
+     Specify whether breakpoint command execution should terminate on
+     error.
+
+-o &lt;one-line-command&gt; ( --one-liner &lt;one-line-command&gt; )
+     Specify a one-line breakpoint command inline. Be sure to surround
+     it with quotes.
+
+-s &lt;none&gt; ( --script-type &lt;none&gt; )
+     Specify the language for the commands - if none is specified, the
+     lldb command interpreter will be used.
+     Values: command | python | default-script
+</code></pre><p>General information about entering breakpoint commands<br>------------------------------------------------------</p>
+<p>This command will prompt for commands to be executed when the specified<br>breakpoint is hit.  Each command is typed on its own line following the ‘&gt; ‘<br>prompt until ‘DONE’ is entered.</p>
+<p>Syntactic errors may not be detected when initially entered, and many malformed<br>commands can silently fail when executed.  If your breakpoint commands do not<br>appear to be executing, double-check the command syntax.</p>
+<p>Note: You may enter any debugger command exactly as you would at the debugger<br>prompt.  There is no limit to the number of commands supplied, but do NOT enter<br>more than one command per line.</p>
+<p>Special information about PYTHON breakpoint commands<br>----------------------------------------------------</p>
+<p>You may enter either one or more lines of Python, including function<br>definitions or calls to functions that will have been imported by the time the<br>code executes.  Single line breakpoint commands will be interpreted ‘as is’<br>when the breakpoint is hit.  Multiple lines of Python will be wrapped in a<br>generated function, and a call to the function will be attached to the<br>breakpoint.</p>
+<p>This auto-generated function is passed in three arguments:</p>
+<pre><code>frame:  an lldb.SBFrame object for the frame which hit breakpoint.
+
+bp_loc: an lldb.SBBreakpointLocation object that represents the breakpoint
+location that was hit.
+
+dict:   the python session dictionary hit.
+</code></pre><p>When specifying a python function with the –python-function option, you need<br>to supply the function name prepended by the module name:</p>
+<pre><code>--python-function myutils.breakpoint_callback
+</code></pre><p>The function itself must have the following prototype:</p>
+<p>def breakpoint_callback(frame, bp_loc, dict):</p>
+<h1 id="Your-code-goes-here"><a href="#Your-code-goes-here" class="headerlink" title="Your code goes here"></a>Your code goes here</h1><p>The arguments are the same as the arguments passed to generated functions as<br>described above.  Note that the global variable ‘lldb.frame’ will NOT be<br>updated when this function is called, so be sure to use the ‘frame’ argument.<br>The ‘frame’ argument can get you to the thread via frame.GetThread(), the<br>thread can get you to the process via thread.GetProcess(), and the process can<br>get you back to the target via process.GetTarget().</p>
+<p>Important Note: As Python code gets collected into functions, access to global<br>variables requires explicit scoping using the ‘global’ keyword.  Be sure to use<br>correct Python syntax, including indentation, when entering Python breakpoint<br>commands.</p>
+<p>Example Python one-line breakpoint command:</p>
+<p>(lldb) breakpoint command add -s python 1<br>Enter your Python command(s). Type ‘DONE’ to end.<br>> print “Hit this breakpoint!”<br>> DONE</p>
+<p>As a convenience, this also works for a short Python one-liner:</p>
+<p>(lldb) breakpoint command add -s python 1 -o ‘import time; print time.asctime()’<br>(lldb) run<br>Launching ‘…/a.out’  (x86_64)<br>(lldb) Fri Sep 10 12:17:45 2010<br>Process 21778 Stopped<br>* thread #1: tid = 0x2e03, 0x0000000100000de8 a.out`c + 7 at main.c:39, stop<br>reason = breakpoint 1.1, queue = com.apple.main-thread<br>  36<br>  37       int c(int val)<br>  38       {<br>  39 -&gt;        return val + 3;<br>  40       }<br>  41<br>  42       int main (int argc, char const *argv[])</p>
+<p>Example multiple line Python breakpoint command:</p>
+<p>(lldb) breakpoint command add -s p 1<br>Enter your Python command(s). Type ‘DONE’ to end.<br>> global bp_count<br>> bp_count = bp_count + 1<br>> print “Hit this breakpoint “ + repr(bp_count) + “ times!”<br>> DONE</p>
+<p>Example multiple line Python breakpoint command, using function definition:</p>
+<p>(lldb) breakpoint command add -s python 1<br>Enter your Python command(s). Type ‘DONE’ to end.<br>> def breakpoint_output (bp_no):<br>>     out_string = “Hit breakpoint number “ + repr (bp_no)<br>>     print out_string<br>>     return True<br>> breakpoint_output (1)<br>> DONE</p>
+<p>In this case, since there is a reference to a global variable, ‘bp_count’, you<br>will also need to make sure ‘bp_count’ exists and is initialized:</p>
+<p>(lldb) script</p>
+<blockquote>
+<blockquote>
+<p>> bp_count = 0<br>> quit()</p>
+</blockquote>
+</blockquote>
+<p>Your Python code, however organized, can optionally return a value.  If the<br>returned value is False, that tells LLDB not to stop at the breakpoint to which<br>the code is associated. Returning anything other than False, or even returning<br>None, or even omitting a return statement entirely, will cause LLDB to stop.</p>
+<p>Final Note: A warning that no breakpoint command was generated when there are<br>no syntax errors may indicate that a function was declared but never called.</p>
+<pre><code>This command takes options and free-form arguments.  If your arguments
+resemble option specifiers (i.e., they start with a - or --), you must use
+&apos; \-\- &apos; between the end of the command options and the beginning of the
+arguments.
+</code></pre><p>这里面的命令大部分是 Python 脚本。</p>
+<p>5、删除断点</p>
+<p>breakpoint delete [-Df] [<breakpt-id | breakpt-id-list>]</breakpt-id></p>
+<p>用 breakpoint list 查进程中所有的断点。</p>
+<p>(lldb) breakpoint list<br>Current breakpoints:<br>1: file = ‘/Users/cykj/Desktop/Demo/Demo/ImageSource/HookTool.m’, line = 172, exact_match = 0, locations = 0 (pending)</p>
+<p>2: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageDownloaderOperation.m’, line = 205, exact_match = 0, locations = 4, resolved = 4, hit count = 0</p>
+<p>  2.1: where = SDWebImage<code>-\[SDWebImageDownloaderOperation start\] + 218 at SDWebImageDownloaderOperation.m:205, address = 0x000000010293d44a, resolved, hit count = 0 
+  2.2: where = SDWebImage</code>-[SDWebImageDownloaderOperation start] + 761 at SDWebImageDownloaderOperation.m:205, address = 0x000000010293d669, resolved, hit count = 0<br>  2.3: where = SDWebImage<code>-\[SDWebImageDownloaderOperation start\] + 1797 at SDWebImageDownloaderOperation.m:205, address = 0x000000010293da75, resolved, hit count = 0 
+  2.4: where = SDWebImage</code>-[SDWebImageDownloaderOperation start] + 3999 at SDWebImageDownloaderOperation.m:205, address = 0x000000010293e30f, resolved, hit count = 0 </p>
+<p>3: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageDownloaderOperation.m’, line = 400, exact_match = 0, locations = 1, resolved = 1, hit count = 0</p>
+<p>  3.1: where = SDWebImage`-[SDWebImageDownloaderOperation URLSession:task:didCompleteWithError:] + 660 at SDWebImageDownloaderOperation.m:400, address = 0x0000000102940a34, resolved, hit count = 0 </p>
+<p>4: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageDownloaderOperation.m’, line = 444, exact_match = 0, locations = 2, resolved = 2, hit count = 0</p>
+<p>  4.1: where = SDWebImage<code>-\[SDWebImageDownloaderOperation URLSession:task:didCompleteWithError:\] + 1345 at SDWebImageDownloaderOperation.m:445, address = 0x0000000102940ce1, resolved, hit count = 0 
+  4.2: where = SDWebImage</code>-[SDWebImageDownloaderOperation URLSession:task:didCompleteWithError:] + 1986 at SDWebImageDownloaderOperation.m:445, address = 0x0000000102940f62, resolved, hit count = 0 </p>
+<p>5: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageManager.m’, line = 176, exact_match = 0, locations = 1, resolved = 1, hit count = 0</p>
+<p>  5.1: where = SDWebImage`__65-[SDWebImageManager loadImageWithURL:options:progress:completed:]_block_invoke + 615 at SDWebImageManager.m:176, address = 0x0000000102947a97, resolved, hit count = 0 </p>
+<p>6: file = ‘/Users/cykj/Desktop/Demo/Pods/SDWebImage/SDWebImage/SDWebImageManager.m’, line = 342, exact_match = 0, locations = 1, resolved = 1, hit count = 0</p>
+<p>  6.1: where = SDWebImage`-[SDWebImageManager callCompletionBlockForOperation:completion:image:data:error:cacheType:finished:url:] + 283 at SDWebImageManager.m:344, address = 0x000000010294a1ab, resolved, hit count = 0 </p>
+<p>…</p>
+<p>11: name = ‘alloc’, locations = 113, resolved = 113, hit count = 0 11.1: where = Foundation<code>+\[NSHashTable alloc\], address = 0x00000001029ef758, resolved, hit count = 0 11.2: where = Foundation</code>+[NSMapTable alloc], address = 0x0000000102a2a8cc, resolved, hit count = 0 11.3: where = Foundation`+[NSProxy alloc], address = 0x0000000102a579d6, resolved, hit count = 0 </p>
+<p>…</p>
+<p>若要删除 11.1 断点（无法删除？）：</p>
+<p>(lldb) breakpoint delete 11.1<br>0 breakpoints deleted; 1 breakpoint locations disabled.</p>
+<p>删除 11 下面所有的断点，这样 11.1 和 11.2 都会删除。</p>
+<p>(lldb) breakpoint delete 11<br>1 breakpoints deleted; 0 breakpoint locations disabled.</p>
+<p>删除所有的断点：</p>
+<p>(lldb) breakpoint delete<br>About to delete all breakpoints, do you want to do that?: [Y/n] y<br>All breakpoints removed. (10 breakpoints)</p>
+<h5 id="二、watchpoint"><a href="#二、watchpoint" class="headerlink" title="二、watchpoint"></a>二、watchpoint</h5><p>1、观察变量值的具体变化。</p>
+<p>@interface ViewController ()<br>{<br>    NSInteger _num;  // 观察的对象<br>}</p>
+<p>(lldb) watchpoint set variable _num<br>Watchpoint created: Watchpoint 1: addr = 0x7fcdab864a28 size = 8 state = enabled type = w<br>    watchpoint spec = ‘_num’<br>    new value: 0</p>
+<p>也可以在这里添加：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-23bf990c60b3dc24.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="1"></p>
+<p>当执行到修改 _num 值的代码时，会输出：</p>
+<p>- (void)viewDidLoad<br>{<br>    [super viewDidLoad];</p>
+<pre><code>_num = 10;
+</code></pre><p>}</p>
+<p>Watchpoint 1 hit:<br>old value: 0<br>new value: 10</p>
+<p>我们可以设置在 _num 的值变化为某个特定值之后触发：</p>
+<p>- (void)viewDidLoad<br>{<br>    // xcode 左侧设置断点 p1<br>    [super viewDidLoad];</p>
+<pre><code>_num = 10;
+
+_num = 20;
+
+// xcode 左侧设置断点 p2
+
+_num = 200;
+
+_num = 100;
+</code></pre><p>}</p>
+<p>(lldb) watchpoint set variable _num<br>Watchpoint created: Watchpoint 1: addr = 0x7f87c103d428 size = 8 state = enabled type = w<br>    watchpoint spec = ‘_num’<br>    new value: 0</p>
+<p>Watchpoint 1 hit:<br>old value: 0<br>new value: 10</p>
+<p>Watchpoint 1 hit:<br>old value: 10<br>new value: 20<br>(lldb) watchpoint modify -c ‘(_num==100)’</p>
+<p>Watchpoint 1 hit:<br>old value: 20<br>new value: 100</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-01463fadb815083a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="2"></p>
+<p>断点 p1 时在 lldb 执行 watchpoint set variable _num，继续向下执行，此时没有条件限制，每次设置 _num 都会触发观察；到达断点 p2 时 lldb 执行 watchpoint modify -c ‘(_num==100)’，向下执行，此时有了条件 _num == 100 才会触发，所以跳过了 _num = 200 的控制输出。</p>
+<p>2、查看具体断点的参数</p>
+<p>(lldb) watchpoint list<br>Number of supported hardware watchpoints: 4<br>Current watchpoints:<br>Watchpoint 1: addr = 0x7f87c103d428 size = 8 state = enabled type = w<br>    watchpoint spec = ‘_num’<br>    old value: 20<br>    new value: 100<br>    condition = ‘(_num==100)’</p>
+<p>可以看到我们观察的变量的地址，声明变量的代码在第几行，以及具体的变量名是 _num，当前的值是 100，触发的条件是 ‘(_num==100)’。</p>
+<p>然后我们执行如下命令，就可以看到断点到 _num 的值变为 100 的地方。</p>
+<p>(lldb) c<br>Process 95917 resuming</p>
+<p>Watchpoint 1 hit:<br>old value: 0<br>new value: 100</p>
+<p>可以看到这个地方 _num 的值已经发生改变。我们可以再使用 watchpoint list 命令看看具体值的变化</p>
+<p>(lldb) watchpoint list<br>Number of supported hardware watchpoints: 4<br>Current watchpoints:<br>Watchpoint 1: addr = 0x7f9d4884b628 size = 8 state = enabled type = w<br>    watchpoint spec = ‘_num’<br>    old value: 0<br>    new value: 100<br>    condition = ‘(_num = 100)’</p>
+<p>注意这里用的 _num = 100，不是上面的 _num==100，两个条件不同。</p>
+<p>watchpoint list 命令包括了三个可选参数，我们可以使用 help 命令查看具体的值。</p>
+<p>(lldb) help watchpoint list<br>     List all watchpoints at configurable levels of detail.</p>
+<p>Syntax: watchpoint list <cmd-options> [<watchpt-id | watchpt-id-list>]</watchpt-id></cmd-options></p>
+<p>Command Options Usage:<br>  watchpoint list [-b] [<watchpt-id | watchpt-id-list>]<br>  watchpoint list [-f] [<watchpt-id | watchpt-id-list>]<br>  watchpoint list [-v] [<watchpt-id | watchpt-id-list>]</watchpt-id></watchpt-id></watchpt-id></p>
+<pre><code>  -b ( --brief )
+       Give a brief description of the watchpoint (no location info).
+
+  -f ( --full )
+       Give a full description of the watchpoint and its locations.
+
+  -v ( --verbose )
+       Explain everything we know about the watchpoint (for debugging
+       debugger bugs).
+
+This command takes options and free-form arguments.  If your arguments
+resemble option specifiers (i.e., they start with a - or --), you must use
+&apos; \-\- &apos; between the end of the command options and the beginning of the
+arguments.
+</code></pre><p>-b 是比较简略的信息，-f 是比较全面的信息，-v 是完整的信息。经过实验，watchpoint list 默认的是 -f。</p>
+<p>3、用 bt 命令来追踪程序运行的过程</p>
+<p>(lldb) bt<br>* thread #1, queue = ‘com.apple.main-thread’, stop reason = watchpoint 1<br>  * frame #0: 0x0000000106cc43fd Demo<code>-\[ViewController viewDidLoad\](self=0x00007f9d4884b200, _cmd=&quot;viewDidLoad&quot;) at ViewController.m:0
+    frame #1: 0x00000001153d24e1 UIKitCore</code>-[UIViewController loadViewIfRequired] + 1186<br>    frame #2: 0x0000000115332104 UIKitCore<code>-\[UINavigationController _updateScrollViewFromViewController:toViewController:\] + 68
+    frame #3: 0x00000001153323f8 UIKitCore</code>-[UINavigationController _startTransition:fromViewController:toViewController:] + 147<br>    frame #4: 0x000000011533348b UIKitCore<code>-\[UINavigationController _startDeferredTransitionIfNeeded:\] + 896
+    frame #5: 0x00000001153347e0 UIKitCore</code>-[UINavigationController <strong>viewWillLayoutSubviews] + 150<br>    frame #6: 0x0000000115314600 UIKitCore<code>-\[UILayoutContainerView layoutSubviews\] + 217
+    frame #7: 0x0000000115edb795 UIKitCore</code>-[UIView(CALayerDelegate) layoutSublayersOfLayer:] + 1441<br>    frame #8: 0x000000010ecc7b19 QuartzCore<code>-\[CALayer layoutSublayers\] + 175
+    frame #9: 0x000000010eccc9d3 QuartzCore</code>CA::Layer::layout_if_needed(CA::Transaction<em>) + 395<br>    frame #10: 0x000000010ec457ca QuartzCore`CA::Context::commit_transaction(CA::Transaction</em>) + 342<br>    frame #11: 0x000000010ec7c97e QuartzCore<code>CA::Transaction::commit() + 576
+    frame #12: 0x0000000115a0c2d0 UIKitCore</code>__34-[UIApplication _firstCommitBlock]_block_invoke_2 + 139<br>    frame #13: 0x000000010813f62c CoreFoundation<code>\_\_CFRUNLOOP\_IS\_CALLING\_OUT\_TO\_A\_BLOCK\_\_ + 12
+    frame #14: 0x000000010813ede0 CoreFoundation</code></strong>CFRunLoopDoBlocks + 336<br>    frame #15: 0x0000000108139654 CoreFoundation<code>__CFRunLoopRun + 1284
+    frame #16: 0x0000000108138e11 CoreFoundation</code>CFRunLoopRunSpecific + 625<br>    frame #17: 0x000000010eb4a1dd GraphicsServices<code>GSEventRunModal + 62
+    frame #18: 0x00000001159f181d UIKitCore</code>UIApplicationMain + 140<br>    frame #19: 0x0000000106cc4c70 Demo<code>main(argc=1, argv=0x00007ffee8f3c068) at main.m:17
+    frame #20: 0x000000010a7a3575 libdyld.dylib</code>start + 1<br>    frame #21: 0x000000010a7a3575 libdyld.dylib`start + 1</p>
+<p>4、使用 frame 命令查看变量 _num 的具体值</p>
+<p>(lldb) frame variable _num<br>(NSInteger) _num = 100</p>
+<h5 id="三、process"><a href="#三、process" class="headerlink" title="三、process"></a>三、process</h5><p>使用 process 命令也可以做很多有趣的操作。具体能做什么，我们也可使用 help 命令查看</p>
+<p>(lldb) help process<br>     Commands for interacting with processes on the current platform.</p>
+<p>Syntax: process <subcommand> [<subcommand-options>]</subcommand-options></subcommand></p>
+<p>The following subcommands are supported:</p>
+<pre><code>attach    -- Attach to a process.
+connect   -- Connect to a remote debug service.
+continue  -- Continue execution of all threads in the current process.
+detach    -- Detach from the current target process.
+handle    -- Manage LLDB handling of OS signals for the current target
+             process.  Defaults to showing current policy.
+interrupt -- Interrupt the current target process.
+kill      -- Terminate the current target process.
+launch    -- Launch the executable in the debugger.
+load      -- Load a shared library into the current process.
+plugin    -- Send a custom command to the current target process plug-in.
+save-core -- Save the current process as a core file using an appropriate
+             file type.
+signal    -- Send a UNIX signal to the current target process.
+status    -- Show status and stop location for the current target process.
+unload    -- Unload a shared library from the current process using the
+             index returned by a previous call to &quot;process load&quot;.
+</code></pre><p>For more help on any particular subcommand, type ‘help <command> <subcommand>‘.</subcommand></p>
+<p>查看更详细的命令使用 help <command> <subcommand>。比如</subcommand></p>
+<p>(lldb) help process attach<br>     Attach to a process.</p>
+<p>Syntax: process attach <cmd-options></cmd-options></p>
+<p>Command Options Usage:<br>  process attach [-c] [-P <plugin>] [-p <pid>]<br>  process attach [-ciw] [-P <plugin>] [-n <process-name>]</process-name></plugin></pid></plugin></p>
+<pre><code>-P &lt;plugin&gt; ( --plugin &lt;plugin&gt; )
+     Name of the process plugin you want to use.
+
+-c ( --continue )
+     Immediately continue the process once attached.
+
+-i ( --include-existing )
+     Include existing processes when doing attach -w.
+
+-n &lt;process-name&gt; ( --name &lt;process-name&gt; )
+     The name of the process to attach to.
+
+-p &lt;pid&gt; ( --pid &lt;pid&gt; )
+     The process ID of an existing process to attach to.
+
+-w ( --waitfor )
+     Wait for the process with &lt;process-name&gt; to launch.
+</code></pre><h5 id="四、thread"><a href="#四、thread" class="headerlink" title="四、thread"></a>四、thread</h5><p>其实这个功能主要就是断点调试里面的如下这个功能。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-41d381106680f501.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="3"></p>
+<p>我们可以使用 thread 命令来做一些断点的操作，具体有那些命令我们可以使用 thread help 进行查看。</p>
+<p>(lldb) thread help<br>     Commands for operating on one or more threads in the current process.</p>
+<p>Syntax: thread <subcommand> [<subcommand-options>]</subcommand-options></subcommand></p>
+<p>The following subcommands are supported:</p>
+<pre><code>backtrace      -- Show thread call stacks.  Defaults to the current
+                  thread, thread indexes can be specified as
+                  arguments.
+                  Use the thread-index &quot;all&quot; to see all threads.
+                  Use the thread-index &quot;unique&quot; to see threads grouped by
+                  unique call stacks.
+continue       -- Continue execution of the current target process.  One
+                  or more threads may be specified, by default all
+                  threads continue.
+info           -- Show an extended summary of one or more threads. 
+                  Defaults to the current thread.
+jump           -- Sets the program counter to a new address.
+list           -- Show a summary of each thread in the current target
+                  process.
+plan           -- Commands for managing thread plans that control
+                  execution.
+return         -- Prematurely return from a stack frame, short-circuiting
+                  execution of newer frames and optionally yielding a
+                  specified value.  Defaults to the exiting the current
+                  stack frame.  Expects &apos;raw&apos; input (see &apos;help
+                  raw-input&apos;.)
+select         -- Change the currently selected thread.
+step-in        -- Source level single step, stepping into calls. 
+                  Defaults to current thread unless specified.
+step-inst      -- Instruction level single step, stepping into calls. 
+                  Defaults to current thread unless specified.
+step-inst-over -- Instruction level single step, stepping over calls. 
+                  Defaults to current thread unless specified.
+step-out       -- Finish executing the current stack frame and stop after
+                  returning.  Defaults to current thread unless specified.
+step-over      -- Source level single step, stepping over calls. 
+                  Defaults to current thread unless specified.
+step-scripted  -- Step as instructed by the script class passed in the -C
+                  option.
+until          -- Continue until a line number or address is reached by
+                  the current or specified thread.  Stops when returning
+                  from the current function as a safety measure.  The
+                  target line number(s) are given as arguments, and if
+                  more than one is provided, stepping will stop when the
+                  first one is hit.
+</code></pre><p>For more help on any particular subcommand, type ‘help <command> <subcommand>‘.</subcommand></p>
+<p>用得比较多的应该是 step 前缀的几个命令，使用起来很容易。个人感觉比用鼠标点击断点好用多了。</p>
+<p><strong>EXAMINING THREAD STATE</strong></p>
+<p>这个使用的也主要还是 thread 命令，主要是使用以下几个命令。</p>
+<p>1、检查当前进程的状态</p>
+<p>(lldb) thread list<br>Process 97464 stopped<br>* thread #1: tid = 0x788f30, 0x000000010016a3c8 Demo<code>-\[ViewController viewDidLoad\](self=0x00007fde09024c00, _cmd=&quot;viewDidLoad&quot;) at ViewController.m:125, queue = &#39;com.apple.main-thread&#39;, stop reason = breakpoint 1.1
+  thread #2: tid = 0x788f6c, 0x000000010402728a libsystem\_kernel.dylib</code>__workq_kernreturn + 10<br>  thread #3: tid = 0x788f6d, 0x000000010402728a libsystem_kernel.dylib<code>\_\_workq_kernreturn + 10
+  thread #4: tid = 0x788f6e, 0x000000010402728a libsystem\_kernel.dylib</code>__workq_kernreturn + 10<br>  thread #5: tid = 0x788f6f, 0x000000010402728a libsystem_kernel.dylib<code>\_\_workq_kernreturn + 10
+  thread #6: tid = 0x788f76, 0x000000010401d20a libsystem\_kernel.dylib</code>mach_msg_trap + 10, name = ‘com.apple.uikit.eventfetch-thread’<br>  thread #7: tid = 0x788f79, 0x000000010405cbdc libsystem_pthread.dylib`start_wqthread</p>
+<p>*表明的就是当前的线程。</p>
+<p>2、当前线程的堆栈（回溯、追踪）</p>
+<p>(lldb) thread backtrace<br>* thread #1, queue = ‘com.apple.main-thread’, stop reason = breakpoint 1.1<br>  * frame #0: 0x000000010016a3c8 Demo<code>-\[ViewController viewDidLoad\](self=0x00007fde09024c00, _cmd=&quot;viewDidLoad&quot;) at ViewController.m:125
+    frame #1: 0x000000010e8764e1 UIKitCore</code>-[UIViewController loadViewIfRequired] + 1186<br>    frame #2: 0x000000010e7d6104 UIKitCore<code>-\[UINavigationController _updateScrollViewFromViewController:toViewController:\] + 68
+    frame #3: 0x000000010e7d63f8 UIKitCore</code>-[UINavigationController _startTransition:fromViewController:toViewController:] + 147<br>    frame #4: 0x000000010e7d748b UIKitCore<code>-\[UINavigationController _startDeferredTransitionIfNeeded:\] + 896
+    frame #5: 0x000000010e7d87e0 UIKitCore</code>-[UINavigationController <strong>viewWillLayoutSubviews] + 150<br>    frame #6: 0x000000010e7b8600 UIKitCore<code>-\[UILayoutContainerView layoutSubviews\] + 217
+    frame #7: 0x000000010f37f795 UIKitCore</code>-[UIView(CALayerDelegate) layoutSublayersOfLayer:] + 1441<br>    frame #8: 0x000000010820bb19 QuartzCore<code>-\[CALayer layoutSublayers\] + 175
+    frame #9: 0x00000001082109d3 QuartzCore</code>CA::Layer::layout_if_needed(CA::Transaction<em>) + 395<br>    frame #10: 0x00000001081897ca QuartzCore`CA::Context::commit_transaction(CA::Transaction</em>) + 342<br>    frame #11: 0x00000001081c097e QuartzCore<code>CA::Transaction::commit() + 576
+    frame #12: 0x000000010eeb02d0 UIKitCore</code>__34-[UIApplication _firstCommitBlock]_block_invoke_2 + 139<br>    frame #13: 0x00000001015e562c CoreFoundation<code>\_\_CFRUNLOOP\_IS\_CALLING\_OUT\_TO\_A\_BLOCK\_\_ + 12
+    frame #14: 0x00000001015e4de0 CoreFoundation</code></strong>CFRunLoopDoBlocks + 336<br>    frame #15: 0x00000001015df654 CoreFoundation<code>__CFRunLoopRun + 1284
+    frame #16: 0x00000001015dee11 CoreFoundation</code>CFRunLoopRunSpecific + 625<br>    frame #17: 0x000000010808e1dd GraphicsServices<code>GSEventRunModal + 62
+    frame #18: 0x000000010ee9581d UIKitCore</code>UIApplicationMain + 140<br>    frame #19: 0x000000010016ac70 Demo<code>main(argc=1, argv=0x00007ffeefa96068) at main.m:17
+    frame #20: 0x0000000103cec575 libdyld.dylib</code>start + 1<br>    frame #21: 0x0000000103cec575 libdyld.dylib`start + 1</p>
+<p>3、查看所有线程的 backtrace</p>
+<p>(lldb) thread backtrace all<br>* thread #1, queue = ‘com.apple.main-thread’, stop reason = breakpoint 1.1<br>  * frame #0: 0x000000010016a3c8 Demo<code>-\[ViewController viewDidLoad\](self=0x00007fde09024c00, _cmd=&quot;viewDidLoad&quot;) at ViewController.m:125
+    frame #1: 0x000000010e8764e1 UIKitCore</code>-[UIViewController loadViewIfRequired] + 1186<br>    frame #2: 0x000000010e7d6104 UIKitCore<code>-\[UINavigationController _updateScrollViewFromViewController:toViewController:\] + 68
+    frame #3: 0x000000010e7d63f8 UIKitCore</code>-[UINavigationController _startTransition:fromViewController:toViewController:] + 147<br>    frame #4: 0x000000010e7d748b UIKitCore<code>-\[UINavigationController _startDeferredTransitionIfNeeded:\] + 896
+    frame #5: 0x000000010e7d87e0 UIKitCore</code>-[UINavigationController <strong>viewWillLayoutSubviews] + 150<br>    frame #6: 0x000000010e7b8600 UIKitCore<code>-\[UILayoutContainerView layoutSubviews\] + 217
+    frame #7: 0x000000010f37f795 UIKitCore</code>-[UIView(CALayerDelegate) layoutSublayersOfLayer:] + 1441<br>    frame #8: 0x000000010820bb19 QuartzCore<code>-\[CALayer layoutSublayers\] + 175
+    frame #9: 0x00000001082109d3 QuartzCore</code>CA::Layer::layout_if_needed(CA::Transaction<em>) + 395<br>    frame #10: 0x00000001081897ca QuartzCore`CA::Context::commit_transaction(CA::Transaction</em>) + 342<br>    frame #11: 0x00000001081c097e QuartzCore<code>CA::Transaction::commit() + 576
+    frame #12: 0x000000010eeb02d0 UIKitCore</code>__34-[UIApplication _firstCommitBlock]_block_invoke_2 + 139<br>    frame #13: 0x00000001015e562c CoreFoundation<code>\_\_CFRUNLOOP\_IS\_CALLING\_OUT\_TO\_A\_BLOCK\_\_ + 12
+    frame #14: 0x00000001015e4de0 CoreFoundation</code></strong>CFRunLoopDoBlocks + 336<br>    frame #15: 0x00000001015df654 CoreFoundation<code>__CFRunLoopRun + 1284
+    frame #16: 0x00000001015dee11 CoreFoundation</code>CFRunLoopRunSpecific + 625<br>    frame #17: 0x000000010808e1dd GraphicsServices<code>GSEventRunModal + 62
+    frame #18: 0x000000010ee9581d UIKitCore</code>UIApplicationMain + 140<br>    frame #19: 0x000000010016ac70 Demo<code>main(argc=1, argv=0x00007ffeefa96068) at main.m:17
+    frame #20: 0x0000000103cec575 libdyld.dylib</code>start + 1<br>    frame #21: 0x0000000103cec575 libdyld.dylib<code>start + 1
+  thread #2
+    frame #0: 0x000000010402728a libsystem\_kernel.dylib</code>__workq_kernreturn + 10<br>    frame #1: 0x000000010405d009 libsystem_pthread.dylib<code>\_pthread_wqthread + 1035
+    frame #2: 0x000000010405cbe9 libsystem\_pthread.dylib</code>start_wqthread + 13<br>  thread #3<br>    frame #0: 0x000000010402728a libsystem_kernel.dylib<code>\_\_workq_kernreturn + 10
+    frame #1: 0x000000010405d009 libsystem\_pthread.dylib</code>_pthread_wqthread + 1035<br>    frame #2: 0x000000010405cbe9 libsystem_pthread.dylib<code>start\_wqthread + 13
+  thread #4
+    frame #0: 0x000000010402728a libsystem\_kernel.dylib</code>__workq_kernreturn + 10<br>    frame #1: 0x000000010405d009 libsystem_pthread.dylib<code>\_pthread_wqthread + 1035
+    frame #2: 0x000000010405cbe9 libsystem\_pthread.dylib</code>start_wqthread + 13<br>  thread #5<br>    frame #0: 0x000000010402728a libsystem_kernel.dylib<code>\_\_workq_kernreturn + 10
+    frame #1: 0x000000010405d009 libsystem\_pthread.dylib</code>_pthread_wqthread + 1035<br>    frame #2: 0x000000010405cbe9 libsystem_pthread.dylib<code>start\_wqthread + 13
+  thread #6, name = &#39;com.apple.uikit.eventfetch-thread&#39;
+    frame #0: 0x000000010401d20a libsystem\_kernel.dylib</code>mach_msg_trap + 10<br>    frame #1: 0x000000010401c724 libsystem_kernel.dylib<code>mach\_msg + 60
+    frame #2: 0x00000001015e51b4 CoreFoundation</code><strong>CFRunLoopServiceMachPort + 212<br>    frame #3: 0x00000001015df7e9 CoreFoundation`</strong>CFRunLoopRun + 1689<br>    frame #4: 0x00000001015dee11 CoreFoundation<code>CFRunLoopRunSpecific + 625
+    frame #5: 0x00000001006a2322 Foundation</code>-[NSRunLoop(NSRunLoop) runMode:beforeDate:] + 277<br>    frame #6: 0x00000001006a24f4 Foundation<code>-\[NSRunLoop(NSRunLoop) runUntilDate:\] + 79
+    frame #7: 0x000000010ef8cbcb UIKitCore</code>-[UIEventFetcher threadMain] + 118<br>    frame #8: 0x00000001006b7732 Foundation<code>\_\_NSThread\_\_start__ + 1221
+    frame #9: 0x000000010405d661 libsystem\_pthread.dylib</code>_pthread_body + 340<br>    frame #10: 0x000000010405d50d libsystem_pthread.dylib<code>\_pthread_start + 377
+    frame #11: 0x000000010405cbf9 libsystem\_pthread.dylib</code>thread_start + 13<br>  thread #7<br>    frame #0: 0x000000010405cbdc libsystem_pthread.dylib`start_wqthread</p>
+<p>4、单独查看某个线程</p>
+<p>(lldb) thread select 3<br>(lldb) thread backtrace<br>* thread #3<br>  * frame #0: 0x000000010402728a libsystem_kernel.dylib<code>\_\_workq_kernreturn + 10
+    frame #1: 0x000000010405d009 libsystem\_pthread.dylib</code>_pthread_wqthread + 1035<br>    frame #2: 0x000000010405cbe9 libsystem_pthread.dylib`start_wqthread + 13</p>
+<h5 id="五、Frame"><a href="#五、Frame" class="headerlink" title="五、Frame"></a>五、Frame</h5><p><strong>EXAMINING STACK FRAME STATE</strong></p>
+<p>1、观测架构参数和本地变量</p>
+<p>如果什么参数也不加，将会把所有的参数和本地变量到打印出来。</p>
+<p>(lldb) thread select 1<br>(lldb) frame variable<br>(ViewController <em>) self = 0x00007fde09024c00<br>(SEL) _cmd = “viewDidLoad”<br>(CFBinaryHeapCallBacks) callBacks = {<br>  version = 0<br>  retain = 0x0000000000000000<br>  release = 0x4084d80000000000 (0x4084d80000000000)<br>  copyDescription = 0x0000000000000000<br>  compare = 0x4090480000000000 (0x4090480000000000)<br>}<br>(__NSTaggedDate </em>) p1 = 0x8000000000000000<br>(NSTaggedPointerString <em>) p2 = 0xc145315880000000 @”pgrI0tf031”<br>(Person </em>) p3 = nil<br>(Person <em>) p4 = nil<br>(NSInteger) count = 0<br>(const void **) list = 0x0000000000000000<br>(CFArrayRef) objects = 0x8000000000000000<br>(NSArray </em>) arr = 0x0000000000000001</p>
+<p>注意：如果之前执行了 thread select x，那么是在 x 线程执行 frame 命令。</p>
+<p>2、打印某个变量及它的子元素</p>
+<p>(lldb) frame variable<br>(ViewController <em>) self = 0x00007fde09024c00<br>(SEL) _cmd = “viewDidLoad”<br>(CFBinaryHeapCallBacks) callBacks = {<br>  version = 0<br>  retain = 0x0000000000000000<br>  release = 0x4084d80000000000 (0x4084d80000000000)<br>  copyDescription = 0x0000000000000000<br>  compare = 0x4090480000000000 (0x4090480000000000)<br>}<br>(__NSTaggedDate </em>) p1 = 0x8000000000000000<br>(NSTaggedPointerString <em>) p2 = 0xc145315880000000 @”pgrI0tf031”<br>(Person </em>) p3 = nil<br>(Person <em>) p4 = nil<br>(NSInteger) count = 0<br>(const void **) list = 0x0000000000000000<br>(CFArrayRef) objects = 0x8000000000000000<br>(NSArray </em>) arr = 0x0000000000000001<br>(lldb) frame variable self<br>(ViewController *) self = 0x00007fde09024c00<br>(lldb) frame variable self-&gt;isa<br>(Class) self-&gt;isa = ViewController</p>
+<p>命令虽然不是完整的表达式解释器，但可以识别一些基本的操作，比如 &amp;, *, -&gt;, []，不是重载运算符，数组也可以使用，因为数组本身也是指针。</p>
+<p>(lldb) frame variable <em>self<br>(ViewController) </em>self = {<br>  UIViewController = {<br>    UIResponder = {<br>      NSObject = {<br>        isa = ViewController<br>      }<br>    }<br>    _overrideTransitioningDelegate = nil<br>    _view = 0x00007fde0740c230<br>    _tabBarItem = 0x00007fde0750a530<br>    _navigationItem = 0x00007fde0770f8e0<br>    _toolbarItems = nil<br>    _title = nil<br>    _nibName = 0x000060000101aee0 @”BYZ-38-t0r-view-8bC-Xf-vdC”<br>    _nibBundle = 0x0000600003d40b90 @”/Users/cykj/Library/Developer/CoreSimulator/Devices/5EA7E32E-0543-406C-A9D1-1917DEB0F3A3/data/Containers/Bundle/Application/0FF04E7A-851D-4E4D-970F-F6D775E759FF/Demo.app”<br>    _parentViewController = 0x00007fde09043000<br>    _childModalViewController = nil<br>    _parentModalViewController = nil<br>    _previousRootViewController = nil<br>    _modalTransitionView = nil<br>    _modalPreservedFirstResponder = nil<br>    _dimmingView = nil<br>    _dropShadowView = nil<br>    _currentAction = nil<br>    _storyboard = 0x0000600000b01980<br>    _externalObjectsTableForViewLoading = 0x0000600001c54080<br>    _topLevelObjectsToKeepAliveFromStoryboard = nil<br>    _savedHeaderSuperview = nil<br>    _savedFooterSuperview = nil<br>    _editButtonItem = nil<br>    _searchDisplayController = nil<br>    _strongSearchDisplayController = nil<br>    _modalTransitionStyle = 0<br>    _modalPresentationStyle = 0<br>    _lastKnownInterfaceOrientation = 0<br>    _popoverController = nil<br>    _containerViewInSheet = nil<br>    _recordedContentScrollView = nil<br>    _afterAppearance = nil<br>    _explicitAppearanceTransitionLevel = 0<br>    _interfaceBuilderKeyCommands = nil<br>    _addedKeyCommands = nil<br>    _overrideTraitCollectionsForChildren = nil<br>    _previewSourceViews = nil<br>    _retainCount = 10<br>    _ignoreAppSupportedOrientations = false<br>    _viewHostsLayoutEngine = false<br>    _storyboardIdentifier = 0x0000600001e15540 @”ViewController”<br>    _transitioningDelegate = nil<br>    _frozenTraitCollection = nil<br>    _overrideTraitCollection = nil<br>    _accessibilityHUD = nil<br>    overrideUseCustomPresentation = false<br>    _modalPresentationCapturesStatusBarAppearance = false<br>    _ignoresParentMargins = false<br>    _childViewControllers = nil<br>    _customNavigationInteractiveTransitionDuration = 0<br>    _customNavigationInteractiveTransitionPercentComplete = 0<br>    _customTransitioningView = nil<br>    _lastNotifiedTraitCollection = nil<br>    _presentationController = nil<br>    _navigationControllerContentOffsetAdjustment = 0<br>    _leftContentMargin = 0<br>    _rightContentMargin = 0<br>    _contentMargin = 16<br>    _topLayoutGuide = 0x00007fde07408bb0<br>    _bottomLayoutGuide = 0x00007fde07404080<br>    _topBarInsetGuideConstraint = 0x0000600003d76800<br>    _bottomBarInsetGuideConstraint = 0x0000600003d75130<br>    _storyboardSegueTemplates = nil<br>    _segueResponsibleForModalPresentation = nil<br>    _sourceViewControllerIfPresentedViaPopoverSegue = nil<br>    _modalSourceViewController = nil<br>    _expectedWindow = nil<br>    _presentedStatusBarViewController = nil<br>    _presentedUserInterfaceStyleViewController = nil<br>    _edgesForExtendedLayout = 15<br>    <strong>childControllerToIgnoreWhileLookingForTransitionCoordinator = nil<br>    _presentingFocusedItem = nil<br>    _navigationInsetAdjustment = nil<br>    _storyboardPreviewSegueTemplates = nil<br>    _storyboardCommitSegueTemplates = nil<br>    _storyboardPreviewingRegistrants = nil
+    </strong>embeddedView = nil<br>    <strong>embeddingView = nil
+    </strong>embeddedDelegate = nil<br>    _originalPresentationController = nil<br>    _temporaryPresentationController = nil<br>    _preferredFocusedItem = nil<br>  }<br>  _heap = 0x0000000000000000<br>  _dict = nil<br>  _rwlock = (__sig = 0, __opaque = “”)<br>  _num = 0<br>  _needRegister = NO<br>  _data = nil<br>  _thread = nil<br>}</p>
+<p>3、选择另外的一个 frame</p>
+<p>(lldb) frame select 9<br>frame #9: 0x00000001082109d3 QuartzCore<code>CA::Layer::layout\_if\_needed(CA::Transaction*) + 395
+QuartzCore</code>CA::Layer::layout_if_needed:<br>    0x1082109d3 &lt;+395&gt;: movq   0x8(%rbx), %rbx<br>    0x1082109d7 &lt;+399&gt;: testq  %rbx, %rbx<br>    0x1082109da &lt;+402&gt;: jne    0x1082109b0               ; &lt;+360&gt;<br>    0x1082109dc &lt;+404&gt;: testq  %r14, %r14</p>
+<h5 id="六、expression"><a href="#六、expression" class="headerlink" title="六、expression"></a>六、expression</h5><p>看更复杂的数据</p>
+<p>(lldb) frame select 0<br>frame #0: 0x000000010016a3c8 Demo`-[ViewController viewDidLoad](self=0x00007fde09024c00, _cmd=”viewDidLoad”) at ViewController.m:125<br>   122<br>   123     - (void)viewDidLoad<br>   124     {<br>-> 125         [4m[[0msuper viewDidLoad];<br>   126<br>   127         _num = 10;<br>   128<br>(lldb) expression self<br>(ViewController *) $0 = 0x00007fde09024c00</p>
+<p>更复杂一些，可以用来输出一个表达式：</p>
+<p>(lldb) expr (int) printf (“I have a pointer 0x%llx.\n”, self)<br>I have a pointer 0x7fde09024c00.<br>(int) $1 = 33</p>
+<p>继续以之前的命令来操作：</p>
+<p>(lldb) expr self = $0<br>(ViewController *) $2 = 0x00007fde09024c00</p>
+<h5 id="七、call"><a href="#七、call" class="headerlink" title="七、call"></a>七、call</h5><p>其实这个命令完全可以使用 po 进行替代，call 一般可以用来调用不需要返回值的调试命令，比如更改 View 的背景颜色。以下两个命令都可以达到相似的作用，更改当前 View 的背景颜色值。</p>
+<p>(lldb) po [self.view setBackgroundColor:[UIColor redColor]]<br>(lldb) call [self.view setBackgroundColor:[UIColor greenColor]]</p>
+<p>原本没有设置颜色的视图，会被设置成颜色。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-1c3d5d703abb2733.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="5"> <img src="https://upload-images.jianshu.io/upload_images/5294842-1b9811bf3389a777.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="4"></p>
+<h5 id="八、image"><a href="#八、image" class="headerlink" title="八、image"></a>八、image</h5><p>这是一个比较重要也比较实用的命令。命令可用于寻址。比较实用的用法是用于寻找栈地址对应的代码位置。</p>
+<p>NSArray * arr = [[NSArray alloc] initWithObjects:@”1”, @”2”, nil];</p>
+<p>NSLog(@”%@”, arr[2]);</p>
+<p>可以很明显的看到数组越界了。运行程序，程序崩溃报如下错误：</p>
+<p>2019-04-03 14:10:13.975574+0800 Demo[97853:7915627] <strong><em> Terminating app due to uncaught exception ‘NSRangeException’, reason: ‘</em></strong> -[<strong>NSArrayI objectAtIndexedSubscript:]: index 2 beyond bounds [0 .. 1]‘<br>*** First throw call stack:<br>(<br>    0   CoreFoundation                      0x000000010e1b31bb </strong>exceptionPreprocess + 331<br>    1   libobjc.A.dylib                     0x000000010d751735 objc_exception_throw + 48<br>    2   CoreFoundation                      0x000000010e0ff4ec _CFThrowFormattedException + 194<br>    3   CoreFoundation                      0x000000010e235b00 +[<strong>NSArrayI allocWithZone:] + 0<br>    4   Demo                                0x000000010cc9d4c5 -[ViewController viewDidLoad] + 181<br>    5   UIKitCore                           0x000000011b3aa4e1 -[UIViewController loadViewIfRequired] + 1186<br>    6   UIKitCore                           0x000000011b30a104 -[UINavigationController _updateScrollViewFromViewController:toViewController:] + 68<br>    7   UIKitCore                           0x000000011b30a3f8 -[UINavigationController _startTransition:fromViewController:toViewController:] + 147<br>    8   UIKitCore                           0x000000011b30b48b -[UINavigationController _startDeferredTransitionIfNeeded:] + 896<br>    9   UIKitCore                           0x000000011b30c7e0 -[UINavigationController </strong>viewWillLayoutSubviews] + 150<br>    10  UIKitCore                           0x000000011b2ec600 -[UILayoutContainerView layoutSubviews] + 217<br>    11  UIKitCore                           0x000000011beb3795 -[UIView(CALayerDelegate) layoutSublayersOfLayer:] + 1441<br>    12  QuartzCore                          0x0000000114de9b19 -[CALayer layoutSublayers] + 175<br>    13  QuartzCore                          0x0000000114dee9d3 _ZN2CA5Layer16layout_if_neededEPNS_11TransactionE + 395<br>    14  QuartzCore                          0x0000000114d677ca _ZN2CA7Context18commit_transactionEPNS_11TransactionE + 342<br>    15  QuartzCore                          0x0000000114d9e97e <em>ZN2CA11Transaction6commitEv + 576<br>    16  UIKitCore                           0x000000011b9e42d0 \</em>_34-[UIApplication _firstCommitBlock]_block_invoke_2 + 139<br>    17  CoreFoundation                      0x000000010e11862c __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ + 12<br>    18  CoreFoundation                      0x000000010e117de0 <strong>CFRunLoopDoBlocks + 336<br>    19  CoreFoundation                      0x000000010e112654 </strong>CFRunLoopRun + 1284<br>    20  CoreFoundation                      0x000000010e111e11 CFRunLoopRunSpecific + 625<br>    21  GraphicsServices                    0x000000011394d1dd GSEventRunModal + 62<br>    22  UIKitCore                           0x000000011b9c981d UIApplicationMain + 140<br>    23  Demo                                0x000000010cc9dc80 main + 112<br>    24  libdyld.dylib                       0x000000011077c575 start + 1<br>)<br>libc++abi.dylib: terminating with uncaught exception of type NSException</p>
+<p>我们大概可以猜测程序是崩溃在第四行 log，也就是地址为 0x000000010cc9d4c5的地方。因为工程名叫 Demo，其他的名字很明显是系统的库。虽然 log 的 23 行也有 Demo，但它是 main 函数，不在考虑范围之内。</p>
+<p>我们使用 image 的 lookup 命令，可以很快的定位到具体的代码行。</p>
+<p>(lldb) image lookup –address 0x000000010cc9d4c5<br>      Address: Demo[0x00000001000024c5] (Demo.__TEXT.__text + 2661)<br>      Summary: Demo`-[ViewController viewDidLoad] + 181 at ViewController.m:128</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-0f26acafbb7802ab.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="6"></p>
+<p>当然还有很多的命令我们可以探索，使用 image help 可以查看。</p>
+<p>(lldb) image help<br>     Commands for accessing information for one or more target modules.</p>
+<p>Syntax: target modules <sub-command> …</sub-command></p>
+<p>The following subcommands are supported:</p>
+<pre><code>add          -- Add a new module to the current target&apos;s modules.
+dump         -- Commands for dumping information about one or more target
+                modules.
+list         -- List current executable and dependent shared library
+                images.
+load         -- Set the load addresses for one or more sections in a
+                target module.
+lookup       -- Look up information within executable and dependent
+                shared library images.
+search-paths -- Commands for managing module search paths for a target.
+show-unwind  -- Show synthesized unwind instructions for a function.
+</code></pre><p>For more help on any particular subcommand, type ‘help <command> <subcommand>‘.</subcommand></p>
+<h5 id="九、为命令设置别名"><a href="#九、为命令设置别名" class="headerlink" title="九、为命令设置别名"></a>九、为命令设置别名</h5><p>比如 p 是 frame variable 的别名，p view 实际上是 frame variable view。除了系统自建的 LLDB 别名，你也可以自定义别名。</p>
+<p>掌握了规律之后，任何的命令我们都可以自己设置别名。</p>
+<p>1、设置别名</p>
+<p>(lldb) command alias bfl breakpoint set -f %1 -l %2<br>(lldb) bfl ViewController.m 128<br>Breakpoint 1: where = Demo`-[ViewController viewDidLoad] + 161 at ViewController.m:128, address = 0x000000010cc9d4b1</p>
+<p>2、撤销别名</p>
+<p>(lldb) command unalias bfl<br>(lldb) bfl ViewController.m 128<br>error: ‘bfl’ is not a valid command.<br>error: Unrecognized command ‘bfl’.</p>
+<h5 id="十、memory"><a href="#十、memory" class="headerlink" title="十、memory"></a>十、memory</h5><p>内存操作，无非就是读写操作。</p>
+<p>1、修改内存内的值</p>
+<blockquote>
+<p>memory write [内存地址] [数值]</p>
+</blockquote>
+<p>2、读取内存的操作</p>
+<blockquote>
+<p>memory read/[数量_格式_字节数] [内存地址]</p>
+</blockquote>
+<p>或者</p>
+<blockquote>
+<p>x/[数量_格式_字节数] [内存地址]</p>
+</blockquote>
+<p>3、格式</p>
+<ul>
+<li>x ：代表 16 进制</li>
+<li>f ：代表浮点数</li>
+<li>d ：代表 10 进制</li>
+</ul>
+<p>4、字节大小</p>
+<ul>
+<li>b ：byte 代表 1 个字节</li>
+<li>h ：half word 代表 2 个字节</li>
+<li>w ：word 代表 4 个字节</li>
+</ul>
+<p>如：</p>
+<blockquote>
+<p>memory read/1wx 0x7ffee14a5ba8<br>memory read/1wd 0x7ffee14a5ba8</p>
+</blockquote>
+<p>寓意是：读取 0x7ffee14a5ba8 中 4 个字节的内容。</p>
+<p>(lldb) expr NSLog(@”%p”, &amp;_num)<br>2019-04-03 14:39:41.334140+0800 Demo[98334:7932911] 0x7fef6484cc30<br>(lldb) memory write 0x7fef6484cc30 18<br>(lldb) p _num<br>(NSInteger) $0 = 24<br>(lldb) memory read/1wd 0x7fef6484cc30<br>0x7fef6484cc30: 24<br>(lldb) memory read/1wx 0x7fef6484cc30<br>0x7fef6484cc30: 0x00000018<br>(lldb) x/1wx 0x7fef6484cc30<br>0x7fef6484cc30: 0x00000018</p>
+<h5 id="十一、打印指令-p、po"><a href="#十一、打印指令-p、po" class="headerlink" title="十一、打印指令 p、po"></a>十一、打印指令 p、po</h5><p>p 通常用于打印基本数据类型的值。这个指令会默认生出一个临时变量，如 $1。po 打印变量的内容，如果是对象，它打印的内容由 -debugDescription 决定。</p>
+<p>(lldb) p self<br>(ViewController *) $0 = 0x00007fe85f858600<br>(lldb) po self<br>&lt;ViewController: 0x7fe85f858600&gt;</p>
+<p>使用：</p>
+<p>Class cls = NSClassFromString(@”ViewController”);<br>id obj = [[cls alloc] init];<br>NSLog(@”%@, %@”, cls, obj);</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-ba0528d6827bfb8a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="7"></p>
+<p>运行代码发现：</p>
+<ul>
+<li>cls 没有显示具体的地址值。</li>
+<li>obj 没有看到 isa 这个成员变量。</li>
+</ul>
+<p>使用简单的 p 或者 po 指令都是不可以的。需要借助上面说的操作内存的指令。</p>
+<p>(lldb) p/x cls<br>(Class) $2 = 0x000000010c258098 ViewController<br>(lldb) p/x obj-&gt;isa<br>(Class) $3 = 0x000000010c258098 ViewController</p>
+<h5 id="十二、bt"><a href="#十二、bt" class="headerlink" title="十二、bt"></a>十二、bt</h5><p>bt 返回所有的调用栈。</p>
+<p>(lldb) bt<br>* thread #1, queue = ‘com.apple.main-thread’, stop reason = breakpoint 1.1<br>  * frame #0: 0x000000010282e4e2 Demo<code>-\[ViewController viewDidLoad\](self=0x00007fef6484c800, _cmd=&quot;viewDidLoad&quot;) at ViewController.m:131
+    frame #1: 0x0000000110f3b4e1 UIKitCore</code>-[UIViewController loadViewIfRequired] + 1186<br>    frame #2: 0x0000000110e9b104 UIKitCore<code>-\[UINavigationController _updateScrollViewFromViewController:toViewController:\] + 68
+    frame #3: 0x0000000110e9b3f8 UIKitCore</code>-[UINavigationController _startTransition:fromViewController:toViewController:] + 147<br>    frame #4: 0x0000000110e9c48b UIKitCore<code>-\[UINavigationController _startDeferredTransitionIfNeeded:\] + 896
+    frame #5: 0x0000000110e9d7e0 UIKitCore</code>-[UINavigationController <strong>viewWillLayoutSubviews] + 150<br>    frame #6: 0x0000000110e7d600 UIKitCore<code>-\[UILayoutContainerView layoutSubviews\] + 217
+    frame #7: 0x0000000111a44795 UIKitCore</code>-[UIView(CALayerDelegate) layoutSublayersOfLayer:] + 1441<br>    frame #8: 0x000000010a8d0b19 QuartzCore<code>-\[CALayer layoutSublayers\] + 175
+    frame #9: 0x000000010a8d59d3 QuartzCore</code>CA::Layer::layout_if_needed(CA::Transaction<em>) + 395<br>    frame #10: 0x000000010a84e7ca QuartzCore`CA::Context::commit_transaction(CA::Transaction</em>) + 342<br>    frame #11: 0x000000010a88597e QuartzCore<code>CA::Transaction::commit() + 576
+    frame #12: 0x00000001115752d0 UIKitCore</code>__34-[UIApplication _firstCommitBlock]_block_invoke_2 + 139<br>    frame #13: 0x0000000103ca962c CoreFoundation<code>\_\_CFRUNLOOP\_IS\_CALLING\_OUT\_TO\_A\_BLOCK\_\_ + 12
+    frame #14: 0x0000000103ca8de0 CoreFoundation</code></strong>CFRunLoopDoBlocks + 336<br>    frame #15: 0x0000000103ca3654 CoreFoundation<code>__CFRunLoopRun + 1284
+    frame #16: 0x0000000103ca2e11 CoreFoundation</code>CFRunLoopRunSpecific + 625<br>    frame #17: 0x000000010a7531dd GraphicsServices<code>GSEventRunModal + 62
+    frame #18: 0x000000011155a81d UIKitCore</code>UIApplicationMain + 140<br>    frame #19: 0x000000010282eca0 Demo<code>main(argc=1, argv=0x00007ffeed3d2068) at main.m:17
+    frame #20: 0x00000001063b1575 libdyld.dylib</code>start + 1<br>    frame #21: 0x00000001063b1575 libdyld.dylib`start + 1</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/04/03/lldb-2/">http://yoursite.com/2019/04/03/lldb-2/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/04/10/logic-block/" class="pre"> LOGIC - Block		</a><a href="/2019/04/02/e9-9d-99-e6-80-81-e5-ba-93/" class="next"> iOS 生成静态库		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、breakpoint"><span class="toc-text">一、breakpoint</span></a></li></ol><li class="toc-item toc-level-1"><a class="toc-link" href="#Your-code-goes-here"><span class="toc-text">Your code goes here</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#二、watchpoint"><span class="toc-text">二、watchpoint</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、process"><span class="toc-text">三、process</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、thread"><span class="toc-text">四、thread</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、Frame"><span class="toc-text">五、Frame</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、expression"><span class="toc-text">六、expression</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#七、call"><span class="toc-text">七、call</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#八、image"><span class="toc-text">八、image</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#九、为命令设置别名"><span class="toc-text">九、为命令设置别名</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十、memory"><span class="toc-text">十、memory</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十一、打印指令-p、po"><span class="toc-text">十一、打印指令 p、po</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#十二、bt"><span class="toc-text">十二、bt</span></a></li></ol></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

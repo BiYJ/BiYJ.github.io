@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 硬币问题		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 硬币问题		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 硬币问题		</h1><div class="post-meta"><a href="/2019/02/19/e7-a1-ac-e5-b8-81-e9-97-ae-e9-a2-98/#comments" class="comment-count"></a><p><span class="date">Feb 19, 2019</span><span><a href="/categories/动态规划/" class="category">动态规划</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>1<strong>、问题描述</strong></p>
+<p>假设有 1 元、3 元、5 元的硬币无限个，现在需要凑出 11 元，问如何组合才能使硬币的数量最少？</p>
+<p>2、<strong>算法分析</strong></p>
+<p>有最小单位 1 的情况下，可以使用贪心算法：</p>
+<p>NSInteger count = m / 5;<br>NSInteger mol   = m % 5;</p>
+<p>if(mol/3 &gt; 0) {<br>     count++;<br>     mol %= 3;<br>}</p>
+<p>count += mol;</p>
+<p>但当硬币的种类改变，并且需要凑出的总价值变大时，很难靠简单的计算得出结果。贪心算法可以在一定的程度上得出较优解，但不是每次都能得出最优解。</p>
+<p>这里运用动态规划的思路解决该问题。动态规划中有三个重要的元素：<strong>最优子结构、边界、状态转移公式。</strong>按照一般思路，先从最基本的情况来一步一步地推导。</p>
+<p>注意：动态规划的策略在于当前的硬币（或其他物品）是否能算进去。</p>
+<p>先假设一个函数 d(i) 来表示需要凑出 i 的总价值需要的最少硬币数量。</p>
+<ol>
+<li>当 i = 0 时，很显然知道 d(0) = 0。</li>
+<li>当 i = 1 时，因为有 1 元的硬币，所以直接在第 1 步的基础上，加上 1 个 1 元硬币，得出 d(1) = d(0) + 1。</li>
+<li>当 i = 2 时，因为并没有 2 元的硬币，所以在第 2 步的基础上，加上 1 个 1 元硬币，得出 d(2) = d(1) + 1。</li>
+<li>当 i = 3 时，需要 3 个 1 元硬币或者 1 个 3 元硬币，d(3) = min{ d(2)+1, d(3-3)+1 };</li>
+<li>…</li>
+<li>抽离出来 d(i) = min{ d(i-1)+1, d(i-vj)+1 }，其中 i - vj &gt;= 0，vj 表示第 j 个硬币的面值。</li>
+</ol>
+<p>这里 d(i-1)+1 和 d(i-vj)+1 是 d(i) 的最优子结构；d(0) = 0 是边界；d(i) = min{ d(i-1)+1, d(i-vj)+1 } 是状态转移公式。其实我们根据边界 + 状态转移公式就能得到最终动态规划的结果。</p>
+<p>3、<strong>算法实现</strong></p>
+<p>#include &lt;stdio.h&gt;</p>
+<p>#include &lt;stdlib.h&gt;</p>
+<p>#define Coins 3</p>
+<p>int dp(int n)<br>{<br>    // min 数组包含 d(0)~d(n)，所以数组长度是 n+1<br>    n++;<br>    // 初始化数组<br>    int<em> min = (int</em>)calloc(n, sizeof(int));</p>
+<pre><code>// 可选硬币种类
+int v\[Coins\] = { 1, 3, 5 };
+
+for (int i = 1; i &lt; n; i++) {
+
+    min\[i\] = min\[i-1\] + 1;
+
+    for (int j = 0; j &lt; Coins; j++) {
+
+        // 装不下
+        if (v\[j\] &gt; i) {
+            break;
+        }
+
+        // 装得下
+        if (min\[i - v\[j\]\] &lt; min\[i - 1\]) {
+            min\[i\] = min\[i - v\[j\]\] + 1;
+        }
+    }
+}
+
+for (int i = 0; i &lt; n; i++) {
+    printf(&quot;%d  &quot;, min\[i\]);
+}
+
+return min\[n - 1\];
+</code></pre><p>}</p>
+<p>int main()<br>{<br>    printf(“\n%d”, dp(101));</p>
+<pre><code>return 0;
+</code></pre><p>}</p>
+<p>4、<strong>拓展</strong></p>
+<p>上面的问题中包含了最小单位 1 元的硬币，所以每次 i 增加时，都能 min[i] = min[i - 1] + 1（+1 是用了 1 元硬币），但如果硬币为 2 元、3 元、5 元呢？应该如何求出 11 元呢？</p>
+<p>来推算下：</p>
+<p>①、n = 1，不存在 1 元硬币，且 2、3、5 &gt; 1，所以 f(1) = 0;</p>
+<p>②、n = 2，存在 2 元硬币，所以 f(2) = 1;</p>
+<p>③、n = 3，存在 3 元硬币，所以 f(3) = 1;</p>
+<p>④、n = 4，不存在 4 元硬币，而 2 和3 &lt; 4，5 &gt; 4，其中</p>
+<p>f(4-3) = f(1) = 0说明在去除 3 元的情况下，不能获得剩下的 1 元；</p>
+<p>f(4-2) = f(2) = 1 说明在去除2 元的情况下，可以获得剩下的2 元，f(4) = f(2) + 1 = 2;</p>
+<p>结合上面两种情况 f(4) = MIN{ f(4-2) + 1 }</p>
+<p>⑤、n = 5，存在 5 元硬币，所以 f(5) = 1;</p>
+<p>⑥、n = 6，不存在 6元硬币，而 2、3、5 &lt; 6，其中 </p>
+<p>f(6-5) = f(1) = 0 说明在去除 5 元的情况下，不能获得剩下的 1 元；</p>
+<p>f(6-3) = f(3) = 1 说明在去除3 元的情况下，可以获得剩下的 3 元，f(6) = f(6-3) + 1 = 2;</p>
+<p>f(6-2) = f(4) = 2 说明在去除2 元的情况下，可以获得剩下的3 元，f(6) = f(6-4) + 1 = 3;</p>
+<p>结合上面三种情况 f(6) = MIN{ f(6-3) + 1, f(6-2) + 1 }</p>
+<p>【状态】是 f(n)</p>
+<p>【边界】是 n = 2、3、5 时只有一种选择</p>
+<p>【状态转移方程】是f(n) = MIN{  f(n - ci) +1 }, 其中n 表示当前的总额，ci 表示金币数额。</p>
+<p><strong>注意：</strong>因为是取最小值，所以是无法获得的总额时，如 f(1)，应该让 f(1)等于很大的值，这样就可以将它剔除出去。</p>
+<p>下面的代码为了直观每次选币的过程，增加了结构体、打印代码，不需要时可以自行删除。</p>
+<p>#include &lt;stdio.h&gt;</p>
+<p>#include &lt;stdlib.h&gt;</p>
+<p>#define Coins     3</p>
+<p>#define MIN(a, b) (a) &lt; (b) ? (a) : (b)</p>
+<p>typedef struct CoinLog {<br>    int minCoin;   // 最少的硬币数<br>    int coin[100]; // 所选硬币<br>} CoinLog;</p>
+<p>int dp(int n)<br>{<br>    n++;  // result 数组包含 d(0)~d(n)，所以数组长度是 n+1</p>
+<pre><code>// 初始化数组
+</code></pre><p>//    int<em> result = (int</em>)malloc(sizeof(int) <em> n);<br>//    for (int i = 0; i &lt; n; i++) {<br>//        result[i] = n;<br>//    }<br>    CoinLog</em> result = (CoinLog <em>)malloc(sizeof(CoinLog) </em> n);<br>    for (int i = 0; i &lt; n; i++) {<br>        CoinLog log = { n, {0} };<br>        result[i] = log;<br>    }</p>
+<pre><code>// 硬币种类
+int v\[Coins\] = { 2, 3, 5 };
+
+for (int i = 1; i &lt; n; i++) {
+
+    printf(&quot;%3d =&quot;, i);
+
+    for (int j = 0; j &lt; Coins; j++) {
+
+        // 硬币正好
+        if (v\[j\] == i) {
+            result\[i\].minCoin = 1;
+            result\[i\].coin\[0\] = v\[j\];
+        }
+        // 硬币太大
+        else if (v\[j\] &gt; i) {
+
+        }
+        // 循环 Coins，找出最少的币数
+        else if (result\[i - v\[j\]\].minCoin &lt; result\[i\].minCoin) {
+            result\[i\].minCoin = result\[i - v\[j\]\].minCoin + 1;
+
+            int k = 0;
+            for (; k &lt; result\[i - v\[j\]\].minCoin; k++) {
+                result\[i\].coin\[k\] = result\[i - v\[j\]\].coin\[k\];
+            }
+            result\[i\].coin\[k\] = v\[j\];
+        }
+    }
+
+    if (result\[i\].minCoin &lt; n) {
+        // 显示每次怎么找的
+        for (int k = 0; k &lt; result\[i\].minCoin; k++) {
+            printf(&quot;%3d  &quot;, result\[i\].coin\[k\]);
+        }
+    }
+    printf(&quot;\\n&quot;);
+}
+</code></pre><p>//    for (int i = 1; i &lt; n; i++) {<br>//        printf(“%d  “, result[i]);<br>//    }</p>
+<pre><code>return result\[n - 1\].minCoin;
+</code></pre><p>}</p>
+<p>int main()<br>{<br>    printf(“\n最少的币数 = %d”, dp(21));</p>
+<pre><code>return 0;
+</code></pre><p>}</p>
+<p>  1 =<br>  2 =  2<br>  3 =  3<br>  4 =  2    2<br>  5 =  5<br>  6 =  3    3<br>  7 =  2    5<br>  8 =  3    5<br>  9 =  2    2    5<br> 10 =  5    5<br> 11 =  3    3    5<br> 12 =  2    5    5<br> 13 =  3    5    5<br> 14 =  2    2    5    5<br> 15 =  5    5    5<br> 16 =  3    3    5    5<br> 17 =  2    5    5    5<br> 18 =  3    5    5    5<br> 19 =  2    2    5    5    5<br> 20 =  5    5    5    5<br> 21 =  3    3    5    5    5  </p>
+<p>最少的币数 = 5</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/02/19/e7-a1-ac-e5-b8-81-e9-97-ae-e9-a2-98/">http://yoursite.com/2019/02/19/e7-a1-ac-e5-b8-81-e9-97-ae-e9-a2-98/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/02/19/longestpalindromicsubstring/" class="pre"> 最长回文子串		</a><a href="/2019/02/18/e6-90-9c-e7-b4-a2-e4-bc-98-e5-8c-96/" class="next"> 搜索优化		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

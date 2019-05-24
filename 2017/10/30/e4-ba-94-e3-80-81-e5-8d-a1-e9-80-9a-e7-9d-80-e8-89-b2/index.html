@@ -1,0 +1,208 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 五、卡通着色		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 五、卡通着色		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 五、卡通着色		</h1><div class="post-meta"><a href="/2017/10/30/e4-ba-94-e3-80-81-e5-8d-a1-e9-80-9a-e7-9d-80-e8-89-b2/#comments" class="comment-count"></a><p><span class="date">Oct 30, 2017</span><span><a href="/categories/GLSL/" class="category">GLSL</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="http://www.cnblogs.com/mazhenyu/p/5580956.html" target="_blank" rel="noopener">http://www.cnblogs.com/mazhenyu/p/5580956.html</a> <strong>引言</strong>卡通着色可能是最简单的非真实模式 shader。它使用很少的颜色，通常是几种色调(tone)，因此不同色调之间是突变的效果。下图显示的就是我们试图达到的效果：<br><img src="http://hi.csdn.net/attachment/201107/28/0_1311845148N04P.gif" alt>茶壶上的色调是通过角度的余弦值选择的，这个角度是指光线和面的法线之间的夹角角度。如果法线和光的夹角比较小，我们使用较亮的色调，随着夹角变大，逐步使用更暗的色调。换句话说，角度余弦值将决定色调的强度。 在本教程中，我们先介绍逐顶点计算色调强度(intensity)的方法，之后把这个计算移到片断 shader中，此外还将介绍如何访问 OpenGL 中光源的方向。 <strong>一、卡通着色 v1</strong>这个版本使用逐顶点计算色调强度的方法，之后片断 shader 使用顶点色调强度的插值来决定片断选择那个色调。因此顶点 shader 必须声明一个易变变量保存强度值，片断 shader 中也需要声明一个同名的易变变量，用来接收经过插值的强度值。在顶点 shader 中，光线方向可以定义为一个局部变量或者常量，不过定义为一个一致变量将可以获得更大的灵活性，因为这样就可以在 OpenGL 程序中任意设置了。所以我们在 shader 中这样定义光的方向：</p>
+<ol>
+<li>uniform vec3 lightDir;</li>
+</ol>
+<p>现在起我们假设光的方向定义在世界空间之中。 顶点 shader 通过属性变量 gl_Normal 来访问在 OpenGL 程序中指定的法线，这些法线在 OpenGL 程序中通过 glNormal 函数定义，因此位于模型空间。 如果在 OpenGL 程序中没有对模型进行旋转或缩放等操作，那么传给顶点 shader 的位于世界空间的gl_Normal 正好等于模型空间中定义的法线。另外法线只包含方向，所以不受移动变换的影响。 </p>
+<p>由于法线和光线方向定义在相同的空间中，顶点 shader 可以直接进行余弦计算，两个方向分别为lightDir 和 gl_Normal。计算余弦的公式如下：</p>
+<ol>
+<li><p>cos(lightDir, normal) = lightDir . normal / (|lightDir| * |normal|)</p>
+<p>公式中的 “.” 表示内积，亦称为点积。如果 lightDir 和 gl_Normal 已经经过了归一化：| normal | = 1<br>| lightDir | = 1 </p>
+</li>
+</ol>
+<p>那么计算余弦的公式可以简化为：</p>
+<ol>
+<li><p>cos(lightDir, normal) = lightDir . normal</p>
+<p>因为 lightDir 是由 OpenGL 程序提供的，所以我们可以假定它传到 shader 之前已经归一化了。只有光线方向改变时，才需要重新计算归一化。此外 OpenGL 程序传过来的法线也应该是经过归一化的。 </p>
+</li>
+</ol>
+<p>我们将定义一个名为 intensity 的变量保存余弦值，直接使用 GLSL 提供的 dot 函数计算这个值。</p>
+<ol>
+<li>intensity = dot(lightDir, gl_Normal);  </li>
+</ol>
+<p>最后顶点要做的就是变换顶点坐标。顶点 shader 的完整代码如下：</p>
+<ol>
+<li>uniform vec3 lightDir;  </li>
+<li><p>varying float intensity;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>intensity = dot(lightDir, gl_Normal);  </li>
+<li>gl_Position = ftransform();  </li>
+<li>}  </li>
+</ol>
+<p>如果想使用 OpenGL 中的变量作为光的方向，那么可以用 gl_LightSource[0].position 代替一致变量 lightDir，代码如下：</p>
+<ol>
+<li><p>varying float intensity;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec3 lightDir = normalize(vec3(gl_LightSource[0].position));  </li>
+<li><p>intensity = dot(lightDir, gl_Normal);  </p>
+</li>
+<li><p>gl_Position = ftransform();  </p>
+</li>
+<li>}  </li>
+</ol>
+<p>现在在片断 shader 中唯一要做的就是根据 intensity 定义片断的颜色。前面已经提到，变量intensity 在两个 shader 中都定义为易变变 量，所以它将会在顶点 shader 中写入，然后在片断shader 中读出。片断 shader 中的颜色可以用如下方式计算：</p>
+<ol>
+<li><p>vec4 color;  </p>
+</li>
+<li><p>if (intensity &gt; 0.95)  </p>
+</li>
+<li>color = vec4(1.0, 0.5, 0.5, 1.0);  </li>
+<li>else if (intensity &gt; 0.5)  </li>
+<li>color = vec4(0.6, 0.3, 0.3, 1.0);  </li>
+<li>else if (intensity &gt; 0.25)  </li>
+<li>color = vec4(0.4, 0.2, 0.2, 1.0);  </li>
+<li>else  </li>
+<li>color = vec4(0.2, 0.1, 0.1, 1.0);  </li>
+</ol>
+<p>可以看到，余弦大于 0.95 时使用最亮的颜色，小于 0.25 时使用最暗的颜色。得到这个颜色后只需要再将其写入 gl_FragColor 即可，片断 shader 的完整代码如下：</p>
+<ol>
+<li><p>varying float intensity;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec4 color;</li>
+<li>if (intensity &gt; 0.95)  </li>
+<li>color = vec4(1.0, 0.5, 0.5, 1.0);  </li>
+<li>else if (intensity &gt; 0.5)  </li>
+<li>color = vec4(0.6, 0.3, 0.3, 1.0);  </li>
+<li>else if (intensity &gt; 0.25)  </li>
+<li>color = vec4(0.4, 0.2, 0.2, 1.0);  </li>
+<li>else  </li>
+<li><p>color = vec4(0.2, 0.1, 0.1, 1.0);</p>
+</li>
+<li><p>gl_FragColor = color;  </p>
+</li>
+<li>}  </li>
+</ol>
+<p>下图显示出本节的最终效果，看起来不是很好。主要原因是因为我们对 intensity 进行插值，插值的结果与用片断法线算出的 intensity 有区别，下一节我们将展示如何更好的实现卡通着色效果。</p>
+<p><img src="http://hi.csdn.net/attachment/201107/28/0_13118451531bhi.gif" alt></p>
+<p><strong>二、卡通着色 v2</strong>本节中我们要实现逐片断的卡通着色效果。为了达到这个目的，我们需要访问每个片断的法线。顶点shader 中需要将顶点的法线写入一个易变变量，这样在片断 shader 中就可以得到经过插值的法线。 </p>
+<p>顶点 shader 比上一版变得更简单了，因为颜色强度的计算移到片断 shader 中进行了。一致变量lightDir 也要移到片断 shader中，下面就是新的顶点 shader代码：</p>
+<ol>
+<li><p>varying vec3 normal;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>normal = gl_Normal;  </li>
+<li>gl_Position = ftransform();  </li>
+<li>}  </li>
+</ol>
+<p>在片断 shader 中，我们需要声明一致变量 lightDir，还需要一个易变变量接收插值后的法线。片断 shader 的代码如下：</p>
+<ol>
+<li>varying vec3 normal;  </li>
+<li><p>uniform vec3 lightDir;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec4 color;  </li>
+<li>float intensity;  </li>
+<li><p>intensity = dot(lightDir, normal);  </p>
+</li>
+<li><p>if (intensity &gt; 0.95)  </p>
+</li>
+<li>color = vec4(1.0, 0.5, 0.5, 1.0);  </li>
+<li>else if (intensity &gt; 0.5)  </li>
+<li>color = vec4(0.6, 0.3, 0.3, 1.0);  </li>
+<li>else if (intensity &gt; 0.25)  </li>
+<li>color = vec4(0.4, 0.2, 0.2, 1.0);  </li>
+<li>else  </li>
+<li><p>color = vec4(0.2, 0.1, 0.1, 1.0);  </p>
+</li>
+<li><p>gl_FragColor = color;  </p>
+</li>
+<li><p>}  </p>
+<p>下图就是渲染结果：<img src="http://hi.csdn.net/attachment/201107/28/0_13118451531bhi.gif" alt>令人吃惊的是新的渲染结果居然和前一节的一模一样，这是为什么呢？ 让我们仔细看看这两个版本的区别。在第一版中，我们在顶点 shader 中计算出一个 intensity 值，然后在片断 shader 中使用这个值的插值结 果。在第二个版中，我们先对法线插值，然后在片断shader 中计算点积。插值和点积都是线性运算，所以两者运算的顺序并不影响结果。 真正的问题在于片断 shader 中对插值后的法线进行点积运算的时候，尽管这时法线的方向是对的，但是它并没有归一化。 我们说法线方向是对的，因为我们假定传入顶点 shader 的法线是经过归一化的，对法线插值可以得到一个方向正确的向量。但是，这个向量的长度在大部分情况下都是错的，因为对归一化法线进行插值时，只有在所有法线的方向一致时才会得到一个单位长度的向量。（关于法线插值的问题，后面的教程会专门解释） </p>
+</li>
+</ol>
+<p>综上所述，在片断 shader 中，我们接收到的是一个方向正确长度错误的法线，为了修正这个问题，我们必须将这个法线归一化。下面是正确实现的代码：</p>
+<ol>
+<li>varying vec3 normal; </li>
+<li><p>uniform vec3 lightDir; </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>float intensity;  </li>
+<li>vec4 color;  </li>
+<li><p>intensity = dot(lightDir, normalize(normal));  </p>
+</li>
+<li><p>if (intensity &gt; 0.95)  </p>
+</li>
+<li>color = vec4(1.0, 0.5, 0.5, 1.0);  </li>
+<li>else if (intensity &gt; 0.5)  </li>
+<li>color = vec4(0.6, 0.3, 0.3, 1.0);  </li>
+<li>else if (intensity &gt; 0.25)  </li>
+<li>color = vec4(0.4, 0.2, 0.2, 1.0);  </li>
+<li>else  </li>
+<li><p>color = vec4(0.2, 0.1, 0.1, 1.0);  </p>
+</li>
+<li><p>gl_FragColor = color;  </p>
+</li>
+<li><p>}  </p>
+<p>下图就是新版本卡通着色的效果，看起来漂亮多了，虽然并不完美。图中物体还有些锯齿(aliasing)问题，不过这超出了本教程讨论的范围。<img src="http://hi.csdn.net/attachment/201107/28/0_1311845158t5ZN.gif" alt>下一节我们将在 OpenGL 程序中设置 shader 中的光线方向。<strong>三、卡通着色 v3</strong>结束关于卡通着色的内容之前，还有一件事需要解决：使用 OpenGL 中的光来代替变量 lightDir。 我们需要在 OpenGL 程序中定义一个光源，然后在我们的 shader 中使用这个光源的方向数据。注意：不需要用 glEnable 打开这个光源，因为我们使用了 shader。 </p>
+</li>
+</ol>
+<p>我们假设 OpenGL 程序中定义的 1 号光源(GL_LIGHT0)是方向光。GLSL 已经声明了一个 C 语言形式的结构体，描述光源属性。这些结构体组成一个数组，保存所有光源的信息。</p>
+<ol>
+<li>struct gl_LightSourceParameters  </li>
+<li>{  </li>
+<li>vec4 ambient;  </li>
+<li>vec4 diffuse;  </li>
+<li>vec4 specular;  </li>
+<li>vec4 position;  </li>
+<li>…  </li>
+<li><p>};  </p>
+</li>
+<li><p>uniform gl_LightSourceParameters gl_LightSource[gl_MaxLights];  </p>
+</li>
+</ol>
+<p>这意味着我们可以在 shader 中访问光源的方向（使用结构体中的 position 域），这里依然假定OpenGL 程序对光源方向进行了归一化。</p>
+<p> OpenGL 标准中规定，当一个光源的位置确定后，将自动转换到视点空间(eye space)的坐标系中，例如摄像机坐标系。如果模型视图矩阵的左上 3×3 子阵是正交的（如果使用 gluLookAt 并且不使用缩放变换就可以满足这 点），便能保证光线方向向量在自动变换到视点空间之后保持归一化。 我们必须将法线也变换到视点空间，然后计算其与光线的点积。只有在相同空间，计算两个向量的点积得到余弦值才有意义。 </p>
+<p>为了将法线变换到视点空间，我们必须使用预先定义的 mat3 型的一致变量 gl_NormalMatrix。这个矩阵是模型视图矩阵的左上 3×3 子阵的逆矩 阵的转置矩阵(关于这个问题，后面的教程会专门解释)。需要对每个法线进行这个变换，现在顶点 shader 变为如下形式：</p>
+<ol>
+<li><p>varying vec3 normal;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>normal = gl_NormalMatrix * gl_Normal;  </li>
+<li>gl_Position = ftransform();  </li>
+<li>}  </li>
+</ol>
+<p>在片断 shader 中，我们必须访问光线方向来计算 intensity 值：</p>
+<ol>
+<li><p>varying vec3 normal;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>float intensity;  </li>
+<li>vec4 color;  </li>
+<li>vec3 n = normalize(normal);  </li>
+<li><p>intensity = dot(vec3(gl_LightSource[0].position),n);  </p>
+</li>
+<li><p>if (intensity &gt; 0.95)  </p>
+</li>
+<li>color = vec4(1.0, 0.5, 0.5, 1.0);  </li>
+<li>else if (intensity &gt; 0.5)  </li>
+<li>color = vec4(0.6, 0.3, 0.3, 1.0);  </li>
+<li>else if (intensity &gt; 0.25)  </li>
+<li>color = vec4(0.4, 0.2, 0.2, 1.0);  </li>
+<li>else  </li>
+<li><p>color = vec4(0.2, 0.1, 0.1, 1.0);</p>
+</li>
+<li><p>gl_FragColor = color;  </p>
+</li>
+<li><p>}  </p>
+<p>本小节内容的 Shader Desinger 工程下载地址：<a href="http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/toonf2.zip" target="_blank" rel="noopener">http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/toonf2.zip</a> 基于 GLEW 的源代码下载地址：<a href="http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/toonglut_2.0.zip" target="_blank" rel="noopener">http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/toonglut_2.0.zip</a></p>
+</li>
+</ol>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2017/10/30/e4-ba-94-e3-80-81-e5-8d-a1-e9-80-9a-e7-9d-80-e8-89-b2/">http://yoursite.com/2017/10/30/e4-ba-94-e3-80-81-e5-8d-a1-e9-80-9a-e7-9d-80-e8-89-b2/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2017/10/30/e5-85-ad-e3-80-81-e9-80-90-e9-a1-b6-e7-82-b9-e7-9a-84-e5-85-89-e7-85-a7/" class="pre"> 六、逐顶点的光照		</a><a href="/2017/10/29/hello-world/" class="next"> 四、Hello World		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

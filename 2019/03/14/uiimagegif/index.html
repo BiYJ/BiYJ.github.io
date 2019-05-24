@@ -1,0 +1,235 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> UIImage+GIF、SDWebImageGIFCoder		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> UIImage+GIF、SDWebImageGIFCoder		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> UIImage+GIF、SDWebImageGIFCoder		</h1><div class="post-meta"><a href="/2019/03/14/uiimagegif/#comments" class="comment-count"></a><p><span class="date">Mar 14, 2019</span><span><a href="/categories/SDWebImage/" class="category">SDWebImage</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>文章：<a href="https://www.cnblogs.com/machao/p/6134364.html" target="_blank" rel="noopener">SDWebImage源码解读 之 UIImage+GIF</a></p>
+<p>本篇是和 GIF 相关的一个 UIImage 的分类。</p>
+<h5 id="一、UIImage-的-size、scale-属性"><a href="#一、UIImage-的-size、scale-属性" class="headerlink" title="一、UIImage 的 size、scale 属性"></a>一、UIImage 的 size、scale 属性</h5><p>如果要获取一个图片的尺寸，不是直接使用 image.size，而是使用 image.size*image.scale。原因就是在获取 size 的时候使用的是 Point 坐标，而图片的尺寸是以像素为参照的。系统为我们处理了这两种坐标系的转换工作。</p>
+<p>用一个例子来演示上边的内容：</p>
+<p>UIImage * image = [UIImage imageNamed:@”photo_delete”];<br>NSLog(@”—–尺寸:(%f %f)”, image.size.width, image.size.height);</p>
+<p>—–尺寸:(18.000000 18.000000)</p>
+<p>该图片的实际尺寸为 36 * 36。可以看出来只使用 size 这个属性是不对的。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-4f8d3e8a0bd25f33.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="2"></p>
+<p>修改代码：</p>
+<p>UIImage <em> image = [UIImage imageNamed:@”photo_delete”];<br>NSLog(@”—–尺寸:(%f %f)”, image.size.width </em> image.scale, image.size.height * image.scale);</p>
+<p>—–尺寸:(36.000000 36.000000)</p>
+<h5 id="二、实现渐进式图片加载的步骤"><a href="#二、实现渐进式图片加载的步骤" class="headerlink" title="二、实现渐进式图片加载的步骤"></a>二、实现渐进式图片加载的步骤</h5><p>当图片从网络中获取的时候，可能由于过大，数据缓慢，这时候就需要渐进式加载图片来显示。主要通过 CFData 对象来实现：</p>
+<ol>
+<li><p>创建一个 CFData 去添加 image data</p>
+</li>
+<li><p>创建一个渐进式图片资源，通过 CGImageSourceCreateIncremental</p>
+</li>
+<li><p>获取图片数据到 CFData 中</p>
+</li>
+<li><p>调用 CGImageSourceUpdateData 函数，传递 CFData 和一个 bool 值，去描述这个数据是否包含全部图片数据或者只是部分数据。无论什么情况，这个 data 包含已经积累的全部图片文件；</p>
+</li>
+<li><p>如果已经有足够的图片数据，可以通过函数 CGImageSourceCreateImageAtIndex 绘制部分图片，记得要 Release</p>
+</li>
+<li><p>检查是否已经有全部的图片数据通过使用 CGImageSourceGetStatusAtIndex 函数。如果图片是完整的，函数返回值为kCGImageStatusComplete。否则继续 3、4 步骤，直到获得全部数据；</p>
+</li>
+<li><p>Release 掉渐进式增长的 image source</p>
+</li>
+</ol>
+<h5 id="三、UIImage-GIF-h-文件"><a href="#三、UIImage-GIF-h-文件" class="headerlink" title="三、UIImage+GIF.h 文件"></a>三、UIImage+GIF.h 文件</h5><p>/**<br> *  Creates an animated UIImage from an NSData.<br> *  For static GIF, will create an UIImage with `images` array set to nil. For animated GIF, will create an UIImage with valid `images` array.<br> */<br>+ (UIImage <em>)sd_animatedGIFWithData:(NSData </em>)data;</p>
+<p>/**<br> *  Checks if an UIImage instance is a GIF. Will use the `images` array.<br> */<br>- (BOOL)isGIF;</p>
+<p>根据 NSData 获取图片和判断是否是 gif 图。</p>
+<h5 id="四、UIImage-GIF-m-文件"><a href="#四、UIImage-GIF-m-文件" class="headerlink" title="四、UIImage+GIF.m 文件"></a>四、UIImage+GIF.m 文件</h5><p>+ (UIImage <em>)sd_animatedGIFWithData:(NSData </em>)data {<br>    if (!data) {<br>        return nil;<br>    }<br>    return [[SDWebImageGIFCoder sharedCoder] decodedImageWithData:data];<br>}</p>
+<p>- (BOOL)isGIF {<br>    return (self.images != nil);<br>}</p>
+<p>根据 images 属性是否为空来判断 GIF 类型，这需要先执行 sd_animatedGIFWithData: 方法来设置 images。对 NSData 数据的操作实际由 SDWebImageGIFCoder 实现。</p>
+<h5 id="五、SDWebImageGIFCoder-h"><a href="#五、SDWebImageGIFCoder-h" class="headerlink" title="五、SDWebImageGIFCoder.h"></a>五、SDWebImageGIFCoder.h</h5><p>/*<em><br> Built in coder using ImageIO that supports GIF encoding/decoding<br> @note `SDWebImageIOCoder` supports GIF but only as static (will use the 1st frame).<br> @note Use `SDWebImageGIFCoder` for fully animated GIFs - less performant than `FLAnimatedImage`<br> @note If you decide to make all `UIImageView`(including `FLAnimatedImageView`) instance support GIF. You should add this coder to `SDWebImageCodersManager` and make sure that it has a higher priority than `SDWebImageIOCoder`<br> @note The recommended approach for animated GIFs is using `FLAnimatedImage`. It’s more performant than `UIImageView` for GIF displaying
+ </em>/<br>@interface SDWebImageGIFCoder : NSObject <sdwebimagecoder></sdwebimagecoder></p>
+<p>+ (nonnull instancetype)sharedCoder;</p>
+<p>@end</p>
+<p>基于 ImageIO 编程，支持 GIF 的编码和解码。</p>
+<h5 id="六、SDWebImageGIFCoder-m"><a href="#六、SDWebImageGIFCoder-m" class="headerlink" title="六、SDWebImageGIFCoder.m"></a>六、SDWebImageGIFCoder.m</h5><p>+ (instancetype)sharedCoder {<br>    static SDWebImageGIFCoder *coder;<br>    static dispatch_once_t onceToken;<br>    dispatch_once(&amp;onceToken, ^{<br>        coder = [[SDWebImageGIFCoder alloc] init];<br>    });<br>    return coder;<br>}</p>
+<p>单例方法实现。</p>
+<p>/**<br> * 是否能解码传入的二进制数据，即判断图片类型是否 GIF<br> */<br>- (BOOL)canDecodeFromData:(nullable NSData *)data<br>{<br>    return ([NSData sd_imageFormatForImageData:data] == SDImageFormatGIF);<br>}</p>
+<p>/**<br> * 解码<br> */<br>- (UIImage <em>)decodedImageWithData:(NSData </em>)data<br>{<br>    if (!data) {<br>        return nil;<br>    }</p>
+<p>#if SD_MAC<br>    SDAnimatedImageRep <em>imageRep = [[SDAnimatedImageRep alloc] initWithData:data];<br>    NSImage </em>animatedImage = [[NSImage alloc] initWithSize:imageRep.size];<br>    [animatedImage addRepresentation:imageRep];<br>    return animatedImage;</p>
+<p>#else</p>
+<pre><code>// 生成图片源对象
+CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+if (!source) {
+    return nil;
+}
+// 图片数量
+size_t count = CGImageSourceGetCount(source);
+
+UIImage *animatedImage;
+
+// 单张图片
+if (count &lt;= 1) {
+    animatedImage = \[\[UIImage alloc\] initWithData:data\];
+} 
+else {
+    NSMutableArray&lt;SDWebImageFrame *&gt; *frames = \[NSMutableArray array\];
+
+    // 循环获取 GIF 中的每张图片，将 image 和 duration 一起存入 SDWebImageFrame
+    for (size_t i = 0; i &lt; count; i++) {
+        CGImageRef imageRef = CGImageSourceCreateImageAtIndex(source, i, NULL);
+        if (!imageRef) {
+            continue;
+        }
+
+        float duration = \[self sd_frameDurationAtIndex:i source:source\];
+        UIImage *image = \[\[UIImage alloc\] initWithCGImage:imageRef\];
+        CGImageRelease(imageRef);
+
+        SDWebImageFrame *frame = \[SDWebImageFrame frameWithImage:image duration:duration\];
+        \[frames addObject:frame\];
+    }
+
+    // 循环次数
+    NSUInteger loopCount = 1;
+
+    // GIF 图片的属性。\_\_bridge\_transfer 内存管理转为 ARC
+    NSDictionary \*imageProperties = (\_\_bridge\_transfer NSDictionary \*)CGImageSourceCopyProperties(source, nil);
+    NSDictionary \*gifProperties = \[imageProperties valueForKey:(__bridge NSString \*)kCGImagePropertyGIFDictionary\];
+    if (gifProperties) {
+        NSNumber \*gifLoopCount = \[gifProperties valueForKey:(__bridge NSString \*)kCGImagePropertyGIFLoopCount\];
+        if (gifLoopCount != nil) {
+            loopCount = gifLoopCount.unsignedIntegerValue;
+        }
+    }
+
+    animatedImage = \[SDWebImageCoderHelper animatedImageWithFrames:frames\];
+    animatedImage.sd_imageLoopCount = loopCount;
+    animatedImage.sd_imageFormat = SDImageFormatGIF;
+}
+
+CFRelease(source);
+
+return animatedImage;
+</code></pre><p>#endif<br>}</p>
+<p>实现 SDWebImageCoder 协议的解码方法。</p>
+<p>CGImageSourceRef 抽象出来了图片数据，通过 raw memory buffer 减轻开发人员对数据的处理。Image Sources 包含不止一个图像，缩略图，各个图像的特征和图片文件。可以这么说：CGImageSourceRef 就是对图像数据的一层封装。</p>
+<p>/**<br> * 获取某一帧的时长<br> */<br>- (float)sd_frameDurationAtIndex:(NSUInteger)index source:(CGImageSourceRef)source<br>{<br>    float frameDuration = 0.1f;</p>
+<pre><code>// 获取某一帧的属性字典
+CFDictionaryRef cfFrameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil);
+if (!cfFrameProperties) {
+    return frameDuration;
+}
+
+// 获取某一帧的 gif 属性
+NSDictionary \*frameProperties = (__bridge NSDictionary \*)cfFrameProperties;
+NSDictionary \*gifProperties = frameProperties\[(NSString \*)kCGImagePropertyGIFDictionary\];
+
+NSNumber \*delayTimeUnclampedProp = gifProperties\[(NSString \*)kCGImagePropertyGIFUnclampedDelayTime\];
+if (delayTimeUnclampedProp != nil) {
+    frameDuration = \[delayTimeUnclampedProp floatValue\];
+} 
+else {
+    NSNumber \*delayTimeProp = gifProperties\[(NSString \*)kCGImagePropertyGIFDelayTime\];
+    if (delayTimeProp != nil) {
+        frameDuration = \[delayTimeProp floatValue\];
+    }
+}
+
+// Many annoying ads specify a 0 duration to make an image flash as quickly as possible.
+// We follow Firefox&apos;s behavior and use a duration of 100 ms for any frames that specify
+// a duration of &lt;= 10 ms. See &lt;rdar://problem/7689300&gt; and &lt;http://webkit.org/b/36082&gt;
+// for more information.
+/\* 对于时间太短的进行处理  */
+if (frameDuration &lt; 0.011f) {
+    frameDuration = 0.100f;
+}
+
+CFRelease(cfFrameProperties);
+return frameDuration;
+</code></pre><p>}</p>
+<p>获取某一帧的时长。</p>
+<p>- (UIImage <em>)decompressedImageWithImage:(UIImage </em>)image<br>                                   data:(NSData *__autoreleasing  _Nullable *)data<br>                                options:(nullable NSDictionary&lt;NSString<em>, NSObject</em>&gt;*)optionsDict {<br>    // GIF do not decompress<br>    return image;<br>}</p>
+<p>解压图片，GIF 图不需要解压。</p>
+<p>- (BOOL)canEncodeToFormat:(SDImageFormat)format {<br>    return (format == SDImageFormatGIF);<br>}</p>
+<p>- (NSData <em>)encodedDataWithImage:(UIImage </em>)image format:(SDImageFormat)format<br>{<br>    if (!image) {<br>        return nil;<br>    }</p>
+<pre><code>// 非 GIF 格式直接返回
+if (format != SDImageFormatGIF) {
+    return nil;
+}
+
+NSMutableData *imageData = \[NSMutableData data\];
+
+// SDImageFormat -&gt; UTType
+CFStringRef imageUTType = \[NSData sd_UTTypeFromSDImageFormat:SDImageFormatGIF\];
+
+// 图片的帧数组
+NSArray&lt;SDWebImageFrame *&gt; *frames = \[SDWebImageCoderHelper framesFromAnimatedImage:image\];
+
+// Create an image destination. GIF does not support EXIF image orientation
+// 创建一个图像目标
+CGImageDestinationRef imageDestination = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)imageData, 
+                                                                          imageUTType, 
+                                                                          frames.count, 
+                                                                          NULL);
+if (!imageDestination) {
+    // Handle failure.
+    return nil;
+}
+if (frames.count == 0) {
+    // for static single GIF images
+    CGImageDestinationAddImage(imageDestination, image.CGImage, nil);
+} 
+else {
+    // for animated GIF images. GIF 图属性
+    NSUInteger loopCount = image.sd_imageLoopCount;
+    NSDictionary \*gifProperties = @{(\_\_bridge NSString \*)kCGImagePropertyGIFDictionary: @{(\_\_bridge NSString *)kCGImagePropertyGIFLoopCount : @(loopCount)}};
+
+    // 设置 GIF 属性
+    CGImageDestinationSetProperties(imageDestination, (__bridge CFDictionaryRef)gifProperties);
+
+    for (size_t i = 0; i &lt; frames.count; i++) {
+        SDWebImageFrame *frame = frames\[i\];
+        float frameDuration = frame.duration;
+        CGImageRef frameImageRef = frame.image.CGImage;
+        NSDictionary \*frameProperties = @{(\_\_bridge NSString \*)kCGImagePropertyGIFDictionary : @{(\_\_bridge NSString *)kCGImagePropertyGIFDelayTime : @(frameDuration)}};
+
+        // 设置每一帧的属性 
+        CGImageDestinationAddImage(imageDestination, frameImageRef, (__bridge CFDictionaryRef)frameProperties);
+    }
+}
+// Finalize the destination.
+if (CGImageDestinationFinalize(imageDestination) == NO) {
+    // Handle failure.
+    imageData = nil;
+}
+
+CFRelease(imageDestination);
+
+return \[imageData copy\];
+</code></pre><p>}</p>
+<p>实现 SDWebImageCoder 协议的编码方法。CGImageDestinationRef 与 CGImageSourceRef 相对。</p>
+<p>/**<br> * 缩放图片<br> */<br>- (UIImage *)sd_animatedImageByScalingAndCroppingToSize:(CGSize)size<br>{<br>    // 与当前尺寸相同 || 传入 { 0, 0 } 尺寸<br>    if (CGSizeEqualToSize(self.size, size) || CGSizeEqualToSize(size, CGSizeZero)) {<br>        return self;<br>    }</p>
+<pre><code>CGSize scaledSize = size;
+CGPoint thumbnailPoint = CGPointZero;
+
+CGFloat widthFactor = size.width / self.size.width;
+CGFloat heightFactor = size.height / self.size.height;
+
+// 保留大的比例
+CGFloat scaleFactor = (widthFactor &gt; heightFactor) ? widthFactor : heightFactor;
+scaledSize.width = self.size.width * scaleFactor;
+scaledSize.height = self.size.height * scaleFactor;
+
+if (widthFactor &gt; heightFactor) {
+    thumbnailPoint.y = (size.height - scaledSize.height) * 0.5;
+}
+else if (widthFactor &lt; heightFactor) {
+    thumbnailPoint.x = (size.width - scaledSize.width) * 0.5;
+}
+
+NSMutableArray *scaledImages = \[NSMutableArray array\];
+
+// 使用 CoreGraphics 重新绘制尺寸
+for (UIImage *image in self.images) {
+    UIGraphicsBeginImageContextWithOptions(size, NO, 0.0);
+
+    \[image drawInRect:CGRectMake(thumbnailPoint.x, thumbnailPoint.y, scaledSize.width, scaledSize.height)\];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+
+    \[scaledImages addObject:newImage\];
+
+    UIGraphicsEndImageContext();
+}
+
+return \[UIImage animatedImageWithImages:scaledImages duration:self.duration\];
+</code></pre><p>}</p>
+<p>v4.0.0 已删除的方法。</p>
+<h5 id="七、总结"><a href="#七、总结" class="headerlink" title="七、总结"></a>七、总结</h5><p>gif 也算是一种无损的格式，本分类只是给予 UIImage 支持 GIF 的能力。</p>
+<p>因此由这种思想，可以联想到别的地方：当需要某种能力支持的时候，我们应该去观察底层，也就是数据层的规律。就比如图像数据，本质上还是一些二进制的数据，越往上，越被包装的简单易用，归根到底，写代码的根本就是处理数据。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/14/uiimagegif/">http://yoursite.com/2019/03/14/uiimagegif/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/14/sdwebimagecompat/" class="pre"> SDWebImageCompat		</a><a href="/2019/03/13/nsdataimagecontenttype/" class="next"> NSData+ImageContentType		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、UIImage-的-size、scale-属性"><span class="toc-text">一、UIImage 的 size、scale 属性</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、实现渐进式图片加载的步骤"><span class="toc-text">二、实现渐进式图片加载的步骤</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、UIImage-GIF-h-文件"><span class="toc-text">三、UIImage+GIF.h 文件</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、UIImage-GIF-m-文件"><span class="toc-text">四、UIImage+GIF.m 文件</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、SDWebImageGIFCoder-h"><span class="toc-text">五、SDWebImageGIFCoder.h</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、SDWebImageGIFCoder-m"><span class="toc-text">六、SDWebImageGIFCoder.m</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#七、总结"><span class="toc-text">七、总结</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

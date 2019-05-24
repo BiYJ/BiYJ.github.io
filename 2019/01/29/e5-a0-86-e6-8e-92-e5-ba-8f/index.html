@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 堆排序		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 堆排序		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 堆排序		</h1><div class="post-meta"><a href="/2019/01/29/e5-a0-86-e6-8e-92-e5-ba-8f/#comments" class="comment-count"></a><p><span class="date">Jan 29, 2019</span><span><a href="/categories/排序算法/" class="category">排序算法</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>堆排序 Heap Sort，是指将整个数组转化成 “堆” 这种数据结构，利用堆的性质，去简化排序的过程。堆排序，可以看做是“变治法”的一种实现。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-e25b62dbcc16d8fb.gif?imageMogr2/auto-orient/strip" alt="堆排序"></p>
+<p>From Wikipedia：<a href="https://en.wikipedia.org/wiki/Heapsort" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Heapsort</a></p>
+<h5 id="一、堆"><a href="#一、堆" class="headerlink" title="一、堆"></a>一、堆</h5><p>堆是一个可以被看做一棵树的数组对象，但是堆总是需要满足以下两条性质：</p>
+<p>①、堆是一棵完全二叉树。树的每一层都是满的，除了最后一层最右边的元素有可能出现缺位。<br>②、父母优势。即堆中的所有子节点，总是不大于或不小于其父节点的值。</p>
+<p>根据子节点与父节点的关系，可以将堆分为最大堆（大的值在上）和最小堆（小的值在上）两种情况。</p>
+<h5 id="二、堆的数组表现形式"><a href="#二、堆的数组表现形式" class="headerlink" title="二、堆的数组表现形式"></a>二、堆的数组表现形式</h5><p>数组 [9, 7, 3, 5, 1, 2, 6, 0, 8, 4] 按照顺序逐层放置可以转化为以下二叉树结构。（目前不具备堆的性质）</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-656e3af0d584deef.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="äºåæ "></p>
+<h5 id="三、堆的性质"><a href="#三、堆的性质" class="headerlink" title="三、堆的性质"></a>三、堆的性质</h5><p>1、获取堆中某个节点的左节点、右节点、父节点</p>
+<p>- (int)leftNode:(int)node<br>{<br>    return (node &lt;&lt; 1) + 1;    // 0 &lt;&lt; 1 = 0<br>}</p>
+<p>- (int)rightNode:(int)node<br>{<br>    return (node &lt;&lt; 1) + 2;<br>}</p>
+<p>- (int)parentNode:(int)node<br>{<br>    return (node - 1) &gt;&gt; 1;<br>}</p>
+<p>①、把完全二叉树每层的节点个数看成二进制 1、2、4、8…</p>
+<p>②、当前节点在层 n（从 0 开始）的位置为 m（从 0 开始），那么节点在数组的位置为 index = 2 ^ (n - 1) + 2 ^ (n - 2) + … + 2 ^ 0 + m</p>
+<p>左边子节点就是 2 ^ n + 2 <em> (n - 1) + … + 2 ^ 0 + m </em> 2 + 1 = index <em> 2 + 1<br>右边子节点就是 2 ^ n + 2 </em> (n - 1) + … + 2 ^ 0 + m <em> 2 + 2 = index </em> 2 + 2</p>
+<p>2、保持最大堆/最小堆的性质</p>
+<p>当二叉树中的某个子节点，其左子树和右子树都具备堆的性质，那么可以通过一系列的交换，将以该子节点为根节点的树，转化为堆的结构。</p>
+<p>/**<br> *  @param  array   待排序数组<br> *  @param  node   当前节点<br> *  @param  lastNode   最后一个节点<br> */<br>- (void)maxHeapSort:(NSMutableArray *)array node:(int)node lastNode:(int)lastNode<br>{<br>    int lNode = [self  leftNode:node];   // 左子节点<br>    int rNode = [self rightNode:node];  // 右子节点<br>    int largestNode = node;   // 最大值节点。初始为当前节点</p>
+<pre><code>// 如果左子节点没有超出范围 &amp;&amp; 左子节点数值比 largestNode 的大
+if (lNode &lt;= lastNode &amp;&amp; \[array\[lNode\] integerValue\] &gt; \[array\[largestNode\] integerValue\]) {
+    largestNode = lNode;
+}
+
+// 如果右子节点没有超出范围 &amp;&amp; 右子节点数值比 largestNode 的大
+if (rNode &lt;= lastNode &amp;&amp; \[array\[rNode\] integerValue\] &gt; \[array\[largestNode\] integerValue\]) {
+    largestNode = rNode;
+}
+
+// 如果当前节点不是最大值，发生交换
+if (node != largestNode) {
+    \[array exchangeObjectAtIndex:node withObjectAtIndex:largestNode\];
+    \[self maxHeapSort:array node:largestNode lastNode:lastNode\];
+}
+</code></pre><p>}</p>
+<p>3、构造最大堆/最小堆</p>
+<p>将一个不具备堆性质的数组，转化为堆的结构，一般都是自底向上开始的。</p>
+<p>自二叉树的第一个非叶节点开始，自底向上，依次保持二叉树的堆的性质，直至根节点。</p>
+<p>NSMutableArray * arr = [NSMutableArray arrayWithObjects:@9, @7, @3, @5, @1, @2, @6, @0, @8, @4, nil];<br>int lastNonLeaf = (int)(arr.count - 2) &gt;&gt; 1;</p>
+<p>for (int i = lastNonLeaf; i &gt; -1; –i) {<br>     [self maxHeapSort:arr node:i lastNode:arr.count - 1];<br>}</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-51affe09b8c2ff2f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="æå¤§å "></p>
+<h5 id="四、堆排序"><a href="#四、堆排序" class="headerlink" title="四、堆排序"></a>四、堆排序</h5><p>①、将原数组转化为堆的形式。升序排列使用最大堆，降序排列使用最小堆。</p>
+<p>②、将数组最后一位与第一位交换，因为是最大堆的关系，第一位数字就是最大值，落在了最后一位上。</p>
+<p>③、剔除最后一位数字，将数组剩余部分，看作一颗新的二叉树。其中根节点的左子树和右子树都满足最大堆的性质，保持这棵新二叉树的最大堆性质。这里是通过自顶向下的方式直到最后一个叶子节点调整二叉树。</p>
+<p>④、循环 ②、③，直至根节点，整个数组即自然有序。</p>
+<p>NSMutableArray * arr = [NSMutableArray arrayWithObjects:@9, @7, @3, @5, @1, @2, @6, @0, @8, @4, nil];<br>int lastNonLeaf = (int)(arr.count - 2) &gt;&gt; 1;  // 从第一个非叶子节点开始构造，即最后一个叶子节点的父节点。</p>
+<p>// 数组 -&gt; 堆 -> 最大堆<br>for (int i = lastNonLeaf; i &gt; -1; –i) {<br>     [self maxHeapSort:arr node:i lastNode:(int)arr.count - 1];<br>}</p>
+<p>// 最大堆 -> 第一个与最后一个交换<br>for (int i = (int)arr.count - 1; i &gt; 0; –i) {<br>     [arr exchangeObjectAtIndex:i withObjectAtIndex:0];<br>     [self maxHeapSort:arr node:0 lastNode:i - 1];<br>}</p>
+<h5 id="五、变治法代码"><a href="#五、变治法代码" class="headerlink" title="五、变治法代码"></a>五、变治法代码</h5><p>#include &lt;stdio.h&gt;</p>
+<p>#define num 10</p>
+<p>int temp;</p>
+<p>void Description(int *a)<br>{<br>    for(int i = 0; i &lt; num; i++) {<br>        printf(“%d  “, a[i]);<br>    }<br>    printf(“\n”);<br>}</p>
+<p>/**<br>  *  @brief   筛选算法。用于维护堆，保持最大堆的性质<br>  *  @param   a   数组<br>  *  @param   k   调整的结点<br>  *  @param   n  堆的大小<br>  <em>/<br>void MaxHeapify(int </em>a, int k, int n)<br>{<br>    int i = k, j;<br>    j = 2 * i + 1;  // 置 i 为要筛的结点，j 为 i 的左孩子</p>
+<pre><code>while(j &lt; n) {
+
+    // j + 1 &lt; n 用于判断 i 是否有右孩子。a\[j\] &lt; a\[j+1\] 用于比较左右孩子的大小
+    if (j + 1 &lt; n &amp;&amp; a\[j\] &lt; a\[j+1\])
+        j++;
+
+    if(a\[i\] &gt; a\[j\]) {  // i 节点大于左右孩子中的最大者
+        break;
+    }
+    else {
+        temp = a\[i\];
+        a\[i\] = a\[j\];
+        a\[j\] = temp;
+        i = j;
+        j = 2 * i + 1;
+    }
+}
+</code></pre><p>}</p>
+<p>void HeapSort(int *a)<br>{<br>    int i;</p>
+<pre><code>// 每建立一次堆，只能确定根节点是最大值，其他节点并没有按序排好，所以后面有重复建堆的过程，但是需要建堆的区间慢慢变少了
+for(i = (num - 1)/2; i &gt;= 0; i--) {
+    MaxHeapify(a, i, num);  // 初始建堆，其中一开始 i 表示的是最后一个元素的父节点
+
+    Description(a);
+}
+printf(&quot;\\n&quot;);
+
+// 重复执行移走堆项及重建堆的操作
+for (i = 1; i &lt; num; i++) {   // i 表示当前堆的大小，即等待排序的元素的个数
+    temp = a\[0\];
+    a\[0\] = a\[num - i\];
+    a\[num - i\] = temp;
+
+    MaxHeapify(a, 0, num - i);  //从根节点处继续调整建堆，0 ... n-i 是无序区
+
+    Description(a);
+}
+</code></pre><p>}</p>
+<p>int main()<br>{<br>    int a[num] = {0, 1, 3, 5, 7, 9, 8, 6, 4, 2};</p>
+<pre><code>HeapSort(a);
+Description(a);
+
+return 0;
+</code></pre><p>}</p>
+<p>0  1  3  5  7  9  8  6  4  2<br>0  1  3  6  7  9  8  5  4  2<br>0  1  9  6  7  3  8  5  4  2<br>0  7  9  6  2  3  8  5  4  1<br>9  7  8  6  2  3  0  5  4  1  </p>
+<p>8  7  3  6  2  1  0  5  4  9<br>7  6  3  5  2  1  0  4  8  9<br>6  5  3  4  2  1  0  7  8  9<br>5  4  3  0  2  1  6  7  8  9<br>4  2  3  0  1  5  6  7  8  9<br>3  2  1  0  4  5  6  7  8  9<br>2  0  1  3  4  5  6  7  8  9<br>1  0  2  3  4  5  6  7  8  9<br>0  1  2  3  4  5  6  7  8  9<br>0  1  2  3  4  5  6  7  8  9 </p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-cf0540213656f143.gif?imageMogr2/auto-orient/strip" alt></p>
+<h5 id="六、堆排序的时间复杂度"><a href="#六、堆排序的时间复杂度" class="headerlink" title="六、堆排序的时间复杂度"></a>六、堆排序的时间复杂度</h5><p>堆排序由两部分组成：</p>
+<ul>
+<li>构建最大堆</li>
+<li>循环保持最大堆的性质</li>
+</ul>
+<p>1、构建最大堆的时间复杂度 T = O(n)</p>
+<p>构建最大堆的过程，是从第一个非叶节点开始的，即数组的 1/2 处。</p>
+<p>考虑最坏情况：</p>
+<ul>
+<li>二叉树的倒数第二行，总会与最后一行发生一次比较/交换。</li>
+<li>二叉树的倒数第三行，总会与倒数第二行发生一次比较/交换，与最后一行发生一次比较/交换。</li>
+<li>…</li>
+<li>二叉树的第一行，总会与它下面的每一行都发生一次比较/交换，即交换次数为二叉树高度 d = log2n。</li>
+</ul>
+<p>将这些比较/交换次数累加：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-f2146ea58f83597c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="比较/交换次数"></p>
+<p>2、循环保持最大堆的性质的时间复杂度 T = O(n * log2n)</p>
+<p>这一步的时间计算就相对比较明显了，在 n 次循环的内部，进行时间复杂度为 O(log2n) 的 maxHeapSort()。</p>
+<p>所以总时间复杂度 T = O(n) + O(nlog2n) =O(nlog2n)</p>
+<h5 id="七、学习文章"><a href="#七、学习文章" class="headerlink" title="七、学习文章"></a>七、学习文章</h5><p><a href="https://home.cnblogs.com/u/jing-an-feng-shao/" target="_blank" rel="noopener">Gerrard_Feng</a> <a href="https://www.cnblogs.com/jing-an-feng-shao/p/9017120.html" target="_blank" rel="noopener">排序算法（五）堆排序</a></p>
+<p><a href="https://blog.csdn.net/hjl_heart/article/details/80024865" target="_blank" rel="noopener">使用减治法求解堆排序</a></p>
+<p><a href="https://blog.csdn.net/xiaoxiaoxuewen/article/details/7570621/" target="_blank" rel="noopener">堆排序原理及算法实现（最大堆）</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/01/29/e5-a0-86-e6-8e-92-e5-ba-8f/">http://yoursite.com/2019/01/29/e5-a0-86-e6-8e-92-e5-ba-8f/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/01/29/e5-bd-92-e5-b9-b6-e6-8e-92-e5-ba-8f/" class="pre"> 归并排序		</a><a href="/2019/01/29/e5-b8-8c-e5-b0-94-e6-8e-92-e5-ba-8f/" class="next"> 希尔排序		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、堆"><span class="toc-text">一、堆</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、堆的数组表现形式"><span class="toc-text">二、堆的数组表现形式</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、堆的性质"><span class="toc-text">三、堆的性质</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、堆排序"><span class="toc-text">四、堆排序</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、变治法代码"><span class="toc-text">五、变治法代码</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、堆排序的时间复杂度"><span class="toc-text">六、堆排序的时间复杂度</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#七、学习文章"><span class="toc-text">七、学习文章</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

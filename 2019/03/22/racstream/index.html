@@ -1,0 +1,481 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> RACStream		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> RACStream		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> RACStream		</h1><div class="post-meta"><a href="/2019/03/22/racstream/#comments" class="comment-count"></a><p><span class="date">Mar 22, 2019</span><span><a href="/categories/ReactiveCocoa/" class="category">ReactiveCocoa</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p><img src="https://upload-images.jianshu.io/upload_images/5294842-e25caa3439aac375.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="3"></p>
+<p>RACStream 继承自 NSObject，是 RACSignal 和 RACSequence 的父类，定义了一些流的操作方法。从名字上可以看出来，这个对象就像流一样可以往任何一个出口流，同时也可以给这个流设计一道道关卡，改变流（既包括流的内容，也包括融合，也包括流的筛选等）。</p>
+<h5 id="一、-h-文件"><a href="#一、-h-文件" class="headerlink" title="一、.h 文件"></a>一、.h 文件</h5><p>@class RACStream;</p>
+<p>/// A block which accepts a value from a RACStream and returns a new instance of the same stream class.<br>///<br>/// Setting `stop` to `YES` will cause the bind to terminate after the returned value. Returning `nil` will result in immediate termination.<br>/**<br> * @param  value  表示接收到信号的原始值，还未作处理<br> * @param  *stop  用于控制绑定 block，如果 *stop = YES，那么就会结束绑定<br> *<br> * @return  信号。做好处理后，再通过这个信号返回出去，一般使用 RACReturnSignal<br> <em>/<br>typedef RACStream </em> (^RACStreamBindBlock)(id value, BOOL *stop);</p>
+<p>接受来自 RACStream 的值并返回 RACStream 类的新实例的 block。将 stop 设置为 YES 将导致绑定在返回值之后终止。返回 nil 将立即终止。</p>
+<p>/// An abstract class representing any stream of values.<br>///<br>/// This class represents a monad, upon which many stream-based operations can be built.<br>///<br>/// When subclassing RACStream, only the methods in the main @interface body need to be overridden.<br>@interface RACStream : NSObject</p>
+<p>表示任何数据流的抽象类。</p>
+<p>这个类表示一个 <a href="https://www.jianshu.com/p/cf28f2e5a905" target="_blank" rel="noopener">monad</a>，在这个 monad 上可以构建许多基于流的操作。当继承 RACStream 时，只需要重写这个主要类的方法。</p>
+<p>/// This extension contains functionality to support naming streams for debugging.<br>///<br>/// Subclasses do not need to override the methods here.<br>@interface RACStream ()</p>
+<p>此扩展包含支持调试的对流进行命名的功能。子类不需要重写方法。</p>
+<p>/// The name of the stream. This is for debugging/human purposes only.<br>@property (copy) NSString *name;</p>
+<p>流的名称，用于调试目的。</p>
+<p>/// Operations built on the RACStream primitives.<br>///<br>/// These methods do not need to be overridden, although subclasses may occasionally gain better performance from doing so.<br>@interface RACStream (Operations)</p>
+<p>基于 RACStream 构建的操作。这些方法不需要被重写，尽管有时子类可以通过重写获得更好的性能。</p>
+<p>/// Zips streams using +zip:, then reduces the resulting tuples into a single value using -reduceEach:<br>///<br>/// streams     - The streams to combine. These must all be instances of the<br>///               same concrete class implementing the protocol. If this<br>///               collection is empty, the returned stream will be empty.<br>/// reduceBlock - The block which reduces the values from all the streams<br>///               into one value. It must take as many arguments as the<br>///               number of streams given. Each argument will be an object<br>///               argument. The return value must be an object. This argument<br>///               must not be nil.<br>///<br>/// Example:<br>///<br>///   [RACStream zip:@[ stringSignal, intSignal ] reduce:^(NSString *string, NSNumber *number) {<br>///       return [NSString stringWithFormat:@”%@: %@”, string, number];<br>///   }];<br>///<br>/// Returns a new stream containing the results from each invocation of<br>/// `reduceBlock`.<br>+ (instancetype)zip:(id<nsfastenumeration>)streams reduce:(id (^)())reduceBlock;</nsfastenumeration></p>
+<p>使用 zip: 方法打包多个流，然后使用 -reduceEach: 将生成的元组 tuples 缩减为单个值。</p>
+<p>/// Returns a stream obtained by concatenating `streams` in order.<br>+ (instancetype)concat:(id<nsfastenumeration>)streams;</nsfastenumeration></p>
+<p>返回按顺序连接 streams 而获得的流对象。</p>
+<p>/// Combines values in the receiver from left to right using the given block.<br>///<br>/// The algorithm proceeds as follows:<br>///<br>///  1. `startingValue` is passed into the block as the `running` value, and the<br>///  first element of the receiver is passed into the block as the `next` value.<br>///  2. The result of the invocation is added to the returned stream.<br>///  3. The result of the invocation (`running`) and the next element of the<br>///  receiver (`next`) is passed into `block`.<br>///  4. Steps 2 and 3 are repeated until all values have been processed.<br>///<br>/// startingValue - The value to be combined with the first element of the<br>///                 receiver. This value may be `nil`.<br>/// reduceBlock   - The block that describes how to combine values of the<br>///                 receiver. If the receiver is empty, this block will never be<br>///                 invoked. Cannot be nil.<br>///<br>/// Examples<br>///<br>///      RACSequence <em>numbers = @[ @1, @2, @3, @4 ].rac_sequence;<br>///<br>///      // Contains 1, 3, 6, 10<br>///      RACSequence \</em>sums = [numbers scanWithStart:@0 reduce:^(NSNumber *sum, NSNumber *next) {<br>///          return @(sum.integerValue + next.integerValue);<br>///      }];<br>///<br>/// Returns a new stream that consists of each application of `reduceBlock`. If the receiver is empty, an empty stream is returned.<br>- (instancetype)scanWithStart:(id)startingValue reduce:(id (^)(id running, id next))reduceBlock;</p>
+<p>在 bind 基础上封装的改变方法，用同样的 block 执行每次流中的值，并将结果用于后一次执行当中，每次都把 block 执行后的值变成新的流中的对象。</p>
+<p>/// Takes values until the given block returns `YES`.<br>///<br>/// Returns a stream of the initial values in the receiver that fail `predicate`.<br>/// If `predicate` never returns `YES`, a stream equivalent to the receiver is returned.<br>- (instancetype)takeUntilBlock:(BOOL (^)(id x))predicate;</p>
+<p>在 bind 基础上封装的改变方法，取当前流的对象值，直到当前值满足提供的 block，就会将当前流变为空（不是空流）。</p>
+<p>/// Takes values until the given block returns `NO`.<br>///<br>/// Returns a stream of the initial values in the receiver that pass `predicate`.<br>/// If `predicate` never returns `NO`, a stream equivalent to the receiver is returned.<br>- (instancetype)takeWhileBlock:(BOOL (^)(id x))predicate;</p>
+<p>在 bind 基础上封装的改变方法，取当前流的对象值，直到当前值不满足提供的 block，就会将当前流变为空（不是空流）。</p>
+<p>/// Skips values until the given block returns `YES`.<br>///<br>/// Returns a stream containing the values of the receiver that follow any initial values failing `predicate`. If `predicate` never returns `YES`, an empty stream is returned.<br>- (instancetype)skipUntilBlock:(BOOL (^)(id x))predicate;</p>
+<p>在 bind 基础上封装的改变方法，忽略当前流的对象值（变为空流），直到当前值满足提供的 block。</p>
+<p>/// Skips values until the given block returns `NO`.<br>///<br>/// Returns a stream containing the values of the receiver that follow any initial values passing `predicate`. If `predicate` never returns `NO`, an empty stream is returned.<br>- (instancetype)skipWhileBlock:(BOOL (^)(id x))predicate;</p>
+<p>在 bind 基础上封装的改变方法，忽略当前流的对象值（变为空流），直到当前值不满足提供的 block</p>
+<p>/// Returns a stream of values for which -isEqual: returns NO when compared to the previous value.<br>- (instancetype)distinctUntilChanged;</p>
+<p>在 bind 基础上封装的改变方法，当流中后一次的值和前一次的值不同的时候，才会返回当前值的流，否则返回空流（第一次默认被忽略）。</p>
+<h6 id="1、empty"><a href="#1、empty" class="headerlink" title="1、empty"></a>1、empty</h6><p>/<em><br>  Returns an empty stream.<br> \</em>/<br>+ (instancetype)empty<br>{<br>    return nil;<br>}</p>
+<p>返回一个空的流对象。由子类定义行为。</p>
+<h6 id="2、bind"><a href="#2、bind" class="headerlink" title="2、bind:"></a>2、bind:</h6><p>/* Lazily binds a block to the values in the receiver.</p>
+<p>  This should only be used if you need to terminate the bind early, or close over some state. -flattenMap: is more appropriate for all other cases.</p>
+<p>  block - A block returning a RACStreamBindBlock. This block will be invoked<br>          each time the bound stream is re-evaluated. This block must not be nil or return nil.</p>
+<p>  Returns a new stream which represents the combined result of all lazy applications of `block`.<br> */<br>- (instancetype)bind:(RACStreamBindBlock (^)(void))block<br>{<br>    return nil;<br>}</p>
+<p>只改变当前流对象的方法。</p>
+<p>bind 函数的作用：</p>
+<ol>
+<li>会订阅原始的信号。</li>
+<li>任何时刻原始信号发送一个值，都会绑定的 block 转换一次。</li>
+<li>一旦绑定的 block 转换了值变成信号，就立即订阅，并把值发给订阅者 subscriber。</li>
+<li>一旦绑定的 block 要终止绑定，原始的信号就 complete。</li>
+<li>当所有的信号都 complete，发送 completed 信号给订阅者 subscriber。</li>
+<li>如果中途信号出现了任何 error，都要把这个错误发送给 subscriber</li>
+</ol>
+<h5 id="3、return"><a href="#3、return" class="headerlink" title="3、return:"></a>3、return:</h5><p>/* Lifts `value` into the stream monad.</p>
+<p>  Returns a stream containing only the given value.<br> */<br>+ (instancetype)return:(id)value<br>{<br>    return nil;<br>}</p>
+<p>返回一个仅包含 value 数据的流对象。由子类定义行为。</p>
+<h6 id="4、concat"><a href="#4、concat" class="headerlink" title="4、concat:"></a>4、concat:</h6><p>/* Appends the values of `stream` to the values in the receiver.</p>
+<p>   stream - A stream to concatenate. This must be an instance of the same concrete class as the receiver, and should not be `nil`.</p>
+<p>   Returns a new stream representing the receiver followed by `stream`.<br> */<br>- (instancetype)concat:(RACStream *)stream<br>{<br>    return nil;<br>}</p>
+<p>在当前响应流已经完成后，紧接着注入新的响应流。抽象方法未实现，由子类定义行为。</p>
+<h6 id="5、zipWith"><a href="#5、zipWith" class="headerlink" title="5、zipWith:"></a>5、zipWith:</h6><p>/* Zips the values in the receiver with those of the given stream to create RACTuples.</p>
+<p>   The first value of each stream will be combined, then the second value, and so forth, until at least one of the streams is exhausted.</p>
+<p>   stream - The stream to zip with. This must be an instance of the same concrete class as the receiver, and should not be `nil`.</p>
+<p>   Returns a new stream of RACTuples, representing the zipped values of the two streams.<br> */<br>- (instancetype)zipWith:(RACStream *)stream<br>{<br>   return nil;<br>}</p>
+<p>将不同的流进行打包合成一个流。抽象方法未实现，由子类定义行为。</p>
+<h6 id="6、setNameWithFormat"><a href="#6、setNameWithFormat" class="headerlink" title="6、setNameWithFormat:"></a>6、setNameWithFormat:</h6><p>/* Sets the name of the receiver to the given format string. </p>
+<p>   This is for debugging purposes only, and won’t do anything unless the RAC_DEBUG_SIGNAL_NAMES environment variable is set.</p>
+<p>   Returns the receiver, for easy method chaining.<br> */<br>- (instancetype)setNameWithFormat:(NSString *)format, …<br>{<br>    if (getenv(“RAC_DEBUG_SIGNAL_NAMES”) == NULL) return self;</p>
+<pre><code>NSCParameterAssert(format != nil);
+
+va_list args;
+va_start(args, format);
+
+NSString *str = \[\[NSString alloc\] initWithFormat:format arguments:args\];
+va_end(args);
+
+self.name = str;
+return self;
+</code></pre><p>}</p>
+<p>将流的名称设置为给定的格式字符串，这仅用于调试目的，除非设置了 rac_debug_signal_names 环境变量，否则不会执行任何操作。返回流对象用于方法链的调用。</p>
+<p>这里值得学习的是可变参数的使用，va_list 是在 C 语言中解决变参问题的一组宏。</p>
+<p>va_list 的用法：</p>
+<p>①、首先在函数里定义一个 va_list 型的变量，这个变量是指向参数的指针；</p>
+<p>②、然后用 va_start 宏初始化变量刚定义的 va_list 变量，va_start 的第 2 个参数是可变参数的前一个参数；</p>
+<p>③、最后用 va_end 宏结束可变参数的获取。</p>
+<h6 id="7、flattenMap"><a href="#7、flattenMap" class="headerlink" title="7、flattenMap:"></a>7、flattenMap:</h6><p>要分析这个方法，先看看一个例子。</p>
+<pre><code>// 1\. 创建信号
+RACSignal * signal = \[RACSignal createSignal:^RACDisposable *(id&lt;RACSubscriber&gt; subscriber) {
+
+    \[subscriber sendNext:@&quot;111&quot;\];
+
+    return nil;
+}\];
+
+// 2\. 调用 flattenMap 
+RACSignal * flattenSignal = \[signal flattenMap:^RACStream *(id value) {
+
+    value = \[NSString stringWithFormat:@&quot;Flatten Map %@&quot;, value\];
+    return \[RACReturnSignal return:value\];
+}\]; 
+
+// 3\. 订阅信号。flattenSignal 为 RACDynamicSignal 类型
+\[flattenSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;, x);
+}\];
+</code></pre><p>Flatten Map 111</p>
+<p>从输出 Flatten Map 111 可以看到，订阅的 block 里输出的是 flattenMap: 处理过的数据。</p>
+<p>/*<br> Maps `block` across the values in the receiver and flattens the result.</p>
+<p> Note that operators applied _after_ -flattenMap: behave differently from operators _within_ -flattenMap:. See the Examples section below.</p>
+<p> This corresponds to the `SelectMany` method in Rx.</p>
+<p> block - A block which accepts the values in the receiver and returns a new instance of the receiver’s class.          Returning `nil` from this block is equivalent to returning an empty signal.</p>
+<p> Examples</p>
+<p>   [signal flattenMap:^(id x) {<br>       // Logs each time a returned signal completes.<br>       return [[RACSignal return:x] logCompleted];<br>   }];</p>
+<p>   [[signal flattenMap:^(id x) {<br>        return [RACSignal return:x];<br>       }]<br>       // Logs only once, when all of the signals complete.<br>       logCompleted];</p>
+<p> Returns a new stream which represents the combined streams resulting from mapping `block`.<br>*/<br>- (instancetype)flattenMap:(RACStream <em> (^)(id value))block<br>{<br>    Class class = self.class;<br>    return [[self bind:^{<br>        return ^(id value, BOOL </em>stop) {</p>
+<pre><code>        id stream = block(value) ?: \[class empty\];
+        NSCAssert(\[stream isKindOfClass:RACStream.class\], @&quot;%@&quot;, stream);
+
+    return stream;
+};
+}\] setNameWithFormat:@&quot;\[%@\] -flattenMap:&quot;, self.name\];
+</code></pre><p>}</p>
+<p>从方法的源码可以看到 flattenMap 是在 bind 基础上封装的。</p>
+<p>flattenMap 调用 bind 方法传入 block，RACSignal 的 bind 方法内部会执行 block 的返回值 RACStreamBindBlock，它也是一个 block，最后会调用最内层代码。内层代码将 value 数据传给 flattenMap 参数的 block，这里进行了数据的处理并返回一个 RACStream 对象（通常是 RACReturnSignal 对象），RACStream 向上传递，在 bind 的 block 里被包装成 RACDynamicSignal 类（被添加到了 signals 数组中）。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-031d7dec218d57b4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="4"></p>
+<p>总结：flattenMap 根据前一个信号的参数创建一个新的信号。</p>
+<h6 id="8、flatten"><a href="#8、flatten" class="headerlink" title="8、flatten"></a>8、flatten</h6><p>/* Flattens a stream of streams.</p>
+<p>   This corresponds to the `Merge` method in Rx.</p>
+<p>   Returns a stream consisting of the combined streams obtained from the receiver.<br>*/<br>- (instancetype)flatten<br>{<br>    __weak RACStream *stream __attribute__((unused)) = self; </p>
+<pre><code>return \[\[self flattenMap:^(id value) { 
+     return value; 
+}\] setNameWithFormat:@&quot;\[%@\] -flatten&quot;, self.name\]; 
+</code></pre><p>}</p>
+<p>在 flattenMap 基础上封装的改变方法，就是函数式编程中的聚合 Merge。</p>
+<p>要了解这个方法需要结合 RACSignal 中的 merge: 方法。</p>
+<p>- (RACSignal <em>)merge:(RACSignal </em>)signal<br>{<br>    // 调用类方法，传入信号数组<br>    return [[RACSignal merge:@[ self, signal ]] setNameWithFormat:@”[%@] -merge: %@”, self.name, signal];<br>}</p>
+<p>+ (RACSignal <em>)merge:(id<nsfastenumeration>)signals<br>{<br>    NSMutableArray </nsfastenumeration></em>copiedSignals = [[NSMutableArray alloc] init];</p>
+<pre><code>// 数组持有多个信号
+for (RACSignal *signal in signals) {
+    \[copiedSignals addObject:signal\];
+}
+
+return \[\[\[RACSignal createSignal:^ RACDisposable * (id&lt;RACSubscriber&gt; subscriber) {
+
+    // 订阅者发送内容，内容为信号 self 和 signal
+    for (RACSignal *signal in copiedSignals) {
+     \[subscriber sendNext:signal\];
+}
+
+    \[subscriber sendCompleted\];
+return nil;
+}\] 
+flatten\] setNameWithFormat:@&quot;+merge: %@&quot;, copiedSignals\];
+</code></pre><p>}</p>
+<p>过程图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-a31f4964da4e8c6e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="5"></p>
+<pre><code>RACSignal \*signalA = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalA&quot;\];
+    return nil;
+}\];
+RACSignal \*signalB = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalB&quot;\];
+    return nil;
+}\];
+RACSignal * mergeSignal = \[signalA merge:signalB\];
+
+\[mergeSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;,x);
+}\];
+</code></pre><p>signalA<br>signalB</p>
+<p>当执行 merge 的时候创建了 C、D 两个内部信号，这里的 mergeSignal 实际为 D 信号。当订阅 D 信号后，执行上图右侧的流程，一直会执行到 A 的 merge 方法里 createSignal: 的 block，循环发送 signal 信号，最终的结果是执行各个信号的 sendNext: 方法。 </p>
+<p>merge 看起来就是把多个信号（signalA、signalB）合并成一个信号 mergeSignal，只要其中任何一个信号发送数据，合并的信号 mergeSignal 都能接收到事件。</p>
+<p><a href="https://www.jianshu.com/p/f939bf6afc93" target="_blank" rel="noopener">ReactiveCocoa 源码阅读之攻略 flatten</a></p>
+<h6 id="9、map"><a href="#9、map" class="headerlink" title="9、map:"></a>9、map:</h6><p>/* Maps `block` across the values in the receiver. </p>
+<p>   This corresponds to the `Select` method in Rx. </p>
+<p>   Returns a new stream with the mapped values.<br> */<br>- (instancetype)map:(id (^)(id value))block<br>{<br>    NSCParameterAssert(block != nil);</p>
+<pre><code>Class class = self.class;
+
+return \[\[self flattenMap:^(id value) {
+return \[class return:block(value)\];
+}\] setNameWithFormat:@&quot;\[%@\] -map:&quot;, self.name\];
+</code></pre><p>}</p>
+<p>在 flattenMap 基础上封装的改变方法，就是函数式编程中的 Select。在 flattenMap 中的 block 中返回的值必须也是流对象，而 map 则不需要，它是将流中的对象执行 block 后，用流的 return 方法将值变成流对象。</p>
+<pre><code>RACSignal \*signalA = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalA&quot;\];
+    return nil;
+}\];
+
+RACSignal *mergeSignal = \[signalA map:^id(id value) {
+    return @&quot;aaa&quot;;
+}\];
+
+\[mergeSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;,x);
+}\];
+</code></pre><p>aaa</p>
+<p>要理解 map 需要结合 return: 方法，return: 方法在 RACReturnSignal 类中实现。</p>
+<p>+ (RACSignal <em>)return:(id)value<br>{<br>    RACReturnSignal </em>signal = [[self alloc] init];<br>    signal-&gt;_value = value;</p>
+<pre><code>return signal;
+</code></pre><p>}</p>
+<p>删除了在 map 流程中执行不到的代码。由上可以看到：return 方法是保存了 value 值，然后返回一个 RACReturnSignal 对象。所以 map 方法可以理解成：</p>
+<p>- (instancetype)map:(id (^)(id value))block<br>{<br>    return [self flattenMap:^(id value) {<br>    return [[RACReturnSignal alloc] init];  // 新建 return 信号，这里已经执行了 block(value)，获取到了 block 的返回值<br>    }];<br>}</p>
+<p>经由 flattenMap 向外返回的是 RACReturnSignal 类型对象。当 RACReturnSignal 对象被订阅时：</p>
+<p>- (RACDisposable *)subscribe:(id<racsubscriber>)subscriber<br>{<br>    NSCParameterAssert(subscriber != nil);</racsubscriber></p>
+<pre><code>return \[RACScheduler.subscriptionScheduler schedule:^{
+\[subscriber sendNext:self.value\];
+\[subscriber sendCompleted\];
+}\];
+</code></pre><p>}</p>
+<p>将属性 value 向外传递，所以这样导致会替换原来信号发送的内容。</p>
+<p>flattenMap 与 map 的理解：</p>
+<p>map 方法根据原信号创建了一个新的信号，并且变换了信号的输出值，这两个信号具有明显的先后顺序关系。而 flattenMap 方法，直接生成了一个新的信号，这两个信号并没有先后顺序关系，属于同层次的平行关系。</p>
+<p>FlatternMap中的 Block 返回信号；Map中的 Block 返回对象。</p>
+<p>开发中，如果信号发出的值不是信号，映射一般使用 Map；如果信号发出的值是信号，映射一般使用 FlatternMap。</p>
+<p><a href="https://blog.csdn.net/abc649395594/article/details/46552865" target="_blank" rel="noopener">ReactiveCocoa框架菜鸟入门（五）–信号的FlattenMap与Map</a>、<a href="https://www.cnblogs.com/feng9exe/p/8658000.html" target="_blank" rel="noopener">FlatternMap和Map的区别</a></p>
+<h6 id="10、mapReplace"><a href="#10、mapReplace" class="headerlink" title="10、mapReplace:"></a>10、mapReplace:</h6><p>/* Replaces each value in the receiver with the given object. </p>
+<p>   Returns a new stream which includes the given object once for each value in the receiver.<br> */<br>- (instancetype)mapReplace:(id)object<br>{<br>    return [[self map:^(id _) {<br>    return object;<br>    }] setNameWithFormat:@”[%@] -mapReplace: %@”, self.name, [object rac_description]];<br>}</p>
+<p>在 map 的基础上封装的改变方法，直接替换当前流中的对象，形成一个新的对象流。</p>
+<pre><code>RACSignal * signalA = \[RACSignal createSignal:^RACDisposable *(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalA&quot;\];
+    return nil;
+}\];
+
+RACSignal * mergeSignal = \[signalA mapReplace:@&quot;aaa&quot;\];
+
+\[mergeSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;, x);
+}\];
+</code></pre><p>aaa</p>
+<p>与 map: 的功能一样，替换流输出的内容，mapReplace: 采用直接传值的方式，map: 采用 block。</p>
+<h6 id="11、combinePreviousWithStart-reduce"><a href="#11、combinePreviousWithStart-reduce" class="headerlink" title="11、combinePreviousWithStart:reduce:"></a>11、combinePreviousWithStart:reduce:</h6><p>/* Combines each previous and current value into one object.</p>
+<p>   This method is similar to -scanWithStart:reduce:, but only ever operates on the previous and current values (instead of the whole stream), and does not pass the return value of `reduceBlock` into the next invocation of it. </p>
+<p>   start - The value passed into `reduceBlock` as `previous` for the first value.<br>   reduceBlock - The block that combines the previous value and the current value to create the reduced value. Cannot be nil.</p>
+<p>   Examples </p>
+<pre><code>RACSequence *numbers = @\[ @1, @2, @3, @4 \].rac_sequence;
+
+// Contains 1, 3, 5, 7 
+RACSequence \*sums = \[numbers combinePreviousWithStart:@0 reduce:^(NSNumber \*previous, NSNumber *next) { 
+    return @(previous.integerValue + next.integerValue);
+}\];
+</code></pre><p>   Returns a new stream consisting of the return values from each application of `reduceBlock`.<br>*/<br>- (instancetype)combinePreviousWithStart:(id)start reduce:(id (^)(id previous, id next))reduceBlock<br>{<br>    NSCParameterAssert(reduceBlock != NULL);</p>
+<pre><code>return \[\[\[self scanWithStart:RACTuplePack(start)
+                  reduce:^(RACTuple *previousTuple, id next) {
+
+            id value = reduceBlock(previousTuple\[0\], next);
+     return RACTuplePack(next, value);
+   }\]
+       map:^(RACTuple *tuple) {
+    return tuple\[1\];
+   }\]
+   setNameWithFormat:@&quot;\[%@\] -combinePreviousWithStart: %@ reduce:&quot;, self.name, \[start rac_description\]\];
+</code></pre><p>}</p>
+<p>通过官方的示例，数组的内容由 @[1, 2, 3, 4] 变成了 @[1, 3, 5, 7]，可以猜测 combinePreviousWithStart:reduce: 方法是将旧数组的两个相邻的值通过 reduce:^{} 处理产生新的值。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-907f154a957a0c53.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="6"></p>
+<p>在 RACSequence 的 bind:passingThroughValuesFromSequence: 调用 bind: 传入的 block。实际上 block 的传递流程是：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-b9be58620e948424.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="7"></p>
+<p>最终会调用到用户处理的 </p>
+<p>RACSequence *sums = [numbers combinePreviousWithStart:@0 reduce:^(NSNumber *previous, NSNumber *next) {</p>
+<pre><code>return @(previous.integerValue + next.integerValue);      
+</code></pre><p>}];</p>
+<p>第一次时 previous = @0，就是第一个参数。在这里有对 start 进行 RACTuplePack 包装。</p>
+<p>传入的数组为 @[ 1, 2, 3, 4 ]、start = 2，那么调用顺序是：1 + 2(start) = 3，2 + 1(pre) = 3，3 + 2(pre) = 5，4 + 3(pre) = 7。归纳：该方法传入 start 数值，可以理解索引为 -1，然后相邻的数据相加。 </p>
+<h6 id="12、filter"><a href="#12、filter" class="headerlink" title="12、filter:"></a>12、filter:</h6><p>/* Filters out values in the receiver that don’t pass the given test.</p>
+<p>   This corresponds to the `Where` method in Rx. </p>
+<p>   Returns a new stream with only those values that passed.<br> */<br>- (instancetype)filter:(BOOL (^)(id value))block<br>{<br>    NSCParameterAssert(block != nil);</p>
+<pre><code>Class class = self.class;
+
+return \[\[self flattenMap:^ id (id value) {
+if (block(value)) {
+    return \[class return:value\];
+}
+    else {
+    return class.empty;
+}
+}\] setNameWithFormat:@&quot;\[%@\] -filter:&quot;, self.name\];
+</code></pre><p>}</p>
+<p>在 flattenMap: 基础上封装的改变方法，过滤掉当前流中不符合要求的对象，将之变为空流。</p>
+<p>当 block(value) 返回 YES 时，使用 RACReturnSignal 对象保存 value 值，订阅时打印出来；如果返回 NO，则返回空流，订阅时也就打印不出来东西。</p>
+<p>- (RACDisposable *)subscribe:(id<racsubscriber>)subscriber<br>{<br>    NSCParameterAssert(subscriber != nil);</racsubscriber></p>
+<pre><code>return \[RACScheduler.subscriptionScheduler schedule:^{
+\[subscriber sendCompleted\];
+}\];
+</code></pre><p>}</p>
+<p>RACEmptySignal 直接调用 sendCompleted 方法，不会 sendNext。</p>
+<h6 id="13、ignore"><a href="#13、ignore" class="headerlink" title="13、ignore:"></a>13、ignore:</h6><p>/* Filters out values in the receiver that equal (via -isEqual:) the provided value. </p>
+<p>   value - The value can be `nil`, in which case it ignores `nil` values. </p>
+<p>   Returns a new stream containing only the values which did not compare equal to `value`.<br> */<br>- (instancetype)ignore:(id)value<br>{<br>    return [[self filter:^ BOOL (id innerValue) {<br>    return innerValue != value &amp;&amp; ![innerValue isEqual:value];<br>    }] setNameWithFormat:@”[%@] -ignore: %@”, self.name, [value rac_description]];<br>}</p>
+<p>在 filter 基础封装的改变方法，忽略和当前值一样的对象，将之变为空流。</p>
+<pre><code>RACSignal \*signalA = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalA&quot;\];
+    return nil;
+}\];
+
+RACSignal * ignoreSignal = \[signalA ignore:@&quot;signalB&quot;\];  // 如果是 ignore:@&quot;signalA&quot; 则不会输出
+
+\[ignoreSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;,x);
+}\];
+</code></pre><p>signalA</p>
+<p>如果 sendNext: 的内容与 ignore: 的内容相同，filter 的 block 返回 NO，否则返回 YES。即达到了忽略值的功能。</p>
+<h6 id="14、reduceEach"><a href="#14、reduceEach" class="headerlink" title="14、reduceEach:"></a>14、reduceEach:</h6><p>/* Unpacks each RACTuple in the receiver and maps the values to a new value. </p>
+<p>   reduceBlock - The block which reduces each RACTuple’s values into one value. It must take as many arguments as the number of tuple elements to process. Each argument will be an object argument. The return value must be an object. This argument cannot be nil. </p>
+<p>   Returns a new stream of reduced tuple values.<br> */<br>- (instancetype)reduceEach:(id (^)())reduceBlock<br>{<br>    NSCParameterAssert(reduceBlock != nil);</p>
+<pre><code>\_\_weak RACStream *stream \_\_attribute__((unused)) = self;
+
+return \[\[self map:^(RACTuple *t) {
+NSCAssert(\[t isKindOfClass:RACTuple.class\], @&quot;Value from stream %@ is not a tuple: %@&quot;, stream, t);
+return \[RACBlockTrampoline invokeBlock:reduceBlock withArguments:t\];
+}\] setNameWithFormat:@&quot;\[%@\] -reduceEach:&quot;, self.name\];
+</code></pre><p>}</p>
+<p>解包接收器中的每个 RACTuple，并将所有的值映射为一个新值。</p>
+<pre><code>RACSignal * signalA = \[RACSignal createSignal:^RACDisposable *(id&lt;RACSubscriber&gt; subscriber) {
+    RACTuple * tuple = RACTuplePack(@&quot;signalA&quot;);
+    \[subscriber sendNext:tuple\];  // 传递的数据需要是 RACTuple 类型，否则会触发断言
+    return nil;
+}\];
+
+RACSignal * reduceEachSignal = \[signalA reduceEach:^id{
+    return @&quot;aaa&quot;;
+}\];
+
+\[reduceEachSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;,x);
+}\];
+</code></pre><p>aaa</p>
+<h6 id="15、startWith"><a href="#15、startWith" class="headerlink" title="15、startWith:"></a>15、startWith:</h6><p>/*<br>   Returns a stream consisting of `value`, followed by the values in the receiver.<br> */<br>- (instancetype)startWith:(id)value<br>{<br>    return [[[self.class return:value]<br>    concat:self]<br>    setNameWithFormat:@”[%@] -startWith: %@”, self.name, [value rac_description]];<br>}</p>
+<p>在 contact 基础上封装的多流之间的顺序方法，在当前流的值流出之前，加入一个初始值。</p>
+<pre><code>RACSignal \*signalA = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    RACTuple * tuple = RACTuplePack(@&quot;signalA&quot;);
+    \[subscriber sendNext:tuple\];
+    return nil;
+}\];
+
+RACSignal * startWithSignal = \[signalA startWith:@&quot;1&quot;\];
+
+\[startWithSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;,x);
+}\];
+</code></pre><p>1<br>&lt;RACTuple: 0x6000017eaf30&gt; ( signalA )</p>
+<p>在输出 tuple(signalA) 之前先输出 1，这段逻辑在 RACSignal 的 concat: 方法中。</p>
+<p>- (RACSignal <em>)concat:(RACSignal </em>)signal {</p>
+<pre><code>    RACDisposable *sourceDisposable = \[self subscribeNext:^(id x) {
+    \[subscriber sendNext:x\];  // 输出 1
+} error:^(NSError *error) {
+    \[subscriber sendError:error\];
+} completed:^{
+    RACDisposable *concattedDisposable = \[signal subscribe:subscriber\];  // 输出 tuple(signalA)
+        serialDisposable.disposable = concattedDisposable;
+}\];
+</code></pre><p>}</p>
+<h6 id="16、skip"><a href="#16、skip" class="headerlink" title="16、skip:"></a>16、skip:</h6><p>/* Skips the first `skipCount` values in the receiver. </p>
+<p>   Returns the receiver after skipping the first `skipCount` values. If `skipCount` is greater than the number of values in the stream, an empty stream is returned.<br> */<br>- (instancetype)skip:(NSUInteger)skipCount<br>{<br>    Class class = self.class;</p>
+<pre><code>return \[\[self bind:^{
+__block NSUInteger skipped = 0;
+
+return ^(id value, BOOL *stop) {
+    if (skipped &gt;= skipCount) return \[class return:value\];
+
+    skipped++;
+    return class.empty;
+};
+}\] setNameWithFormat:@&quot;\[%@\] -skip: %lu&quot;, self.name, (unsigned long)skipCount\];
+</code></pre><p>}</p>
+<p>在 bind 基础上封装的改变方法，忽略当前流前 n 次的对象值，将之变为空流，不输出。</p>
+<pre><code>RACSignal \*signalA = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalA&quot;\];
+    \[subscriber sendNext:@&quot;signalB&quot;\];
+    \[subscriber sendNext:@&quot;signalC&quot;\];
+    \[subscriber sendNext:@&quot;signalD&quot;\];
+
+    return nil;
+}\];
+
+RACSignal * skipSignal = \[signalA skip:2\];
+
+\[skipSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;,x);
+}\];
+</code></pre><p>signalC<br>signalD</p>
+<p>跳过了第一、二次的输出。</p>
+<h6 id="17、take"><a href="#17、take" class="headerlink" title="17、take:"></a>17、take:</h6><p>/<em><br>   Returns a stream of the first `count` values in the receiver. If `count` is greater than or equal to the number of values in the stream, a stream equivalent to the receiver is returned.<br> \</em>/<br>- (instancetype)take:(NSUInteger)count<br>{<br>    Class class = self.class;</p>
+<pre><code>if (count == 0) return class.empty;
+
+return \[\[self bind:^{
+__block NSUInteger taken = 0;
+
+return ^ id (id value, BOOL *stop) {
+    if (taken &lt; count) {
+    ++taken;
+    if (taken == count) *stop = YES;
+            return \[class return:value\];
+    }
+            else {
+        return nil;
+    }
+    };
+}\] setNameWithFormat:@&quot;\[%@\] -take: %lu&quot;, self.name, (unsigned long)count\];
+</code></pre><p>}</p>
+<p>在 bind 基础上封装的改变方法，只取当前流中的前 n 次对象值，之后将流变为空（不是空流）。</p>
+<pre><code>RACSignal \*signalA = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalA&quot;\];
+    \[subscriber sendNext:@&quot;signalB&quot;\];
+    \[subscriber sendNext:@&quot;signalC&quot;\];
+    \[subscriber sendNext:@&quot;signalD&quot;\];
+
+    return nil;
+}\];
+
+RACSignal *mergeSignal = \[signalA take:2\];
+
+\[mergeSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;,x);
+}\];
+</code></pre><p>signalA<br>signalB</p>
+<p>与 skip: 相对，只取第一、二条数据。</p>
+<h6 id="18、join-block"><a href="#18、join-block" class="headerlink" title="18、join:block:"></a>18、join:block:</h6><p>/* Combines a list of streams using the logic of the given block.</p>
+<p>   streams - The streams to combine.<br>   block - An operator that combines two streams and returns a new one. The returned stream should contain 2-tuples of the streams’ combined values. </p>
+<p>   Returns a combined stream.<br> */<br>+ (instancetype)join:(id<nsfastenumeration>)streams block:(RACStream <em> (^)(id, id))block<br>{<br>    RACStream </em>current = nil;</nsfastenumeration></p>
+<pre><code>// Creates streams of successively larger tuples by combining the input streams one-by-one.
+for (RACStream *stream in streams) {
+// For the first stream, just wrap its values in a RACTuple. That way, if only one stream is given, the result is still a stream of tuples.
+if (current == nil) {
+    current = \[stream map:^(id x) {
+    return RACTuplePack(x);  // 生成 RACReturnSignal 对象，value = RACTuplePack(x)
+    }\];
+
+    continue;
+}
+
+current = block(current, stream);
+}
+
+if (current == nil) return \[self empty\];  // 如果为 nil，返回空流
+
+return \[current map:^(RACTuple *xs) {
+
+    /\* Right now, each value is contained in its own tuple, sorta like:
+
+   (((1), 2), 3)
+
+   We need to unwrap all the layers and create a tuple out of the result.
+     */
+NSMutableArray *values = \[\[NSMutableArray alloc\] init\];
+
+while (xs != nil) {
+    \[values insertObject:xs.last ?: RACTupleNil.tupleNil atIndex:0\];
+    xs = (xs.count &gt; 1 ? xs.first : nil);
+}
+
+return \[RACTuple tupleWithObjectsFromArray:values\];
+}\];
+</code></pre><p>}</p>
+<p>使用给定 block 的逻辑组合流列表。</p>
+<ol>
+<li>for 循环部分：如果信号数组里只有 1 个信号，那么通过 map，最终获取的结果被放进一个 tuple 里，比如 [value1]；如果数组里信号多于 1 个，那么第一个信号和第二信号就要做 zipWith（此时 block 就是 zipWith）操作，参考上面zipWith，得到的返回结果是 [[value1], value2]；如果还有第 3 个信号，那么将信号 1 和信号 2 zipWith 的结果与信号 3 继续 zipWith，得到的结果就是 [[[value1]，value2], value3]；</li>
+<li>return 部分：for 循环得到的信号最后 sendNext 的值是一个 [[[value1], value2], value3] 之类的 tuple，如同注释里的“(((1), 2), 3)”一样，需要转换成 [value1, value2, value3]。</li>
+</ol>
+<h6 id="19、zip"><a href="#19、zip" class="headerlink" title="19、zip:"></a>19、zip:</h6><p>/* Zips the values in the given streams to create RACTuples. </p>
+<p>   The first value of each stream will be combined, then the second value, and so forth, until at least one of the streams is exhausted. </p>
+<p>   streams - The streams to combine. These must all be instances of the same concrete class implementing the protocol. If this collection is empty, the returned stream will be empty. </p>
+<p>   Returns a new stream containing RACTuples of the zipped values from the streams.<br> */<br>+ (instancetype)zip:(id<nsfastenumeration>)streams<br>{<br>    return [[self join:streams block:^(RACStream *left, RACStream *right) {<br>    return [left zipWith:right];<br>    }] setNameWithFormat:@”+zip: %@”, streams];<br>}</nsfastenumeration></p>
+<p>打包多流，将多个流中的值包装成一个 RACTuple 对象。</p>
+<pre><code>RACSignal \*signalA = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalA&quot;\];
+    return nil;
+}\];
+
+RACSignal \*signalB = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalB&quot;\];
+    return nil;
+}\];
+
+RACSignal \*signalC = \[RACSignal createSignal:^RACDisposable \*(id&lt;RACSubscriber&gt; subscriber) {
+    \[subscriber sendNext:@&quot;signalC&quot;\];
+    return nil;
+}\];
+
+RACSequence * sequence = @\[signalA, signalB, signalC\].rac_sequence;
+
+RACSignal * zipSignal = \[RACSignal zip:sequence\];
+
+\[zipSignal subscribeNext:^(id x) {
+    NSLog(@&quot;%@&quot;,x);
+}\];
+</code></pre><p>&lt;RACTuple: 0x600002ae00d0&gt; (<br>    signalA,<br>    signalB,<br>    signalC<br>)</p>
+<p>3. RACStream子类策略</p>
+<p>RACStream是RACSignal和RACSequence的父类，但是，RACSignal和RACSequence都自己实现了一套bind，zipWith和contât方法，所以在不同的子类中，RACStream中定义的各种操作对应到各种子类，就会有不同的涵义。<br>---------------------<br>作者：chenyin10011991<br>来源：CSDN<br>原文：<a href="https://blog.csdn.net/chenyin10011991/article/details/51971388" target="_blank" rel="noopener">https://blog.csdn.net/chenyin10011991/article/details/51971388</a><br>版权声明：本文为博主原创文章，转载请附上博文链接！</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/22/racstream/">http://yoursite.com/2019/03/22/racstream/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/25/mac-e5-ae-89-e8-a3-85-e5-8d-b8-e8-bd-bd-pip/" class="pre"> Mac 安装/卸载 pip		</a><a href="/2019/03/22/racsignal/" class="next"> RACSignal		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、-h-文件"><span class="toc-text">一、.h 文件</span></a><ol class="toc-child"><li class="toc-item toc-level-6"><a class="toc-link" href="#1、empty"><span class="toc-text">1、empty</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#2、bind"><span class="toc-text">2、bind:</span></a></li></ol></li><li class="toc-item toc-level-5"><a class="toc-link" href="#3、return"><span class="toc-text">3、return:</span></a><ol class="toc-child"><li class="toc-item toc-level-6"><a class="toc-link" href="#4、concat"><span class="toc-text">4、concat:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#5、zipWith"><span class="toc-text">5、zipWith:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#6、setNameWithFormat"><span class="toc-text">6、setNameWithFormat:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#7、flattenMap"><span class="toc-text">7、flattenMap:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#8、flatten"><span class="toc-text">8、flatten</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#9、map"><span class="toc-text">9、map:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#10、mapReplace"><span class="toc-text">10、mapReplace:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#11、combinePreviousWithStart-reduce"><span class="toc-text">11、combinePreviousWithStart:reduce:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#12、filter"><span class="toc-text">12、filter:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#13、ignore"><span class="toc-text">13、ignore:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#14、reduceEach"><span class="toc-text">14、reduceEach:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#15、startWith"><span class="toc-text">15、startWith:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#16、skip"><span class="toc-text">16、skip:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#17、take"><span class="toc-text">17、take:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#18、join-block"><span class="toc-text">18、join:block:</span></a></li><li class="toc-item toc-level-6"><a class="toc-link" href="#19、zip"><span class="toc-text">19、zip:</span></a></li></ol></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

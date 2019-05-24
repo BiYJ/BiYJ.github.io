@@ -1,0 +1,144 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 马甲包		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 马甲包		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 马甲包		</h1><div class="post-meta"><a href="/2019/02/18/vestcode/#comments" class="comment-count"></a><p><span class="date">Feb 18, 2019</span><span><a href="/categories/工程发布/" class="category">工程发布</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p><a href="https://developer.apple.com/cn/app-store/review/guidelines/" target="_blank" rel="noopener">App Store 审核指南</a></p>
+<h5 id="一、苹果审核条款"><a href="#一、苹果审核条款" class="headerlink" title="一、苹果审核条款"></a>一、苹果审核条款</h5><p>条款说明：</p>
+<blockquote>
+<p><a href="https://developer.apple.com/cn/app-store/review/guidelines/#spam" target="_blank" rel="noopener">4.3 重复应用</a></p>
+<p>不要为同一个应用程序创建多个 Bundle ID。如果你的应用程序有多个版本，例如针对特定的国家和地区的版本，体育队伍、大学等，考虑提交一个版本的应用但是使用应用内付费来做区分。此外还要避免将你的应用放到已经饱和的分类下。AppStore 当中已经有了足够多的模拟放屁、打嗝声音的 App，以及手电筒 App。如果想要往 AppStore 投放重复应用可能会导致你的开发者资格被撤销。</p>
+</blockquote>
+<p>被拒邮件内容：</p>
+<blockquote>
+<p>Guideline 4.3 - Design</p>
+<p>Your app duplicates the content and functionality of apps currently available on the App Store. </p>
+<p>Apps that simply duplicate content or functionality create clutter, diminish the overall experience for the end user, and reduce the ability of developers to market their apps.</p>
+<p>Next Steps</p>
+<p>We encourage you to review your app concept and incorporate different content and features that are in compliance with the App Store Review Guidelines.</p>
+<p>For app design information, check out the following videos: “Best Practices for Great iOS UI Design” and “Designing Intuitive User Experiences,” available on the Apple Developer website.</p>
+<p>You may also want to review the iOS Human Interface Guidelines for more information on how to create a great user experience in your app.</p>
+<p>If you cannot - or choose not to - revise your app to be in compliance with the App Store Review Guidelines, you may wish to build an HTML5 web app instead. You can distribute web apps directly on your web site; the App Store does not accept or distribute web apps.</p>
+<p>HTML5 is the major new version of HTML and enables audio and video to play natively in the browser without requiring proprietary plug-ins. Using HTML5, web apps can look and behave like native iPhone and iPad apps, and using HTML5’s Offline Application Cache, a web app can work even when the device is offline. With web apps, you have flexibility to deliver as much or as little functionality as you desire. </p>
+<p>To get started with iPhone or iPad web apps, please review the Safari Client-Side Storage and Offline Applications Programming Guide.</p>
+<p>For a description of the HTML elements and attributes you can use in Safari on iPhone, check out Safari HTML Reference: Introduction.</p>
+</blockquote>
+<p>简而言之：4.3 是功能或者应用程序重复出现在 AppStore，相同类型产品功能较一致（包括上传马甲或者分包）。</p>
+<h5 id="二、苹果的三种审核机制"><a href="#二、苹果的三种审核机制" class="headerlink" title="二、苹果的三种审核机制"></a>二、苹果的三种审核机制</h5><p>1、预审核</p>
+<p>扫描 api 及 plist文件字符缺失等。</p>
+<p>此处分两步，第一步为上传时苹果 Application Loador 等应用对于适配 icon 等的检查；第二步为上传后苹果的功能性检查，例如配置了 push 功能但有缺失或者未打开功能，则会邮件提示等。</p>
+<p>2、机审</p>
+<p>苹果机器审核的具体原理估计只有苹果内部人员才知道，而且这个审核原理应该也是会不断的升级和变化。根据目前大家测试的结果来看，当前主要原理是对 App 扫描。App 扫描分为两部分， 一部分是扫描代码，一部分是扫描资源文件。</p>
+<p>①、代码扫描部分主要是编译器会对每个函数生成编译器内部才识别的函数名，所以这里就需要针对不同的语言进行不同的修改，而且修改的量也需要比较大，才能绕过苹果的识别库。</p>
+<p>可以人工修改， 比如函数增加一些默认参数、修改类名和函数名，比较费时费力。也可以写代码进行批量修改或生成，省时省力。</p>
+<p>②、扫描资源文件部分主要是针对各个文件扫描出来的 MD5 进行比对，如果文件和苹果识别库里的 App 相似达到一定程度，就会触发 4.3，这时可以人工增加大量小文件进行混淆，当然技术实力强的也可以通过代码进行生成。</p>
+<p>部分无法过机审情况可尝试加速审核绕过机审。</p>
+<p>3、人工审核</p>
+<p>此处主要检测功能或者 App 体验测试。例如用测试账号登录 App 体验功能，或其他是否有明显 bug 等，ipv6 也在此处检测。</p>
+<p>苹果很久以前都是人工进行 4.3 审核，效率很慢。 被人工审核出来的， 基本上要么是被人举报， 要么就是 App 实在是太明显了， 比如仿非常出名的游戏， 不然一般是很难查出来的。</p>
+<p>如果你的账号之前查出来个 4.3， 那么后面再次提交时，苹果审核人员就会高度怀疑，所以被再次查出 4.3 的可能性就高了。</p>
+<p>注：H5 类游戏和应用是很容易被人工 4.3 的，再如何混淆都绕不过人工 4.3。</p>
+<p><strong>苹果政策：</strong></p>
+<p>包名相同</p>
+<p>包名不同</p>
+<p>二进制代码相同</p>
+<p>无意义</p>
+<p>无法通过审核</p>
+<p>二进制代码不同</p>
+<p>视为更新</p>
+<p>即马甲，可能通过审核</p>
+<h5 id="三、被拒原因"><a href="#三、被拒原因" class="headerlink" title="三、被拒原因"></a>三、被拒原因</h5><p>机审：</p>
+<p>①、你多次提交一个项目，代码重复率在 60% 以上；</p>
+<p>②、你的代码被苹果做了标记，拉入了黑名单；</p>
+<p>③、你的项目中开源代码占比过高，个人代码占比不足 50%；</p>
+<p>④、代码层面和别的项目产生了关联性；</p>
+<p>⑤、隐藏功能。即：用户使用 App 过程中并未使用到的后台任务（动态部署除外）。</p>
+<p>人工审核：</p>
+<p>①、购买的国内（外）开发者账号, 发生了账号 4.3 被拒连坐；</p>
+<p>②、UI 截图有极高的相似度（Apple Review 图像对比技术）；</p>
+<p>③、ITC 后台设置的元数据有较高相似度。如标题、描述、关键词、技术支持网址、隐私声明等；</p>
+<p>④、内购关联问题：多个账号使用同一个人的银行卡及税务登记信息；</p>
+<p>⑤、国外账号权重低，对于 Apple 信任度有一定的影响。</p>
+<p>也存在被政策误伤的可能性。</p>
+<h5 id="四、什么是马甲包？"><a href="#四、什么是马甲包？" class="headerlink" title="四、什么是马甲包？"></a>四、什么是马甲包？</h5><blockquote>
+<p>与原 App 包除了包名、Bundle ID、图标等给用户加以区分的东西不同，其他功能基本不变的 App 包。简单理解为给产品穿个马甲。</p>
+</blockquote>
+<p>马甲包是利用 AppStore 规则漏洞，通过技术手段，多次上架同一款产品的方法。</p>
+<h5 id="五、马甲包的好处"><a href="#五、马甲包的好处" class="headerlink" title="五、马甲包的好处"></a>五、马甲包的好处</h5><p>1、抗风险</p>
+<p>正常情况下，任何一款产品都是要不断的更新功能的。如果直接在主包上更新，一旦新功能不被用户接受那就损失大了，公司前期大量投入带来的用户将会流失，这对很多产品开发者来说是不可承受之痛。</p>
+<p>如果使用马甲包，则可以随意测试新功能，好的功能就在主包上迭代，不好的则丢弃。</p>
+<p>2、导量</p>
+<p>主包和马甲包属于同一个平台，用户信息可以共享，通过弹窗、广告、push 等引导用户去下载主 App。（网盟相互导流）</p>
+<p>3、增加关键词覆盖数</p>
+<p>AppStore 关键词长度上限是 100 个字符，据了解人为正常优化的极限是关键词覆盖数在 4000 左右，覆盖数在 8000+ 的都是利用了苹果漏洞。所以，多做一个马甲也就意味着覆盖的关键词可以更多。</p>
+<p>4、刷榜</p>
+<p>①、积分墙：理论上是真实用户，冲榜量级大，可靠后续补量维持。但冲榜和维榜费用高昂，非一般产品所能承受。</p>
+<p>②、真机：利用真实机器操作任务，但不能抹机，否则就成假量了。成本相对较低。</p>
+<p>③、技术流：机刷，服务器控制操作，成本最低。</p>
+<p>以上机刷是最便宜的，但是风险高，容易被苹果后台发现下架，所以一般用马甲包来做机刷，以此来抵抗风险。</p>
+<p>马甲包有时是作为备胎存在的。当主号在进行刷榜被下架后就会立即上架作为替身，很多不明真相的用户并没有察觉，所以这类替身马甲很多开发者都是直接使用主 App 的所有资源，直接换个开发者账号。如果资源允许的话，也可以使用不同的后台，这样能避免后台被黑和主 App 被下架同时发生的突发情况。</p>
+<h5 id="六、制作马甲包"><a href="#六、制作马甲包" class="headerlink" title="六、制作马甲包"></a>六、制作马甲包</h5><p>1、二进制代码务必不同</p>
+<p>二进制代码是应用市场判别产品的唯一标准，把代码做一些修改，就会生成一个全新的二进制代码，这是制作马甲包的唯一方式。</p>
+<p>①、升级 Version 提交审核；</p>
+<p>②、换 Bundle Id 提交审核；</p>
+<p>③、换不同开发者账号提交审核；</p>
+<p>④、修改 logo 素材及 UI 色调等；</p>
+<p>⑤、修改功能界面等，可改功能可做开关；</p>
+<p>⑥、<a href="https://github.com/klaus01/KLGenerateSpamCode" target="_blank" rel="noopener">添加垃圾代码</a>或者注释块，主要防苹果机审扫描。</p>
+<p>2、工程目录修改</p>
+<p>①、修改工程名称；</p>
+<p>②、修改工程内文件名称；</p>
+<p>③、修改工程内文件夹名称；</p>
+<p>④、修改实体文件夹名称；</p>
+<p>⑤、删除和新建 .entitlements；</p>
+<p>⑥、点击 xx.xcodeproj 显示包内容，打开 project.pbxproj，全部替换名称；</p>
+<p>⑦、其他替换。</p>
+<p>3、功能局部化</p>
+<p>如果主 App 功能较为丰富，做马甲是可以独立其中一部分功能。审核通过率高，但投入成本比较贵，适合大产品大公司操作。</p>
+<p>4、产品简单化（关闭部分功能或页面）</p>
+<p>如果方式 2 复杂，可以选择产品简单化操作。具体是指：</p>
+<p>①、主 App 中的部分界面/功能删除掉；</p>
+<p>②、主 App 中的部分界面/功能设置开关按钮，在审核期间关闭，审核通过后打开。</p>
+<p>5、页面差异化</p>
+<p>修改 App 启动后第一个页面，保证马甲与主 App 的第一个页面不同，从先入视觉迷惑苹果审核人员。</p>
+<p>6、整套 UI 更改</p>
+<p>适合游戏类。</p>
+<p>7、项目修改</p>
+<p>①、修改应用程序价格，打造与原产品不同的价格级别；</p>
+<p>②、修改应用程序发布地区，打造与原产品不同的售卖地区或分不同地区运营；</p>
+<p>③、修改产品分类，打造与原产品不同的产品侧重属性分类；</p>
+<p>④、市场图、应用描述、搜索关键词调整；</p>
+<p>注意：切断当前马甲包与以往马甲包的所有相似性关联。</p>
+<p>①、ipa 包特征：包括有代码相似性，资源相似性；</p>
+<p>代码相似性解决办法：</p>
+<p>a. 已有代码的混淆（改类名、改函数名）</p>
+<p>b. 添加一些无用的代码。</p>
+<p>资源相似性解决办法：</p>
+<p>a. 资源改名；</p>
+<p>b. 适当添加一些无用的资源。</p>
+<p>②、开发者帐号：两个马甲包不要关联到同一个开发者帐号的信息；比如打包时关联。</p>
+<p>③、打包电脑：有条件的最好用不同的 MAC 来打包（每台 MAC 上最好打马甲包不要超过 5 个）。</p>
+<p>④、上传 IP：上传马甲包时，IP 不要跟其他马甲包的 IP 相同。</p>
+<p>⑤、材料相似：itunes 后台材料如宣传图、ICON、版权人不要出现相同。</p>
+<h5 id="七、混淆"><a href="#七、混淆" class="headerlink" title="七、混淆"></a>七、混淆</h5><p>1、修改类名、文件名</p>
+<p>①、手动操作</p>
+<p>在 Xcode 里修改文件名类名，然后在可能引用的地方替换（header），要注意的地方是替换的时候要匹配大小写；如果文件夹名称跟文件名一样的话，文件夹名称也要跟着改名，否则替换之后路径引用可能找不到。 </p>
+<p>②、脚本批量操作</p>
+<p>最好先整理工程，确保以下几点能让脚本写的更简单更可靠：</p>
+<p>a. 要修改的类和文件最好都放到一个文件夹下，万一搞出事不用东找西找，备份和回滚也简单一点；</p>
+<p>b. 类名和文件名尽量带上前缀，这样修改只替换前缀即可，也不太会跟函数名、变量名什么的重复</p>
+<p>c. 最好过一遍，把不能修改类名的列出来，比如外面太多地方调用的、第三方的类库。在写脚本的时候把他们排除在外</p>
+<p>脚本就是遍历文件。根据上面的 a、b、c 条件在文件中查找替换。改完后可以替换一下 xx.xcodeproj/project.pbxproj 里的相应字符串，这样 Xcode 打开工程的时候就不用手动再添加进来。</p>
+<p>2、添加垃圾函数</p>
+<p>OC 头文件的声明必然是在 @interface、@end 之间，实现是在 @implementation、@end 之间，直接在相应的地方插入垃圾函数，模板可以直接写个 HelloWorld 生成个随机字符串。避免当前语言的关键字如 break、false、if 之类的。</p>
+<p>3、添加垃圾类</p>
+<p>可以简单的把垃圾类文件都放到同一个文件夹下方便管理。不太确定的是如果外部不引用这些垃圾类，编译之后它们会不会因为太独立而被检测认为是垃圾代码。所以保险起见，写了一个单独的头文件 include 所有这些生成的垃圾类，然后在外部 include 了这个单独的头文件。</p>
+<p>4、修改资源 md5 值</p>
+<p>资源文件有很多类型，通常来说文本文件添加随机数量的空格或空行应该就可以了。图片的话常见的 png 和 jpg 都是有固定的结尾字节块的，png 是 00 00 00 00 49 45 4E 44 AE 42 60 82，jpg 是 ffd9，用十六进制查看工具打开图片应该能注意到这个规律，也可以参考下常见图片文件格式简析。在结尾字节块后添加的内容是不会影响图片本身显示的，我们可以利用这个来改变图片的 md5 值。音效应该也有相应的格式。</p>
+<p>5、创建资源垃圾文件</p>
+<p>跟第 3 步类似，不过这个最好也随机下创建文件夹显得真实点，一些文本文件是什么格式都有各自定义，png 和 jpg 的话就随机写任意长度的任意字符，最好结尾加上相应的结尾字节块，防止第 5 步后又执行第 4 步导致出错。</p>
+<p>6、其他事项</p>
+<p>上面的基本都能脚本自动化执行，完了后工程名最好也在 Xcode 改下；info.plist 会被打包进 ipa，最好也多加几个字段上去；target 能改也改下方便识别；scheme 关联到导出的 ipa 文件名，不是特别麻烦也顺手改掉；包名、启动页、图标应该都是基本的东西不会被忽略。</p>
+<h5 id="八、总结"><a href="#八、总结" class="headerlink" title="八、总结"></a>八、总结</h5><p>马甲包的出现给 ASO 优化带来了新的方式，也给优化工作带来了极大的便利。</p>
+<p>在使用马甲包的时候一定要把握两个方向：</p>
+<p>①、导量。不管是什么产品带来量才能带来效益，效益为先。</p>
+<p>②、抗风险。有些优化手段风险极高，但是带来的利益也是极大，所以制作马甲包就是为了抵抗风险，把利益留下。</p>
+<p>开发时代码共用；打包（发包）时，通过加密之类的操作，尽量做到不一样。</p>
+<p>iOS 马甲包：<a href="https://blog.csdn.net/saw471/article/details/79696104" target="_blank" rel="noopener">iOS 马甲包制作（Config 配置）</a></p>
+<p>安卓马甲包：<a href="https://blog.csdn.net/jiuweitianhu_12345/article/details/81196273" target="_blank" rel="noopener">初识马甲包</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/02/18/vestcode/">http://yoursite.com/2019/02/18/vestcode/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/02/18/e8-8b-b9-e6-9e-9c-e5-ae-a1-e6-a0-b8/" class="pre"> 苹果审核		</a><a href="/2019/02/02/e7-bb-93-e6-9e-84-e4-bd-93/" class="next"> 结构体		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、苹果审核条款"><span class="toc-text">一、苹果审核条款</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、苹果的三种审核机制"><span class="toc-text">二、苹果的三种审核机制</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、被拒原因"><span class="toc-text">三、被拒原因</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、什么是马甲包？"><span class="toc-text">四、什么是马甲包？</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、马甲包的好处"><span class="toc-text">五、马甲包的好处</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、制作马甲包"><span class="toc-text">六、制作马甲包</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#七、混淆"><span class="toc-text">七、混淆</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#八、总结"><span class="toc-text">八、总结</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

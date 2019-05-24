@@ -1,0 +1,123 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> CocoaPods 共有库		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> CocoaPods 共有库		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> CocoaPods 共有库		</h1><div class="post-meta"><a href="/2017/09/01/cocoapods-e5-85-b1-e6-9c-89-e5-ba-93/#comments" class="comment-count"></a><p><span class="date">Sep 01, 2017</span><span><a href="/categories/效率-工具/" class="category">效率 | 工具</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>1、在 github 上创建一个项目</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/1-300x181.png" alt></p>
+<p>2、通过 github 客户端 clone 到本地。</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/2-300x250.png" alt></p>
+<p>3、 将一个本地项目放入本地仓库。需要共享的库所在的目录为 Chart-Chart-Chart-Chart，包含两个文件 MyObj.h  MyObj.m。</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/3-300x167.png" alt></p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/4-300x34.png" alt></p>
+<p>4、推送到远程仓库。</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/5-300x198.png" alt></p>
+<p>5、打上 tag。</p>
+<p>git tag x.x</p>
+<p>git push origin x.x</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/6-300x98.png" alt></p>
+<p>6、注册与验证</p>
+<p>pod trunk register <a href="mailto:1070963935@qq.com" target="_blank" rel="noopener">1070963935@qq.com</a> “Qmzy”</p>
+<p>pod trunk me</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/7-300x71.png" alt></p>
+<p>注册完成后，该邮箱会收到一封邮件，也可以打开发送到邮箱的链接验证是否成功。</p>
+<p>删除账号：</p>
+<p>显示隐藏文件</p>
+<p>defaults write com.apple.finder AppleShowAllFiles Yes &amp;&amp; killall Finder</p>
+<p>不显示隐藏文件</p>
+<p>defaults write com.apple.finder AppleShowAllFiles No &amp;&amp; killall Finder</p>
+<p>显示隐藏文件后，在用户目录下找到 /Users/galahad/.rvm ，直接将隐藏文件 .rvm 删除</p>
+<p>7、生成 spec文件</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/8-300x42.png" alt></p>
+<p>先进入项目目录。链接为 github 上的项目地址。</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/9-300x144.png" alt></p>
+<p>8、编辑 spec文件。最好使用 Xcode 打开。</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/10-300x181.png" alt></p>
+<p>字段</p>
+<p>描述</p>
+<p>s.name</p>
+<p>pod search 搜索的关键词。注意这里一定要和 .podspec 的名称一样，否则报错</p>
+<p>s.version</p>
+<p>共享库的版本号</p>
+<p>s.ios.deployment_target</p>
+<p>支持的 pod 最低版本</p>
+<p>s.summary</p>
+<p>摘要 - 简单说明共享库的作用。必填，不然会报错 error</p>
+<p>s.homepage</p>
+<p>项目主页地址</p>
+<p>s.license</p>
+<p>许可证。根据在 github 上创建项目时设置的 { :type =&gt; “MIT”, :file =&gt; “LICENSE” }</p>
+<p>s.author</p>
+<p>作者</p>
+<p>s.social_media_url</p>
+<p>社交网址</p>
+<p>s.source</p>
+<p>项目的地址。#{s.version}  根据前面设置的版本号来控制共享库的版本号</p>
+<ul>
+<li>s.source 常见写法<br>s.source = { :git =&gt; “项目地址.git”, :commit =&gt; “68defea” }<br>s.source = { :git =&gt; “项目地址.git”, :tag =&gt; 1.0.0 }<br>s.source = { :git =&gt; “项目地址.git”, :tag =&gt; s.version }</li>
+</ul>
+<p>commit =&gt; “68defea”   将这个 Pod 版本与 git 仓库中某个 commit 绑定</p>
+<p>tag =&gt; 1.0.0 将这个 Pod 版本与 git 仓库中某个版本的 commit 绑定</p>
+<p>tag =&gt; s.version  将这个 Pod 版本与 git 仓库中相同版本的 commit 绑定</p>
+<p>s.source_files</p>
+<p>需要包含的源文件。”git上的项目名(库名)”, “真正需要共享的库的路径/*.{h.m}”</p>
+<ul>
+<li><p>source_files 常见写法：建议第一种或者第二种<br>“xx/<em><br>“xx/yy/</em>.{h,m}”<br>“xx/*<em>/</em>.h”</p>
+</li>
+<li><p>匹配所有文件   *.{h,m}   匹配所有以 .h 和 .m 结尾的文件</p>
+</li>
+</ul>
+<p>**        匹配所有子目录</p>
+<p>s.resources</p>
+<p>资源文件</p>
+<p>s.requires_arc</p>
+<p>是否支持 ARC</p>
+<p>s.dependency</p>
+<p>依赖库。不能依赖未发布的库 s.dependency “Masonry”, “~&gt; 0.6.2”</p>
+<ul>
+<li>引用静态库：”(.ios).library”。去掉头尾的 lib，用 “,” 分割 。注意：(.ios)括号括起来代表可以省略</li>
+</ul>
+<p>例：引用 libxml2.lib 和 libz.lib    spec.libraries = ‘xml2’, ‘z’</p>
+<ul>
+<li>引用公有 framework：”(.ios).framework” 用 “,” 分割。去掉尾部的 .framework</li>
+</ul>
+<p>例：spec.frameworks = ‘UIKit’, ‘SystemConfiguration’, ‘Accelerate’</p>
+<ul>
+<li>引用自己生成的 framework:”(.ios).vendored_frameworks” 用 “,” 分割。路径为从 .podspec 所在目录为根目录的相对路径。这个不要省略 .framework</li>
+</ul>
+<p>例：spec.ios.vendored_frameworks = ‘Pod/Assets/*.framework’</p>
+<ul>
+<li>引用自己生成的 .a 文件，添加到 Pod/Assets 文件夹里 .Demo 的 Example文件夹里也需要添加一下，不然找不到</li>
+</ul>
+<p>例：spec.ios.vendored_libraries = ‘Pod/Assets/*.a’</p>
+<p>注意：在提交到私有仓库的时候需要加上 –use-libraries</p>
+<p>9、创建 LICENSE(许可证/授权)文件</p>
+<p>这个文件必须有，一般在 github 上新建库的时候直接就创建好了。</p>
+<p>MIT License</p>
+<p>Copyright (c) 2017</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+<p>10、验证、上传</p>
+<p>pod spec lint</p>
+<p>pod trunk push</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/11-300x193.png" alt></p>
+<p>注意：1、不能有警告和错误，否则验证不会通过</p>
+<pre><code>2、相同的版本不能重复的发布否则会报错
+
+3、大多数的错误可以通过升级 cocoapod 来解决
+
+4、发布时会验证 Pod 的有效性，如果你在手动验证 Pod 时使用了 --use-libraries 或 --allow-warnings 等修饰符，那么发布的时候也应该使用相同的字段修饰，否则出现如下的报错。
+</code></pre><p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/12-300x130.png" alt></p>
+<p>11、验证以上是否操作成功</p>
+<p>$ pod search Chart</p>
+<p>[!] Unable to find a pod with name, author, summary, or description matching ‘Chart’</p>
+<p>2 天过去了，还是没有搜到……</p>
+<p>处理步骤：</p>
+<p>1、pod setup   还是失败……(这个命令执行很慢，可以用 pod repo update)</p>
+<p>2、由于 pod setup 成功后会生成 ~/Library/Caches/CocoaPods/search_index.json 文件。所以需要终端删除，输入 rm ~/Library/Caches/CocoaPods/search_index.json</p>
+<p>3、删除成功后再执行 pod search  成功！</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/13-300x73.png" alt></p>
+<p>12、删除公有库</p>
+<p>pod trunk –help  查看有哪些命令，因为有 push 操作也应该会有删除操作。</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/14-300x222.png" alt><img src="http://www.dzliving.com/wp-content/uploads/2017/09/15-300x31.png" alt></p>
+<p>需要指定要 delete/deprecate 的 pod 名称和版本号，不然报错</p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/16-300x22.png" alt></p>
+<p><img src="http://www.dzliving.com/wp-content/uploads/2017/09/17-300x26.png" alt></p>
+<p>然后执行 pod setup。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2017/09/01/cocoapods-e5-85-b1-e6-9c-89-e5-ba-93/">http://yoursite.com/2017/09/01/cocoapods-e5-85-b1-e6-9c-89-e5-ba-93/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2017/09/01/github/" class="pre"> Github		</a><a href="/2017/09/01/e5-88-86-e8-be-a8-e7-8e-87-e3-80-81-e7-a0-81-e7-8e-87-e3-80-81-e5-b8-a7-e7-8e-87/" class="next"> 分辨率、码率、帧率		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

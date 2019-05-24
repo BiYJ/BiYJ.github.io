@@ -1,0 +1,194 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 八、纹理贴图		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 八、纹理贴图		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 八、纹理贴图		</h1><div class="post-meta"><a href="/2017/10/30/e5-85-ab-e3-80-81-e7-ba-b9-e7-90-86-e8-b4-b4-e5-9b-be/#comments" class="comment-count"></a><p><span class="date">Oct 30, 2017</span><span><a href="/categories/GLSL/" class="category">GLSL</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="http://www.cnblogs.com/mazhenyu/p/5580974.html" target="_blank" rel="noopener">http://www.cnblogs.com/mazhenyu/p/5580974.html</a> <strong>一、简单的纹理贴图（Simple Texture）</strong></p>
+<p>为了在 GLSL 中应用纹理，我们需要访问每个顶点的纹理坐标。GLSL 中提供了一些属性变量，每个纹理单元一个：</p>
+<ol>
+<li>attribute vec4 gl_MultiTexCoord0;  </li>
+<li>attribute vec4 gl_MultiTexCoord1;  </li>
+<li>attribute vec4 gl_MultiTexCoord2;  </li>
+<li>attribute vec4 gl_MultiTexCoord3;   </li>
+<li>attribute vec4 gl_MultiTexCoord4;  </li>
+<li>attribute vec4 gl_MultiTexCoord5;  </li>
+<li>attribute vec4 gl_MultiTexCoord6;  </li>
+<li>attribute vec4 gl_MultiTexCoord7;  </li>
+</ol>
+<p>GLSL 还为访问每个纹理的纹理矩阵提供了一个一致变量数组：</p>
+<ol>
+<li>uniform mat4 gl_TextureMatrix[gl_MaxTextureCoords];  </li>
+</ol>
+<p>顶点 shader 可以通过上面所示的内容访问 OpenGL 程序中指定的纹理坐标。然后必须为每个顶点计算纹理坐标，并保存在预先定义的易变变量 gl_TexCoord[i] 中，i 表示纹理单元号。 </p>
+<p>下面这条语句直接复制 OpenGL 程序中指定的纹理坐标，作为纹理单元 0 的顶点纹理坐标。</p>
+<ol>
+<li>gl_TexCoord[0] = gl_MultiTexCoord0;   </li>
+</ol>
+<p>下面是个简单的例子，在顶点 shader 中设置纹理单元 0 的纹理坐标。</p>
+<ol>
+<li>void main()  </li>
+<li>{  </li>
+<li>gl_TexCoord[0] = gl_MultiTexCoord0;  </li>
+<li>gl_Position = ftransform();  </li>
+<li>}  </li>
+</ol>
+<p>如果你想使用纹理矩阵，可以这样操作：</p>
+<ol>
+<li>void main()  </li>
+<li>{  </li>
+<li>gl_TexCoord[0] = gl_TextureMatrix[0] * gl_MultiTexCoord0;  </li>
+<li>gl_Position = ftransform();  </li>
+<li>}  </li>
+</ol>
+<p>前面说过 gl_TexCoord 是一个易变变量，所以在片断 shder 中可以访问经过插值的纹理坐标。</p>
+<p>为了访问纹理的数值，在片断 shader 中有必要声明一个特殊的变量，对一个 2D 纹理可以这样写：</p>
+<ol>
+<li><p>uniform sampler2D tex;  </p>
+<p>如果是 1D 或者 3D 的纹理，可以改成 sampler1D 和 sampler3D。 </p>
+</li>
+</ol>
+<p>这个用户定义的变量 tex 包含我们将会使用的纹理单元，通过 texture2D 函数我们可以得到一个纹素(texel)，这是一个纹理图片中的像素。函数参数分别为 simpler2D 以及纹理坐标：</p>
+<ol>
+<li>vec4 texture2D(sampler2D, vec2);  </li>
+</ol>
+<p>函数的返回值已经考虑了所有在 OpenGL 程序中定义的纹理设置，比如过滤、mipmap、clamp 等。</p>
+<p>我们的片断 shader 可以写成如下形式：</p>
+<ol>
+<li><p>uniform sampler2D tex;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec4 color = texture2D(tex, gl_TexCoord[0].st);  </li>
+<li>gl_FragColor = color;  </li>
+<li><p>}  </p>
+<p>注意访问 gl_TexCoord 时选择子 st 的使用。在本教程前面关于数据类型和变量的讨论中说过，访问纹理坐标时可以使用如下选择子：s、t、p、q。(r 因为和 rgb 选择子冲突而没有使用)<img src="http://hi.csdn.net/attachment/201108/6/0_1312597276lB69.gif" alt> </p>
+</li>
+</ol>
+<p>本节内容的工程下载地址：<a href="http://www.lighthouse3d.com/wp-content/uploads/2011/03/textureSimple.zip" target="_blank" rel="noopener">http://www.lighthouse3d.com/wp-content/uploads/2011/03/textureSimple.zip</a></p>
+<p><strong>二、组合纹理与片断</strong>OpenGL 允许我们通过多种方式将纹理颜色和片断颜色联合到一起。下表显示了 RGBA 模式时可用的联合方式：</p>
+<p>GL_REPLACE</p>
+<p>C = Ct</p>
+<p>A = At</p>
+<p>GL_MODULATE</p>
+<p>C = Ct*Cf</p>
+<p>A = At * Af</p>
+<p>GL_DECAL</p>
+<p>C = Cf <em> (1 – At) + Ct </em> At</p>
+<p>A = Af</p>
+<p> 表中 Ct 和 At 表示纹理的颜色和 alpha 值，Cf 和 Af 表示片断(fragment)的颜色和 alpha 值，C和 A 表示最终的颜色和 alpha 值。 上一节的例子就相当于使用了GL_REPLACE 模式。下面我们我们准备在一个立方体上实现与GL_MODULATE 等同的效果。两个 shader 只计算使用一个白色方向光的散射以及环境光成分，关于材质的完整定义请参照光照有关的章节。 </p>
+<p>因为使用了光照，所以顶点 shader 中必须处理法线信息。必须将法线变换到视图空间然后归一化，光线方向向量也必须归一化(光线方向向量已经由 OpenGL 变换到了视图空间)。现在新的顶点 shader 如下：</p>
+<ol>
+<li><p>varying vec3 lightDir, normal;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li><p>normal = normalize(gl_NormalMatrix * gl_Normal);  </p>
+</li>
+<li><p>lightDir = normalize(vec3(gl_LightSource[0].position));  </p>
+</li>
+<li><p>gl_TexCoord[0] = gl_MultiTexCoord0;  </p>
+</li>
+<li><p>gl_Position = ftransform();  </p>
+</li>
+<li>}  </li>
+</ol>
+<p>在片断 shader 中，光照得到的片断的颜色和 alpha 值在 cf 和 af 中分别计算。shader 中剩余代码按照 GL_MODULATE 的公式计算：</p>
+<ol>
+<li>varying vec3 lightDir, normal;  </li>
+<li><p>uniform sampler2D tex;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec3 ct, cf;  </li>
+<li>vec4 texel;  </li>
+<li><p>float intensity, at, af;  </p>
+</li>
+<li><p>intensity = max(dot(lightDir, normalize(normal)), 0.0);  </p>
+</li>
+<li>cf = intensity * (gl_FrontMaterial.diffuse).rgb + gl_FrontMaterial.ambient.rgb;</li>
+<li><p>af = gl_FrontMaterial.diffuse.a;  </p>
+</li>
+<li><p>texel = texture2D(tex,gl_TexCoord[0].st);</p>
+</li>
+<li>ct = texel.rgb;  </li>
+<li><p>at = texel.a;  </p>
+</li>
+<li><p>gl_FragColor = vec4(ct <em> cf, at </em> af);  </p>
+</li>
+<li>}</li>
+</ol>
+<p><img src="http://hi.csdn.net/attachment/201108/6/0_1312597280cMMM.gif" alt></p>
+<p>工程下载地址：<a href="http://www.lighthouse3d.com/wp-content/uploads/2011/03/textureComb.zip" target="_blank" rel="noopener">http://www.lighthouse3d.com/wp-content/uploads/2011/03/textureComb.zip</a> <strong>三、多重纹理</strong></p>
+<p>在 GLSL 中实现多重纹理十分容易，我们只需要访问所有纹理即可。因为我们打算给每个纹理使用相同的纹理坐标，所以顶点 shader 不需要改动。片断 shader 中只需要进行些许改动，加上多个纹理的颜色值。</p>
+<ol>
+<li>varying vec3 lightDir, normal;  </li>
+<li><p>uniform sampler2D tex;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec3 ct, cf;  </li>
+<li>vec4 texel;  </li>
+<li><p>float intensity, at, af;  </p>
+</li>
+<li><p>intensity = max(dot(lightDir, normalize(normal)), 0.0);  </p>
+</li>
+<li>cf = intensity * (gl_FrontMaterial.diffuse).rgb + gl_FrontMaterial.ambient.rgb; </li>
+<li><p>af = gl_FrontMaterial.diffuse.a;  </p>
+</li>
+<li><p>texel = texture2D(tex, gl_TexCoord[0].st) + texture2D(l3d, gl_TexCoord[0].st); </p>
+</li>
+<li>ct = texel.rgb;  </li>
+<li><p>at = texel.a;  </p>
+</li>
+<li><p>gl_FragColor = vec4(ct <em> cf, at </em> af);  </p>
+</li>
+<li>}</li>
+</ol>
+<p>效果如下：</p>
+<p><img src="http://hi.csdn.net/attachment/201108/6/0_1312597284ZS8B.gif" alt>下面添加点不同的效果：在黑暗中发光。我们希望第二个纹理能在黑暗中发光，在没有光照时达到最亮，在有光照时变暗。<img src="http://hi.csdn.net/attachment/201108/6/0_131259728797i9.gif" alt> 我们通过两步计算最终的颜色：首先将第一个纹理与片断颜色进行 modulate 计算，然后根据光照强度(indensity)加上第二个纹理单元。 </p>
+<p>如果 indensity 是 0，第二个纹理单元取最大值，如果 indensity 为 1，只取第二个纹理单元颜色的 10%，当 indensity 在 0 和 1 之间时按这两个大小进行插值。可以使用 smoothstep 函数实现这个要求：</p>
+<ol>
+<li>genType smoothStep(genType edge0, genType edge1, genType x);  </li>
+</ol>
+<p>如果 x &lt;= edge0 结果是 0，如果 x &gt;= edge1 结果为 1，如果 edge0 &lt; x &lt; edge1 结果在 0 和 1 之间进行 Hermite 插值。在本例中我们按如下方式调用：</p>
+<ol>
+<li><p>coef = smoothStep(1.0, 0.2, intensity);</p>
+<p>下面的片断 shader 实现了需要的效果：</p>
+</li>
+<li><p>varying vec3 lightDir, normal;  </p>
+</li>
+<li><p>uniform sampler2D tex, l3d;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec3 ct, cf, c;  </li>
+<li>vec4 texel;  </li>
+<li><p>float intensity, at, af, a;  </p>
+</li>
+<li><p>intensity = max(dot(lightDir, normalize(normal)), 0.0);  </p>
+</li>
+<li><p>cf = intensity * (gl_FrontMaterial.diffuse).rgb + gl_FrontMaterial.ambient.rgb;</p>
+</li>
+<li><p>af = gl_FrontMaterial.diffuse.a;  </p>
+</li>
+<li><p>texel = texture2D(tex, gl_TexCoord[0].st);  </p>
+</li>
+<li><p>ct = texel.rgb;  </p>
+</li>
+<li><p>at = texel.a;  </p>
+</li>
+<li><p>c = cf * ct;  </p>
+</li>
+<li><p>a = af * at;  </p>
+</li>
+<li><p>float coef = smoothstep(1.0, 0.2, intensity);  </p>
+</li>
+<li><p>c += coef * vec3(texture2D(l3d, gl_TexCoord[0].st));  </p>
+</li>
+<li><p>gl_FragColor = vec4(c, a);  </p>
+</li>
+<li><p>}  </p>
+<p>工程下载地址：<a href="http://www.lighthouse3d.com/wp-content/uploads/2011/03/textureGlow.zip" target="_blank" rel="noopener">http://www.lighthouse3d.com/wp-content/uploads/2011/03/textureGlow.zip</a></p>
+</li>
+</ol>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2017/10/30/e5-85-ab-e3-80-81-e7-ba-b9-e7-90-86-e8-b4-b4-e5-9b-be/">http://yoursite.com/2017/10/30/e5-85-ab-e3-80-81-e7-ba-b9-e7-90-86-e8-b4-b4-e5-9b-be/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2017/10/30/e4-b9-9d-e3-80-81-e5-85-b6-e4-bb-96/" class="pre"> 九、其他		</a><a href="/2017/10/30/e4-b8-83-e3-80-81-e9-80-90-e5-83-8f-e7-b4-a0-e7-9a-84-e5-85-89-e7-85-a7/" class="next"> 七、逐像素的光照		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

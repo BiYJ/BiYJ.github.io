@@ -1,0 +1,115 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 队列		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 队列		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 队列		</h1><div class="post-meta"><a href="/2018/11/19/e9-98-9f-e5-88-97/#comments" class="comment-count"></a><p><span class="date">Nov 19, 2018</span><span><a href="/categories/数据结构/" class="category">数据结构</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h3 id="一、简介"><a href="#一、简介" class="headerlink" title="一、简介"></a>一、简介</h3><p>队列是一种先进先出的线性表，只允许在表的一端进行插入，而在另一端删除元素。插入端叫队头，删除端叫队尾。</p>
+<p>根据存储空间的分配方式可以分为<br>  ①、用连续内存空间的数组实现的顺序队列<br>  ②、用动态分配的堆空间实现的链队列</p>
+<h3 id="二、顺序队列"><a href="#二、顺序队列" class="headerlink" title="二、顺序队列  "></a>二、顺序队列  <img src="http://www.dzliving.com/wp-content/uploads/2018/11/5294842-32e4dcdd4c563fa6.png" alt="顺序队列"></h3><blockquote>
+<p><strong>rear &gt; front</strong></p>
+</blockquote>
+<p>/* 顺序队列结构。元素存放在连续的内存空间（系统数组）。</p>
+<pre><code>采用循环存储。当 rear 到达 MAXSIZE 时，对 MAXSIZE 取余并赋值给 rear
+</code></pre><p> rear = (rear + 1) % MAXSIZE；<br>    保留一个空的内存，用于判断队列是否已满。<br> */<br>typedef struct Queue<br>{<br>    int data[MAXSIZE];<br>    int front;<br>    int rear;  // 注意：rear &gt; front<br>} Queue;</p>
+<p>/// 初始化队列<br>void initQueue(Queue * queue){<br>    queue-&gt;rear = queue-&gt;front = 0;<br>}</p>
+<p>/// 空队列<br>bool isEmptyQueue(Queue * queue){<br>    return (queue-&gt;rear == queue-&gt;front);<br>}</p>
+<p>/// 满队列<br>bool isFullQueue(Queue * queue){<br>    // 如果队尾”追上”队头，则已满<br> return (queue-&gt;rear + 1) % MAXSIZE == queue-&gt;front;<br>}</p>
+<p>/// 入队<br>bool inputQueue(Queue * queue, int data){<br>    if (isFullQueue(queue)) {<br>        return NO;<br>    }</p>
+<pre><code>queue-&gt;data\[queue-&gt;rear\] = data;  // 队尾存入
+queue-&gt;rear = (queue-&gt;rear + 1) % MAXSIZE;  // 队尾对应的索引值增加
+
+return YES;
+</code></pre><p>}</p>
+<p>/// 出队。由 data 返回删除的值<br>bool outputQueue(Queue <em> queue, int </em> data){<br>    if (isEmptyQueue(queue))<br>        return NO;</p>
+<pre><code>*data = queue-&gt;data\[queue-&gt;front\];   // 取出队头的值
+queue-&gt;front = (queue-&gt;front + 1) % MAXSIZE;
+
+return YES;
+</code></pre><p>}</p>
+<p>/// 打印队列的内容<br>void printQueue(Queue * queue){<br>    if (isEmptyQueue(queue))<br>        return;</p>
+<pre><code>int i = queue-&gt;front;
+
+while (i != queue-&gt;rear) {
+    printf(&quot;%d\\t&quot;, queue-&gt;data\[i\]);
+    i = (i + 1) % MAXSIZE;
+}
+
+printf(&quot;\\r\\n&quot;);
+</code></pre><p>}</p>
+<p>/// 调用<br>{<br>    int array[] = {1, 2, 3, 4, 5, 6, 7, 8, 9};<br>    int i = 0;<br>    int data = 0;<br>    Queue queue = { 0 };</p>
+<pre><code>initQueue(&amp;queue);
+
+for (i = 0; i &lt; sizeof(array)/sizeof(int); i++) {
+    inputQueue(&amp;queue, array\[i\]);
+}
+
+printQueue(&amp;queue);
+
+outputQueue(&amp;queue, &amp;data);
+printf(&quot;%d\\n&quot;, data);
+outputQueue(&amp;queue, &amp;data);
+printf(&quot;%d\\n&quot;, data);
+
+printQueue(&amp;queue);
+inputQueue(&amp;queue, 11);
+inputQueue(&amp;queue, 12);
+printQueue(&amp;queue);
+</code></pre><p>}</p>
+<p>1   2   3   4   5   6   7   8   9<br>1<br>2<br>3   4   5   6   7   8   9<br>3   4   5   6   7   8   9   11  12  </p>
+<h3 id="三、链队列"><a href="#三、链队列" class="headerlink" title="三、链队列"></a>三、链队列</h3><p><img src="http://www.dzliving.com/wp-content/uploads/2018/11/5294842-2672e3e5b295a0ec.png" alt="链队列"></p>
+<p>/* 链队列结构。元素存放在动态分配的堆上，非连续的内存空间。</p>
+<pre><code>采用线性存储。队列不会满。
+</code></pre><p> <em>/<br>typedef struct Node<br>{<br>    int data;<br>    struct Node </em> next;<br>} Node;</p>
+<p>typedef struct Queue<br>{<br>    Node <em> front;<br>    Node </em> rear;<br>} Queue;</p>
+<p>/// 初始化队列<br>void initQueue(Queue <em> queue){<br>    queue-&gt;front = queue-&gt;rear = (Node </em>)malloc(sizeof(Node));<br>}</p>
+<p>/// 空队列<br>bool isEmptyQueue(Queue * queue){<br>    return (queue-&gt;rear == queue-&gt;front);<br>}</p>
+<p>/// 入队<br>void inputQueue(Queue <em> queue, int data){<br>    Node </em> node = (Node *)malloc(sizeof(Node));</p>
+<pre><code>node-&gt;data = data;
+node-&gt;next = NULL;
+
+queue-&gt;rear-&gt;next = node;  // 将上一个节点的 next 指向 node
+queue-&gt;rear = node;  // 移动 rear 的位置
+</code></pre><p>}</p>
+<p>/// 出队。若队列不空，由 data 返回删除的值<br>bool outputQueue(Queue <em> queue, int </em> data)<br>{<br>    if (isEmptyQueue(queue))<br>        return NO;</p>
+<pre><code>Node * firstNode = queue-&gt;front-&gt;next;  // 指向第一个结点
+*data = firstNode-&gt;data;
+queue-&gt;front-&gt;next = firstNode-&gt;next;   // 将头节点指向新的&quot;第一个结点&quot;
+
+if (queue-&gt;rear == firstNode) {  // 删除的正好是队尾结点
+    queue-&gt;rear = queue-&gt;front;  // 将 rear 指针指向头结点
+}
+
+return YES;
+</code></pre><p>}</p>
+<p>/// 打印队列的内容<br>void printQueue(Queue * queue){<br>    if (isEmptyQueue(queue))<br>        return;</p>
+<pre><code>Node * node = queue-&gt;front-&gt;next;  // 指向头结点
+
+while (node) {
+    printf(&quot;%d\\t&quot;, node-&gt;data);
+    node = node-&gt;next;
+}
+
+printf(&quot;\\r\\n&quot;);
+</code></pre><p>}<br>/// 调用<br>{<br>    int array[] = {1, 2, 3, 4, 5, 6, 7, 8, 9};<br>    int i = 0;<br>    int data = 0;<br>    Queue queue = { 0 };</p>
+<pre><code>initQueue(&amp;queue);
+
+for (i = 0; i &lt; sizeof(array)/sizeof(int); i++) {
+    inputQueue(&amp;queue, array\[i\]);
+}
+
+printQueue(&amp;queue);
+
+outputQueue(&amp;queue, &amp;data);
+printf(&quot;%d\\n&quot;, data);
+outputQueue(&amp;queue, &amp;data);
+printf(&quot;%d\\n&quot;, data);
+
+printQueue(&amp;queue);
+inputQueue(&amp;queue, 11);
+inputQueue(&amp;queue, 12);
+printQueue(&amp;queue);
+</code></pre><p>}</p>
+<p>1   2   3   4   5   6   7   8   9<br>1<br>2<br>3   4   5   6   7   8   9<br>3   4   5   6   7   8   9   11  12</p>
+<p><img src="https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=502236419,1713697651&amp;fm=26&amp;gp=0.jpg" alt> </p>
+<h3 id="四、循环队列"><a href="#四、循环队列" class="headerlink" title="四、循环队列"></a>四、循环队列</h3><p><img src="http://www.dzliving.com/wp-content/uploads/2018/11/5294842-4daf61b22c346aa7.png" alt="循环链实现队列">  </p>
+<p>循环链实现队列</p>
+<p>循环队列与链队列的比较</p>
+<p>①、时间：循环队列和链队列的基本操作都是 O(1)。不过循环队列是事先已申请好空间，使用期间不会释放。而对于链队列，每次申请和释放结点也会存在一些时间开销。如果入队和出队频繁，链队列会耗费更多的时间。  </p>
+<p>②、空间：循环队列必须有一个固定的长度，所以就会有存储元素个数和空间浪费的问题。而链队列不存在这个问题，尽管它需要一个指针域，会产生一些空间上的开销，但是是可以接受的。所以从空间上说，链队列更加灵活。</p>
+<p>总的来说，在可以确定链队列最大长度的情况下，建议使用循环队列。如果无法预估队列的长度，则使用链队列。</p>
+<h3 id="五、队列实现栈"><a href="#五、队列实现栈" class="headerlink" title="五、队列实现栈"></a>五、队列实现栈</h3></div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2018/11/19/e9-98-9f-e5-88-97/">http://yoursite.com/2018/11/19/e9-98-9f-e5-88-97/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2018/11/19/git-e6-92-a4-e9-94-80-e6-9b-b4-e6-94-b9/" class="pre"> Git 撤销更改		</a><a href="/2018/11/19/e6-95-b0-e6-8d-ae-e7-bb-93-e6-9e-84/" class="next"> 数据结构		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#一、简介"><span class="toc-text">一、简介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#二、顺序队列"><span class="toc-text">二、顺序队列  </span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#三、链队列"><span class="toc-text">三、链队列</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#四、循环队列"><span class="toc-text">四、循环队列</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#五、队列实现栈"><span class="toc-text">五、队列实现栈</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

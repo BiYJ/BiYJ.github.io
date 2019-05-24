@@ -1,0 +1,198 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 三、在OpenGL中向shader传递信息		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 三、在OpenGL中向shader传递信息		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 三、在OpenGL中向shader传递信息		</h1><div class="post-meta"><a href="/2017/10/27/e4-b8-89-e3-80-81-e5-9c-a8opengl-e4-b8-ad-e5-90-91shader-e4-bc-a0-e9-80-92-e4-bf-a1-e6-81-af/#comments" class="comment-count"></a><p><span class="date">Oct 27, 2017</span><span><a href="/categories/GLSL/" class="category">GLSL</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="http://www.cnblogs.com/mazhenyu/p/5580946.html" target="_blank" rel="noopener">http://www.cnblogs.com/mazhenyu/p/5580946.html</a> <strong>引言</strong>一个 OpenGL 程序可以用多种方式和 shader 通信。注意这种通信是单向的，因为 shader 的输出只能是渲染到某些目标，比如颜色和深度缓存。 OpenGL 的部分状态可以被 shader 访问，因此程序改变 OpenGL 某些状态就可以与 shader 进行通信了。例如一个程序想把光的颜色传给 shader，可以直接调用 OpenGL 接口，就像使用固定功能流水线时做的那样。 不过，使用 OpenGL 状态并不是设置 shader 中使用数据的直观方式。比如一个 shader 需要一个表示时间变化的变量来计算动画，在 OpenGL 状态中就没有现成的变量可用。当然，你可以使用没有用到的”镜面光截止角度(cutoffangle)”这样一个变量表示时间，但显然让人难以接受。 幸运的是 GLSL 允许用户自定义变量，实现 OpenGL 应用程序与 shader 通信。有了这个功能，你就可以命名一个叫做 timeElapsed 的变量表示经过的时间。 上文的讨论涉及到了 GLSL 提供的两种类型修饰符(更多的类型将在后面提到)：·       一致变量 - Uniform·       属性  - Attribute 在 shader 中定义的变量如果用这两种类型修饰符，表示对 shader 来说，它们是只读的。下面将详细讲述怎样使用这些类型的变量。 还有一种将变量送给 shader 的方法：使用纹理。一个纹理不止可以表示一张图片，它还可以表示一个数组。事实上，你完全可以决定如何在 shader 中解释纹理数据，即使它真是一幅图片。 1<strong>、数据类型和变量</strong>下面是 GLSL 中的基本数据类型：·       float·       bool·       int浮点类型与 C 中类似，布尔类型可以为 true 或 false。这些基本类型可以组成 2、3 或 4 维向量，如下所示：·       vec{2,3,4} a vector of 2,3,or 4 floats·       bvec{2,3,4} bool vector·       ivec{2,3,4} vector of integers GLSL 还包括 2×2、3×3 或 4×4 型矩阵，因为这些矩阵类型在图形处理中很常用：·       mat2·       mat3·       mat4 此外，还有一组用来实现纹理访问的特殊类型，它们被称为采样器(sampler)，在读取纹理值(也称为纹素 texel)时用到。下面就是纹理采样用到的数据类型：·       sampler1D – for 1D textures·       sampler2D – for 2D textures·       sampler3D – for 3D textures·       samplerCube – for cube map textures·       sampler1DShadow – for shadow maps·       sampler2DShadow – for shadow maps 在 GLSL 中，可以像 C 一样声明和访问数组，但是不能在声明时初始化数组。GLSL 还可以定义结构体：struct dirlight{vec3 color;vec3 direction;};   <strong>变量</strong>声明一个基本类型变量的方法与 C 类似，你还可以在声明它的同时进行初始bool d = true;   // d is trueint c = 2;     // c is initialized with 2  float a, b;     // two vector (yes, the comments are like in C)   声明其它类型变量也是按照这种方法，但是初始化与 C 语言有区别。GLSL 非常依赖构造函数实现初始化和类型转换。float b = 2;        // incorrect, there is no automatic type castingfloat e = (float)2; // incorrect, requires constructors for type casting  int a = 2;  float c = float(a); // correct. c is 2.0  vec3 f;             // declaring f as a vec3  vec3 g = vec3(1.0,2.0,3.0); // declaring and initializing g   在 GLSL 中使用一些变量初始化其它变量是非常灵活的。你只需要给出需要的数据成员即可。请看下面的例子：vec2 a = vec2(1.0, 2.0);  vec2 b = vec2(3.0, 4.0);  vec4 c = vec4(a, b)   // c = vec4(1.0, 2.0, 3.0, 4.0);  vec2 g = vec2(1.0, 2.0);  float h = 3.0;  vec3 j = vec3(g, h);   矩阵的初始化也是类似方法，矩阵包含很多种构造函数，下面的例子给出了一些初始化矩阵的构造函数：mat4 m = mat4(1.0)   // initializing the diagonal of the matrix with 1.0  vec2 a = vec2(1.0, 2.0);  vec2 b = vec2(3.0, 4.0);  mat2 n = mat2(a, b);  // matrices are assigned in column major order  mat2 k = mat2(1.0, 0.0, 1.0, 0.0);  // all elements are specified   下面的例子给出了初始化结构体的方法：struct dirlight     // type definition {  vec3 color;vec3 direction;  };  dirlight d1;  dirlight d2 = dirlight(vec3(1.0, 1.0, 0.0), vec3(0.8, 0.8, 0.4));   在 GLSL 中还有一些实用的选择器(selector)，可以简化我们的操作并让代码更简洁。访问一个向量可以使用如下的方法：vec4 a = vec4(1.0, 2.0, 3.0, 4.0);  float posX  = a.x;  float posY  = a[1];  vec2 posXY  = a.xy;  float depth = a.w 在上面的代码片段中，可以使用 x、y、z、w 来访问向量成员。如果是颜色的话可以使用 r、g、b、a，如果是纹理坐标的话可以使用 s、t、p、q。注意表示纹理坐标通常是使用 s、t、r、q，但 r 已经表示颜色中的红色了，所以纹理坐标中需要使用 p 来代替。 矩阵的选择器可以使用一个或两个参数，比如 m[0] 或者 m[2][3]。第一种情况选择了第一列，第二种情况选择了一个数据成员。 对于结构体来说，可以像在 C 语言中一样访问其成员。所以访问前面定义的结构体，可以使用如下的代码：d1.direction = vec3(1.0, 1.0, 1.0);   <strong>2、变量修饰符</strong>修饰符给出了变量的特殊含义，GLSL 中有如下修饰符：·       const       声明一个编译期常量。·       attribute   随不同顶点变化的全局变量，由 OpenGL 应用程序传给顶点 shader。这个修饰符只能用在顶点 shader 中，在 shader 中它是一个只读变量。·       uniform     随不同图元变化的全局变量（即不能在 glBegin/glEnd 中设置），由 OpenGL 应用程序传给shader。这个修饰符能用在顶点和片断 shader 中，在 shader 中它是一个只读变量。·       varying用于顶点 shader 和片断 shader 间传递的插值数据，在顶点 shader 中可写，在片断 shader中只读。 <strong>3、一致变量（Uniform Variables）</strong>不同于顶点属性在每个顶点有其自己的值，一个一致变量在一个图元的绘制过程中是不会改变的，所以其值不能在 glBegin/glEnd 中设置。一致变量适合描述在一个图元中、一帧中甚至一个场景中都不变的值。一致变量在顶点 shader 和片断 shader 中都是只读的。 首先你需要获得变量在内存中的位置，这个信息只有在连接程序之后才可获得。注意，对某些驱动程序，在获得存储位置前还必须使用程序(调用 glUseProgram)。 获取一个一致变量的存储位置只需要给出其在 shader 中定义的变量名即可：/*<em> </em>  @param   program  - the hanuler to the program <em>  @param   name   - the name of the variable </em>/ GLint glGetUniformLocation(GLuint program, const char *name); 返回值就是变量位置，可以用此信息设置变量的值。根据变量的数据类型不同，有一系列函数可以用来设置一致变量。用来设置浮点值的一组函数如下：/** <em>  @param  location  - the previously queried location </em>  @param  v0,v1,v2,v3  - float values <em>  @param  count  - the number of elements in the array </em>  @param  v  - an array of floats <em>/ void glUniform1f(GLint location, GLfloat v0);   void glUniform2f(GLint location, GLfloat v0, GLfloat v1);   void glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);   void glUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3); GLint glUniform{1, 2, 3, 4}fv(GLint location, GLsizei count, GLfloat \</em>v); 对 integer 类型也有一组类似的函数，不过要用 i 替换函数中的 f。对 bool 类型没有专门的函数，但可以使用整数的 0 和 1 来表示真假。一旦你使用了一致变量数组，那么就必须使用向量版本的函数。 对 sampler 变量，使用函数 glUniform1i 和 glUniform1iv。 矩阵也是一种 GLSL 的数据类型，所以也有一组针对矩阵的函数：/** <em>  @param  location  - the previously queried location </em>  @param  count   - the number of matrices. 1 if a single matrix is being set, or n for an array of n matrices. <em>  @param  transpose  - wheter to transpose the matrix values. A value of 1 indicates that the matrix values are specified in row major order, zero is column major order   </em>  @param  v  – an array of floats.   <em>/GLint glUniformMatrix{2,3,4}fv(GLint location, GLsizei count, GLboolean transpose, GLfloat </em>v);   还有一点要注意的是：使用这些函数之后，变量的值将保持到程序再次连接之时。一旦进行重新连接，所有变量的值将被重置为 0。 最后是一些示例代码。假设一个 shader 中使用了如下变量：</p>
+<ol>
+<li>uniform float specIntensity;</li>
+<li>uniform vec4 specColor;</li>
+<li>uniform float t[2];</li>
+<li>uniform vec4 colors[3];</li>
+</ol>
+<p>在 OpenGL 程序中可以使用下面的代码设置这些变量：</p>
+<ol>
+<li>GLint loc1, loc2, loc3, loc4;</li>
+<li>float specIntensity = 0.98;</li>
+<li>float sc[4] = {0.8, 0.8, 0.8, 1.0};</li>
+<li>float threshold[2] = {0.5, 0.25};</li>
+<li>float colors[12] = { 0.4, 0.4, 0.8, 1.0,</li>
+<li>0.2, 0.2, 0.4, 1.0,</li>
+<li><p>0.1, 0.1, 0.1, 1.0 };</p>
+</li>
+<li><p>loc1 = glGetUniformLocation( p, “specIntensity” );</p>
+</li>
+<li>glUniform1f(loc1, specIntensity);</li>
+<li>loc2 = glGetUniformLocation( p, “specColor” );</li>
+<li>glUniform4fv(loc2, 1, sc);</li>
+<li>loc3 = glGetUniformLocation(p, “t”);</li>
+<li>glUniform1fv(loc3, 2, threshold);</li>
+<li>loc4 = glGetUniformLocation(p, “colors”);</li>
+<li>glUniform4fv(loc4, 3, colors);</li>
+</ol>
+<p>例子代码的下载地址：<a href="http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl2_2.0.zip" target="_blank" rel="noopener">http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl2_2.0.zip</a> 注意：设置一个数组(例子中的 t)与设置四元向量(例子中的 colors 和 specColor)的区别。中间的count 参数指在 shader 中声明的数组元素数量，而不是在 OpenGL 程序中声明的。所以虽然specColor 包含 4 个值，但 glUniform4fv 函数中的参数是 1，因为它只是一个向量。 另一种设置 specColor 的方法：</p>
+<ol>
+<li>loc2 = glGetUniformLocation(p, “specColor”);</li>
+<li>glUniform4f(loc2, sc[0], sc[1], sc[2], sc[3]);</li>
+</ol>
+<p>GLSL 中还可以获取数组中某个变量的地址。比如，可以获得 t[1] 的地址。下面的代码片段展示了设置 t 数组元素的另一种方法：</p>
+<ol>
+<li>loct0 = glGetUniformLocation(p, “t[0]“);</li>
+<li>glUniform1f(loct0, threshold[0]);</li>
+<li>loct1 = glGetUniformLocation(p, “t[1]“);</li>
+<li>glUniform1f(loct1, threshold[1]);</li>
+</ol>
+<p>注意在 glGetUniformLocation 中使用方括号指示的变量。<strong>4、属性变量（Attribute Variables）</strong>在前一节提到，一致变量只能针对一个图元全体，就是说不能在 glBegin 和 glEnd 之间改变。 如果要针对每个顶点设置变量，那就需要属性变量了。事实上属性变量可以在任何时刻更新。在顶点 shader 中属性变量是只读的。因为它包含的是顶点数据，所以在片断 shader 中不能直接应用。 与一致变量相似，首先你需要获得变量在内存中的位置，这个信息只有在连接程序之后才可获得。注意，对某些驱动程序，在获得存储位置前还必须使用程序。</p>
+<ol>
+<li>/**</li>
+<li><ul>
+<li>@param  program  – the handle to the program</li>
+</ul>
+</li>
+<li><ul>
+<li>@param  name     – the name of the variable</li>
+</ul>
+</li>
+<li>*/</li>
+<li>GLint glGetAttribLocation(GLuint program, char *name);</li>
+</ol>
+<p>上述函数调用的返回变量在存储器中的地址。下面就可以为它指定一个值，类似一致变量，每种数据类型都有对应的函数。</p>
+<ol>
+<li>/**</li>
+<li><ul>
+<li>@param  location  – the previously queried location.</li>
+</ul>
+</li>
+<li><ul>
+<li>@param  v0, v1, v2, v3  – float values.</li>
+</ul>
+</li>
+<li><ul>
+<li>@param  v  – an array of floats.</li>
+</ul>
+</li>
+<li>*/</li>
+<li>void glVertexAttrib1f(GLint location, GLfloat v0);</li>
+<li>void glVertexAttrib2f(GLint location, GLfloat v0, GLfloat v1);</li>
+<li>void glVertexAttrib3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);</li>
+<li>void glVertexAttrib4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);</li>
+<li>或者</li>
+<li>GLint glVertexAttrib{1, 2, 3, 4}fv(GLint location, GLfloat *v);</li>
+</ol>
+<p>对于 integer 类型，也有一组类似的函数。与一致变量不同，这里向量版的函数并不支持对向量数组的赋值，所以函数参数用向量或是分别指定的效果没有太大区别，就好像 OpenGL 中 glColor3f 和 glColor3fv 的关系。下面是一个简单的例子，假定顶点 shader 中声明了一个名为 height 的浮点属性变量，在程序连接之后可以进行如下操作：</p>
+<ol>
+<li><p>loc = glGetAttribLocation(p, “height”);</p>
+<p>在执行渲染的代码中间可以为 shader 中的变量赋值：</p>
+</li>
+<li><p>glBegin(GL_TRIANGLE_STRIP);</p>
+</li>
+<li>glVertexAttrib1f(loc, 2.0);</li>
+<li>glVertex2f(-1,  1);</li>
+<li>glVertexAttrib1f(loc, 2.0);</li>
+<li>glVertex2f( 1,  1);</li>
+<li>glVertexAttrib1f(loc, -2.0);</li>
+<li>glVertex2f(-1, -1);</li>
+<li>glVertexAttrib1f(loc, -2.0);</li>
+<li>glVertex2f( 1, -1);</li>
+<li>glEnd();</li>
+</ol>
+<p>例子代码的下载地址：<a href="http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl3_2.0.zip" target="_blank" rel="noopener">http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl3_2.0.zip</a>、 顶点数组和属性变量也可以一起使用。首先需要使能数组，使用如下函数：</p>
+<ol>
+<li>/**</li>
+<li><ul>
+<li>@param  loc  - the location of the variable.</li>
+</ul>
+</li>
+<li>*/</li>
+<li>void glEnableVertexAttribArray(GLint loc);</li>
+</ol>
+<p>接下来使用函数提交包含数据的数组指针：</p>
+<ol>
+<li>/**</li>
+<li><ul>
+<li>@param  loc   – the location of the variable</li>
+</ul>
+</li>
+<li><ul>
+<li>@param  size  – the number of components per element, for instance: 1 for float; 2 for vec2; 3 for vec3, and so on</li>
+</ul>
+</li>
+<li><ul>
+<li>@param  type  – The data type associated: GL_FLOAT is an example</li>
+</ul>
+</li>
+<li><ul>
+<li>@param  normalized  – if set to 1 then the array values will be normalized, converted to a range from -1 to 1 for signed data, or 0 to 1 for unsigned data</li>
+</ul>
+</li>
+<li><ul>
+<li>@param  stride  – the spacing between elements. Exactly the same as in OpenGL</li>
+</ul>
+</li>
+<li><ul>
+<li>@param  pointer – pointer to the array containing the data</li>
+</ul>
+</li>
+<li>*/</li>
+<li>void glVertexAttribPointer(GLint loc, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);</li>
+</ol>
+<p>下面是示例代码，首先执行初始化，定义了顶点数组和属性数组。</p>
+<ol>
+<li>float vertices[8] = { -1, 1, 1, 1, -1, -1, 1, -1 };</li>
+<li>float heights[4]  = { 2, 2, -2, -2 };</li>
+<li>…</li>
+<li><p>loc = glGetAttribLocation(p, “height”);</p>
+</li>
+<li><p>glEnableClientState(GL_VERTEX_ARRAY);</p>
+</li>
+<li>glEnableVertexAttribArray(loc);</li>
+<li>glVertexPointer(2, GL_FLOAT, 0, vertices);</li>
+<li>glVertexAttribPointer(loc, 1, GL_FLOAT, 0, 0, heights);</li>
+</ol>
+<p>接下来的渲染步骤与 OpenGL 中的通常做法一致，比如调用 glDrawArrays。示例源代码下载地址：<a href="http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl4_2.0.zip" target="_blank" rel="noopener">http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl4_2.0.zip</a> <strong>5、易变变量（Varying Variables）</strong>前 面说过，shader 包括两种类型：顶点 shader 和片断 shader。为了计算片断的值，往往需要访问顶点的插值数据。例如，当使用逐片断光照时，我 们需要知道当前片断的法线，但是在 OpenGL 中只为每个顶点指定了法线。顶点 shader 可以访问这些法线，而片断 shader 不能，因为法线是 OpenGL 程序作为属性变量指定的。 顶点变换后的数据移动到流水线的下一个阶段，在这个阶段通过使用连接信息，生成了所有图元并完成片断化。对每个片断，有一组变量会被自动进行插值并提供给片断 shader，这些都是固定功能。片断的颜色就是这么处理的，到达片断 shader 的颜色就是组成图元的顶点颜色插值的结果。 像片断 shader 接收到的这种插值产生的变量，就是”易变变量”类型。GLSL 包含一些预先定义的易变变量，例如前面提到的颜色。用户也可以自己定义易变变量，它们必须同时在顶点 shader 和片断 shader中声明：</p>
+<ol>
+<li>varying float intensity;</li>
+</ol>
+<p>一个易变变量必须先在顶点 shader 中声明，然后计算每个顶点的变量值。在片断 shader 中，接收这个变量通过插值得到的结果，注意此时这个变量是只读的。 <strong>6、语句和函数</strong>①、<strong>控制流语句</strong> 与 C 语言类似，GLSL 中有类似 if-else 的条件语句，for、while、do-while等循环语句。</p>
+<ol>
+<li>if (bool expression)</li>
+<li>…</li>
+<li>else</li>
+<li><p>…</p>
+</li>
+<li><p>for (initialization; bool expression; loop expression)</p>
+</li>
+<li><p>…</p>
+</li>
+<li><p>while (bool expression)</p>
+</li>
+<li><p>…</p>
+</li>
+<li><p>do</p>
+</li>
+<li>…</li>
+<li>while (bool expression)</li>
+</ol>
+<p>GLSL 也有跳转语句：·   continue – available in loops, causes a jump to thenext iteration of the loop·   break    – available in loops, causes an exit of theloop·   discard最后的 discard 关键字只能在片断 shader 中使用，它将在不写入帧缓存或者深度缓存的情况下，终止当前片断的 shader 程序。 ②、<strong>函数</strong> 与 C 语言类似，shader 也是由函数组成的结构化程序。至少每类 shader 都必须包含一个如下方式声明的主函数：</p>
+<ol>
+<li>void main()</li>
+</ol>
+<p>此外用户还可以自定义函数。这些函数像 C 函数一样，一般都会有返回值，返回值的类型没有限制，但不能是数组。 函数参数可以有如下修饰符：·   in    – for input parameters·   out   – for outputs of the function. The returnstatement is also an option for sending the result of a function.·   inout – for parameters that are both input andoutput of a function 如果没有指定修饰符，默认情况下为 in 类型。 最后还有两点要注意：·   允许函数重载，只要参数不同。·   在标准中没有定义递归行为。 结束本节之前来看一个函数的例子：</p>
+<ol>
+<li><ol>
+<li>vec4 toonify(in float intensity)</li>
+<li>{</li>
+<li><p>vec4 color;</p>
+</li>
+<li><p>if (intensity &gt; 0.98)</p>
+</li>
+<li>color = vec4(0.8, 0.8, 0.8, 1.0);</li>
+<li>else if (intensity &gt; 0.5)</li>
+<li>color = vec4(0.4, 0.4, 0.8, 1.0);</li>
+<li>else if (intensity &gt; 0.25)</li>
+<li>color = vec4(0.2, 0.2, 0.4, 1.0);</li>
+<li>else</li>
+<li><p>color = vec4(0.1, 0.1, 0.1, 1.0);</p>
+</li>
+<li><p>return(color);</p>
+</li>
+<li>}</li>
+</ol>
+</li>
+</ol>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2017/10/27/e4-b8-89-e3-80-81-e5-9c-a8opengl-e4-b8-ad-e5-90-91shader-e4-bc-a0-e9-80-92-e4-bf-a1-e6-81-af/">http://yoursite.com/2017/10/27/e4-b8-89-e3-80-81-e5-9c-a8opengl-e4-b8-ad-e5-90-91shader-e4-bc-a0-e9-80-92-e4-bf-a1-e6-81-af/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2017/10/29/hello-world/" class="pre"> 四、Hello World		</a><a href="/2017/10/27/e4-ba-8c-e3-80-81-e5-9c-a8opengl-e4-b8-ad-e4-bd-bf-e7-94-a8glsl/" class="next"> 二、在OpenGL中使用GLSL		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

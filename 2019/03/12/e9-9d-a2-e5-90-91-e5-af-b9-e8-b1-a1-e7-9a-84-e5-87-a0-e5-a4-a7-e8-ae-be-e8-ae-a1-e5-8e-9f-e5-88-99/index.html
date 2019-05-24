@@ -1,0 +1,431 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> 面向对象的几大设计原则		 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden"> 面向对象的几大设计原则		</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"> 面向对象的几大设计原则		</h1><div class="post-meta"><a href="/2019/03/12/e9-9d-a2-e5-90-91-e5-af-b9-e8-b1-a1-e7-9a-84-e5-87-a0-e5-a4-a7-e8-ae-be-e8-ae-a1-e5-8e-9f-e5-88-99/#comments" class="comment-count"></a><p><span class="date">Mar 12, 2019</span><span><a href="/categories/架构设计/" class="category">架构设计</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="https://www.cnblogs.com/snowbook/p/5163980.html" target="_blank" rel="noopener">面向对象的几大设计原则</a>、<a href="https://blog.csdn.net/qq_34760445/article/details/82931002" target="_blank" rel="noopener">面向对象设计的七大设计原则详解</a></p>
+<p>对于面向对象软件系统的设计而言，在支持可维护性的同时，提高系统的可复用性是一个至关重要的问题，如何同时提高一个软件系统的可维护性和可复用性是面向对象设计需要解决的核心问题之一。</p>
+<p>在面向对象设计中，可维护性的复用是以设计原则为基础的。每一个原则都蕴含一些面向对象设计的思想，可以从不同的角度提升一个软件结构的设计水平。</p>
+<p>面向对象设计原则为支持可维护性复用而诞生，这些原则蕴含在很多设计模式中，它们是从许多设计方案中总结出的指导性原则。面向对象设计原则也是我们用于评价一个设计模式的使用效果的重要指标之一，在设计模式的学习中，大家经常会看到诸如“XXX模式符合XXX原则”、“XXX模式违反了XXX原则”这样的话。</p>
+<p>最常见的 7 种面向对象设计原则如下表所示：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-19ed7a0d7284f119.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="2"></p>
+<h5 id="一、七大原则之间的关系"><a href="#一、七大原则之间的关系" class="headerlink" title="一、七大原则之间的关系"></a>一、七大原则之间的关系</h5><p>七大原则之间并不是相互孤立的，而是彼此间存在着一定关联，一个可以是另一个原则的加强或是基础。违反其中的某一个，可能同时违反了其余的原则。</p>
+<p>开闭原则是面向对象的可复用设计的基石，其他设计原则是实现开闭原则的手段和工具。</p>
+<p>一般可以把这七个原则分成了以下两个部分：</p>
+<p>设计目标：开闭原则、里氏代换原则、迪米特原则<br>设计方法：单一职责原则、接口分隔原则、依赖倒置原则、组合/聚合复用原则</p>
+<h5 id="二、单一职责原则"><a href="#二、单一职责原则" class="headerlink" title="二、单一职责原则"></a>二、单一职责原则</h5><p>是最简单的面向对象设计原则，它用于控制类的粒度大小。</p>
+<blockquote>
+<p>单一职责原则（Single Responsibility Principle, SRP）</p>
+<p>一个类只负责一个功能领域中的相应职责，或者可以定义为：就一个类而言，应该只有一个引起它变化的原因。</p>
+</blockquote>
+<p>在软件系统中，一个类（大到模块，小到方法）承担的职责越多，它被复用的可能性就越小，而且一个类承担的职责过多，就相当于将这些职责耦合在一起，当其中一个职责变化时，可能会影响其他职责的运作，因此要将这些职责进行分离，将不同的职责封装在不同的类中，即将不同的变化原因封装在不同的类中，如果多个职责总是同时发生改变则可将它们封装在同一类中。</p>
+<p>单一职责原则是实现高内聚、低耦合的指导方针，它是最简单又最难运用的原则，需要设计人员发现类的不同职责并将其分离，而发现类的多重职责需要设计人员具有较强的分析设计能力和相关实践经验。</p>
+<p>①、如果一个职责使用了外部类库，则使用另外一个职责的用户却也不得不包含这个未被使用的外部类库。</p>
+<p>②、某个用户由于某个原因需要修改其中一个职责，另外一个职责的用户也将受到影响，他将不得不重新编译和配置。</p>
+<p>1、职责的划分</p>
+<p>既然一个类不能有多个职责，那么怎么划分职责呢？</p>
+<p>Robert.C Martin 给出了一个著名的定义：所谓一个类的一个职责是指引起该类变化的一个原因。如果你能想到一个类存在多个使其改变的原因，那么这个类就存在多个职责。</p>
+<p>SRP 违反例：</p>
+<p>class Modem {<br>    void dial(String pno); // 拨号<br>    void hangup();  // 挂断<br>    void send(char c); // 发送数据<br>    char recv();    // 接收数据<br>};</p>
+<p>乍一看，这是一个没有任何问题的接口设计。</p>
+<p>但事实上，这个接口包含了 2 个职责：第一个是连接管理（dial、hangup）；另一个是数据通信（send、recv）。</p>
+<p>很多情况下，这 2 个职责没有任何共通的部分，它们因为不同的理由而改变，被不同部分的程序调用。所以它违反了 SRP 原则。</p>
+<p>下面的类图将它的 2 个不同职责分成 2 个不同的接口，这样至少可以让客户端应用程序使用具有单一职责的接口：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-697c96c972021eb7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="6"></p>
+<p>让 ModemImplementation 实现这两个接口。我们注意到，ModemImplementation 又组合了 2 个职责，这不是我们希望的，但有时这又是必须的。通常由于某些原因，迫使我们不得不绑定多个职责到一个类中，但我们至少可以通过接口的分割来分离应用程序关心的概念。</p>
+<p>事实上，这个例子一个更好的设计应该是这样的，如图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-03391ed97b7b10aa.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="7"></p>
+<p>例如，考虑下图的设计。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-67838b30523999f8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="8"></p>
+<p>Retangle 类具有两个方法：一个方法把矩形绘制在屏幕上，另一个方法计算矩形的面积。有两个不同的 Application 使用 Rectangle 类。一个是计算几何面积的，Rectangle 类会在几何形状计算方面给予它帮助。另一个 Application 实质上是绘制一个在舞台上显示的矩形。</p>
+<p>这一设计违反了单一职责原则。Rectangle 类具有了两个职责，第一个职责是提供一个矩形形状几何数据模型；第二个职责是把矩形显示在屏幕上。</p>
+<p>对于 SRP 的违反导致了一些严重的问题。首先，我们必须在计算几何应用程序中包含核心显示对象的模块。其次，如果绘制矩形 Application 发生改变，也可能导致计算矩形面积 Application 发生改变，导致不必要的重新编译和不可预测的失败。</p>
+<p>一个较好的设计是把这两个职责分离到下图所示的两个完全不同的类中。这个设计把 Rectangle 类中进行计算的部分移到 GeometryRectangle 类中。现在矩形绘制方式的改变不会对计算矩形面积的应用产生影响了。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-f32c3f6c95c6ed2a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="9"></p>
+<p>2、使用单一职责原则的理由</p>
+<p>单一职责原则从职责（改变理由）的侧面上为我们对类（接口）的抽象的颗粒度建立了判断基准：在为系统设计类（接口）的时候应该保证它们的单一职责性。</p>
+<p>降低了类的复杂度、提高类的可读性，提高系统的可维护性、降低变更引起的风险。</p>
+<p><img src="http://my.csdn.net/uploads/201205/05/1336147240_4896.jpg" alt></p>
+<h5 id="三、开闭原则"><a href="#三、开闭原则" class="headerlink" title="三、开闭原则"></a>三、开闭原则</h5><blockquote>
+<p>开闭原则（Open-Closed Principle, OCP）</p>
+<p>一个软件实体应当对扩展开放，对修改关闭。即软件实体应尽量在不修改原有代码的情况下进行扩展。</p>
+</blockquote>
+<p> 在开闭原则的定义中，软件实体可以指一个软件模块、一个由多个类组成的局部结构或一个独立的类。</p>
+<p>扩展开放：某模块的功能是可扩展的，则该模块是扩展开放的。软件系统的功能上的可扩展性要求模块是扩展开放的。</p>
+<p>修改关闭：某模块被其他模块调用，如果该模块的源代码不允许修改，则该模块修改关闭的。软件系统的功能上的稳定性，持续性要求模块是修改关闭的。</p>
+<p>任何软件都需要面临一个很重要的问题，即它们的需求会随时间的推移而发生变化。当软件系统需要面对新的需求时，我们应该尽量保证系统的设计框架是稳定的。如果一个软件设计符合开闭原则，那么可以非常方便地对系统进行扩展，而且在扩展时无须修改现有代码，使得软件系统在拥有适应性和灵活性的同时具备较好的稳定性和延续性。随着软件规模越来越大，软件寿命越来越长，软件维护成本越来越高，设计满足开闭原则的软件系统也变得越来越重要。</p>
+<p>为了满足开闭原则，需要对系统进行抽象化设计，抽象化是开闭原则的关键。在 Java、C# 等编程语言中，可以为系统定义一个相对稳定的抽象层，而将不同的实现行为移至具体的实现层中完成。在很多面向对象编程语言中都提供了接口、抽象类等机制，可以通过它们定义系统的抽象层，再通过具体类来进行扩展。如果需要修改系统的行为，无须对抽象层进行任何改动，只需要增加新的具体类来实现新的业务功能即可，在不修改已有代码的基础上（修改关闭）实现扩展系统的功能（扩展开放），达到开闭原则的要求。</p>
+<p>注意：因为 xml 和 properties 等格式的配置文件是纯文本文件，可以直接通过 VI 编辑器或记事本进行编辑，且无须编译，因此在软件开发中，一般不把对配置文件的修改认为是对系统源代码的修改。如果一个系统在扩展时只涉及到修改配置文件，而原有的 Java 代码或 C# 代码没有做任何修改，该系统即可认为是一个符合开闭原则的系统。</p>
+<p>通过下边的例子理解什么是扩展开放和修改关闭：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-8c7f012b8762ede0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="3"></p>
+<p>左边的设计是直接依赖实际的类，不是对扩展开放的。右边的设计是良好的设计：Client 对于 Server 提供的接口是封闭的；Client 对于 Server 的新的接口实现方法的扩展是开放的。</p>
+<p>1、系统设计需要遵循开闭原则的原因</p>
+<p>稳定性。开闭原则要求扩展功能不修改原来的代码，这可以让软件系统在变化中保持稳定。</p>
+<p>扩展性。开闭原则要求对扩展开放，通过扩展提供新的或改变原有的功能，让软件系统具有灵活的可扩展性。</p>
+<p>遵循开闭原则的系统设计，可以让软件系统可复用，并且易于维护。</p>
+<p>2、开闭原则的实现方法</p>
+<p>为了满足开闭原则的对修改关闭原则以及扩展开放原则，应该对软件系统中的不变的部分加以抽象，在面向对象的设计中</p>
+<ul>
+<li>可以把这些不变的部分加以抽象成不变的接口，这些不变的接口可以应对未来的扩展；</li>
+<li>接口的最小功能设计原则。原有的接口要可以应对未来的扩展，不足的部分可以通过定义新的接口来实现；</li>
+<li>模块之间的调用通过抽象接口进行，这样即使实现层发生变化，也无需修改调用方的代码。</li>
+</ul>
+<p>接口可以被复用，但接口的实现却不一定能被复用。接口是稳定的、关闭的，但接口的实现是可变的、开放的。</p>
+<p>可以通过对接口的不同实现以及类的继承行为等为系统增加新的或改变系统原来的功能，实现软件系统的柔性扩展。</p>
+<p>好处：</p>
+<p>提高系统的可复用性和可维护性。</p>
+<p>简单地说，软件系统是否有良好的接口（抽象）设计是判断软件系统是否满足开闭原则的一种重要的判断基准。现在多把开闭原则等同于面向接口的软件设计。</p>
+<p>3、一个符合开闭原则的设计</p>
+<p>需求：创建一系列多边形。</p>
+<p>首先，下面是不满足开闭原则的设计方法：</p>
+<p>Shape.h</p>
+<p>enum ShapeType{ isCircle, isSquare };</p>
+<p>typedef struct Shape {<br>    enumShapeType type<br>} shape;</p>
+<p>Circle.h</p>
+<p>typedef struct Circle {<br>    enumShapeType type;<br>    double radius;<br>    Point center;<br>} circle;</p>
+<p>void drawCircle( circle* );</p>
+<p>Square.h</p>
+<p>typedef struct Square {<br>    enumShapeType type;<br>    double side;<br>    Point topleft;<br>} square;</p>
+<p>void drawSquare( square* );</p>
+<p>drawShapes.cpp</p>
+<p>#include “Shape.h”</p>
+<p>#include “Circle.h”</p>
+<p>#include “Square.h”</p>
+<p>void drawShapes( shape* list[], int n ) {</p>
+<pre><code>for( int i = 0; i &lt; n; i++ ) {
+     shape* s= list\[i\];
+
+     switch( s-&gt;type ) {
+          case isSquare:
+              drawSquare( (square*)s );
+              break;
+
+          case isCircle:
+              drawCircle( (circle*)s );
+              break;
+     }
+}
+</code></pre><p>}</p>
+<p>该设计不是对扩展开放的，当增加一个新的图形时：</p>
+<p>①、Shape 不是扩展的，需要修改源码来增加枚举类型</p>
+<p>②、drawShapes 不是封闭的，当其被其他模块调用时，如果要增加一个新的图形需要修改 switch/case</p>
+<p>此外，该设计逻辑复杂，总的来说是一个僵化的、脆弱的、具有很高的牢固性的设计。用开闭原则重构该设计如下图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-4ff6799d6fbb0ae2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="4"></p>
+<p>此时，在该设计中，新增一个图形只需要实现 Shape 接口，满足对扩展开放；也不需要修改 drawShapes() 方法，对修改关闭。</p>
+<p>4、开闭原则的相对性</p>
+<p>软件系统的构建是一个需要不断重构的过程，在这个过程中，模块的功能抽象，模块与模块间的关系，都不会从一开始就非常清晰明了，所以构建 100% 满足开闭原则的软件系统是相当困难的，这就是开闭原则的相对性。</p>
+<p>但在设计过程中，通过对模块功能的抽象（接口定义），模块之间的关系的抽象（通过接口调用），抽象与实现的分离（面向接口的程序设计）等，可以尽量接近满足开闭原则。</p>
+<h5 id="四、里氏代换原则"><a href="#四、里氏代换原则" class="headerlink" title="四、里氏代换原则"></a>四、里氏代换原则</h5><blockquote>
+<p>里氏代换原则（Liskov Substitution Principle, LSP）</p>
+<p>所有引用基类（父类）的地方必须能透明地使用其子类的对象。</p>
+</blockquote>
+<p>里氏代换原则告诉我们，在软件中将一个基类对象替换成它的子类对象，程序将不会产生任何错误和异常，反过来则不成立，如果一个软件实体使用的是一个子类对象的话，那么它不一定能够使用基类对象。例如：我喜欢动物，那我一定喜欢狗，因为狗是动物的子类；但是我喜欢狗，不能据此断定我喜欢动物，因为我并不喜欢老鼠，虽然它也是动物。</p>
+<p>也就是说，只有满足以下 2 个条件的 OO 设计才可被认为是满足了 LSP 原则：</p>
+<p>①、不应该在代码中出现 if/else 等对派生类类型进行判断的条件。</p>
+<p>②、派生类应当可以替换基类并出现在基类能够出现的任何地方，或者说如果把代码中使用基类的地方用它的派生类所代替，代码还能正常工作。</p>
+<p>例如有两个类，一个类为 BaseClass，另一个是 SubClass 类，并且 SubClass 类是 BaseClass 类的子类。</p>
+<p>那么一个方法如果可以接受一个 BaseClass 类型的基类对象 base 的话，如：method1(base)，那么它必然可以接受一个 SubClass 类型的对象 sub，method1(sub) 能够正常运行。反过来的代换不成立，如一个方法 method2 接受 SubClass 类型的对象 sub 为参数：method2(sub)，那么一般而言不可以有 method2(base)，除非是重载方法。</p>
+<p>里氏代换原则是实现开闭原则的重要方式之一。由于使用基类对象的地方都可以使用子类对象，因此在程序中尽量使用基类类型来对对象进行定义，而在运行时再确定其子类类型，用子类对象来替换父类对象。</p>
+<p>在使用里氏代换原则时需要注意如下几个问题：</p>
+<p>①、子类的所有方法必须在父类中声明，或子类必须实现父类中声明的所有方法。根据里氏代换原则，为了保证系统的扩展性，在程序中通常使用父类来进行定义，如果一个方法只存在子类中，在父类中不提供相应的声明，则无法在以父类定义的对象中使用该方法。</p>
+<p>②、在运用里氏代换原则时，尽量把父类设计为抽象类或者接口，让子类继承父类或实现父接口，并实现在父类中声明的方法，运行时，子类实例替换父类实例，我们可以很方便地扩展系统的功能，同时无须修改原有子类的代码，增加新的功能可以通过增加一个新的子类来实现。里氏代换原则是开闭原则的具体实现手段之一。</p>
+<p>③、Java 语言中，在编译阶段，Java 编译器会检查一个程序是否符合里氏代换原则，这是一个与实现无关的、纯语法意义上的检查，但 Java 编译器的检查是有局限的。</p>
+<p>以下代码就违反了 LSP 定义。</p>
+<p>if (obj typeof Class1) {<br>    // do something<br>}<br>else if (obj typeof Class2) {<br>    // do something else<br>}</p>
+<p>同时 LSP 体现了：</p>
+<ul>
+<li>类的继承原则：如果一个派生类的对象可能会在基类出现的地方出现运行错误，则应该重新设计它们之间的关系。</li>
+<li>动作正确性保证：从另一个侧面上保证了符合 LSP 设计原则的类的扩展不会给已有的系统引入新的错误。</li>
+</ul>
+<p>里氏替换原则为我们是否应该使用继承提供了判断的依据，不再是简单地根据两者之间是否有相同之处来说使用继承。</p>
+<p>里式替换原则的引申意义：子类可以扩展父类的功能，但不能改变父类原有的功能。</p>
+<p>具体来说：</p>
+<ul>
+<li>子类可以实现父类的抽象方法，但不能覆盖父类的非抽象方法。</li>
+<li>子类中可以增加自己特有的方法。</li>
+<li>当子类的方法重载父类的方法时，方法的前置条件（方法的输入/入参）要比父类方法的输入参数更宽松。</li>
+<li>当子类的方法实现父类的方法时（重载/重写或实现抽象方法）的后置条件（方法的输出/返回值）要比父类更严格或相等。</li>
+</ul>
+<p>下面举几个例子帮助更进一步理解 LSP：</p>
+<p>例 1：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-0b9ef0d81e760ab1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="5"><br>Rectangle 是矩形，Square 是正方形，Square 继承于 Rectangle，这样一看似乎没有问题。</p>
+<p>假如已有的系统中存在以下业务逻辑代码：</p>
+<p>void g(Rectangle &amp;r) { </p>
+<pre><code>r.SetWidth(5);
+r.SetHeight(4);
+
+assert(r.GetWidth() * r.GetHeight()) == 20);
+</code></pre><p>}</p>
+<p>则对应于扩展类 Square，在调用既有业务逻辑时会抛出一个异常。</p>
+<p>Rectangle<em> square = new Square();<br>g(</em>square);</p>
+<p>这显然违反了 LSP 原则。说明这样的继承关系在这种业务逻辑下不应该使用。</p>
+<p>例 2：</p>
+<p>鲸鱼和鱼，应该属于什么关系？从生物学的角度看，鲸鱼应该属于哺乳动物，而不是鱼类。没错，在程序世界中我们可以得出同样的结论。如果让鲸鱼类去继承鱼类，就完全违背了 Liskov 替换原则。因为鱼作为基类，很多特性是鲸鱼所不具备的，例如通过腮呼吸，以及卵生繁殖。那么，二者是否具有共性呢？ 有，那就是它们都可以在水中”游泳”，从程序设计的角度来说，它们都共同实现了一个支持”游泳”行为的接口。</p>
+<p>例 3：</p>
+<p>运动员和自行车例子，每个运动员都有一辆自行车，如果按照下面设计，很显然违反了 LSP 原则。</p>
+<p>// 自行车<br>class Bike {</p>
+<p>public:<br>    void Move( );<br>    void Stop( );<br>    void Repair( );<br>protected:<br>    int ChangeColor(int );<br>private:<br>    int mColor;<br>};</p>
+<p>// 运动员<br>class Player : private Bike {</p>
+<p>public:<br>    void StartRace( );<br>    void EndRace( );<br>protected:<br>    int CurStrength ( );<br>private:<br>    int mMaxStrength;<br>    int mAge;<br>};</p>
+<p>1、里式替换原则的优点</p>
+<ul>
+<li>约束继承泛滥，是开闭原则的一种体现。</li>
+<li>加强程序的健壮性，同时变更时也可以做到非常好地提高程序的维护性、扩展性。降低需求变更时引入的风险。</li>
+</ul>
+<p>2、重构违反 LSP 的设计</p>
+<p>假如两个具体的类 A、B 之间的关系违反了 LSP 的设计（假设是从 B 到 A 的继承关系），那么根据具体的情况可以在下面的两种重构方案中选择一种：</p>
+<ul>
+<li>创建一个新的抽象类 C，作为两个具体类的基类，将 A、B 的共同行为移动到 C 中来解决问题。</li>
+<li>从 B 到 A 的继承关系改为关联关系。</li>
+</ul>
+<p>对于矩形和正方形例子，可以构造一个抽象的四边形类，把矩形和正方形共同的行为放到这个四边形类里面，让矩形和正方形都是它的派生类。对于矩形和正方形，取 width 和 height 是它们共同的行为，但是给 width 和 height 赋值，两者行为不同，因此，这个抽象的四边形的类只有取值方法，没有赋值方法。</p>
+<p>对于运动员和自行车例子，可以采用关联关系来重构：</p>
+<p>class Player {</p>
+<p>public:<br>    void StartRace( );<br>    void EndRace( );<br>protected:<br>    int CurStrength ( );<br>private:<br>    int mMaxStrength;<br>    int mAge;<br>Bike * abike;<br>};</p>
+<p>在进行设计的时候，我们尽量从抽象类继承，而不是从具体类继承。</p>
+<p>如果从继承等级树来看，所有叶子节点应当是具体类，而所有的树枝节点应当是抽象类或者接口。当然这只是一个一般性的指导原则，使用的时候还要具体情况具体分析。</p>
+<p>在很多情况下，在设计初期我们类之间的关系不是很明确，LSP 则给了我们一个判断和设计类之间关系的基准：需不需要继承，以及怎样设计继承关系。</p>
+<h5 id="五、依赖倒转原则"><a href="#五、依赖倒转原则" class="headerlink" title="五、依赖倒转原则"></a>五、依赖倒转原则</h5><blockquote>
+<p>依赖倒转原则（Dependency Inversion Principle, DIP）</p>
+<p>A. 高层模块不应该依赖于低层模块，二者都应该依赖于抽象；</p>
+<p>B. 抽象不应该依赖于细节，细节应当依赖于抽象。换言之，要针对接口编程，而不是针对实现编程。</p>
+</blockquote>
+<p>依赖：在程序设计中，如果一个模块 a 使用/调用了另一个模块 b，我们称模块 a 依赖模块 b。</p>
+<p>高层模块与低层模块：往往在一个应用程序中，我们有一些低层次的类，这些类实现了一些基本的或初级的操作，我们称之为低层模块；另外有一些高层次的类，这些类封装了某些复杂的逻辑，并且依赖于低层次的类，这些类我们称之为高层模块。</p>
+<p>依赖倒置：面向对象程序设计相对于面向过程（结构化）程序设计而言，依赖关系被倒置了。因为传统的结构化程序设计中，高层模块总是依赖于低层模块。</p>
+<p>依赖倒转原则要求我们在程序代码中传递参数时或在关联关系中，尽量引用层次高的抽象层类，即使用接口和抽象类进行变量类型声明、参数类型声明、方法返回类型声明，以及数据类型的转换等，而不要用具体类来做这些事情。</p>
+<p>为了确保该原则的应用，一个具体类应当只实现接口或抽象类中声明过的方法，而不要给出多余的方法，否则将无法调用到在子类中增加的新方法。</p>
+<p>在引入抽象层后，系统将具有很好的灵活性，在程序中尽量使用抽象层进行编程，而将具体类写在配置文件中，这样一来，如果系统行为发生变化，只需要对抽象层进行扩展，并修改配置文件，而无须修改原有系统的源代码，在不修改的情况下来扩展系统的功能，满足开闭原则的要求。</p>
+<p>在实现依赖倒转原则时，我们需要针对抽象层编程，而将具体类的对象通过依赖注入（DependencyInjection, DI）的方式注入到其他对象中，依赖注入是指当一个对象要与其他对象发生依赖关系时，通过抽象来注入所依赖的对象。</p>
+<p>常用的注入方式有三种，分别是：构造注入、设值注入（Setter 注入）和接口注入。构造注入是指通过构造函数来传入具体类的对象；设值注入是指通过 Setter 方法来传入具体类的对象；而接口注入是指通过在接口中声明的业务方法来传入具体类的对象。</p>
+<p>这些方法在定义时使用的是抽象类型，在运行时再传入具体类型的对象，由子类对象来覆盖父类对象。</p>
+<p>扩展软件工程大师 Martin Fowler 在其文章 <a href="http://martinfowler.com/articles/injection.html" target="_blank" rel="noopener">Inversion of Control Containers and the Dependency Injection pattern</a> 中对依赖注入进行了深入的分析。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-1adf3e0bf9ca9b84.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="14"></p>
+<p>1、问题的提出</p>
+<p>Robert C. Martin 在原文中给出了“Bad Design”的定义：</p>
+<p>①、系统很难改变，因为每个改变都会影响其他很多部分；</p>
+<p>②、当你对某地方做一修改，系统的看似无关的其他部分都不工作了；</p>
+<p>③、系统很难被另外一个应用重用，因为很难将要重用的部分从系统中分离开来。</p>
+<p>导致 Bad Design 的很大原因是“高层模块”过分依赖“低层模块”。</p>
+<p>一个良好的设计应该是系统的每一部分都是可替换的。如果“高层模块”过分依赖“低层模块”，一方面一旦“低层模块”需要替换或者修改，“高层模块”将受到影响；另一方面，高层模块很难可以重用。</p>
+<p>为了解决上述问题，Robert C. Martin 提出了 OO 设计的 Dependency Inversion Principle (DIP) 原则。</p>
+<p>DIP 给出了一个解决方案：在高层模块与低层模块之间，引入一个抽象接口层。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-e9c44b472ced5f4d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="15"></p>
+<p>High Level Classes（高层模块） -> Abstraction Layer（抽象接口层） -> Low Level Classes（低层模块）</p>
+<p>抽象接口是对低层模块的抽象，低层模块继承或实现该抽象接口。</p>
+<p>这样，高层模块不直接依赖低层模块，而是依赖抽象接口层。抽象接口也不依赖低层模块的实现细节，而是低层模块依赖（继承或实现）抽象接口。</p>
+<p>类与类之间都通过抽象接口层来建立关系。</p>
+<p>2、依赖倒置原则的违反例和重构</p>
+<p>示例：考虑一个控制熔炉调节器的软件。该软件从一个 IO 通道中读取当前的温度，并通过向另一个 IO 通道发送命令来指示熔炉的开或者关。</p>
+<p>温度调节器的简单算法：</p>
+<p>const byte THERMONETER=0x86;<br>const byte FURNACE=0x87;<br>const byte ENGAGE=1;<br>const byte DISENGAGE=0;</p>
+<p>void Regulate(double minTemp,double maxTemp) {<br>    for(;;)<br>    {<br>        while (in(THERMONETER) &gt; minTemp)<br>            wait(1);</p>
+<pre><code>    out(FURNACE,ENGAGE);
+
+    while (in(THERMONETER) &lt; maxTemp)
+        wait(1);
+
+    out(FURNACE,DISENGAGE);
+}
+</code></pre><p>}</p>
+<p>算法的高层意图是清楚的，但是实现代码中却夹杂着许多低层细节。这段代码根本不能重用于不同的控制硬件。</p>
+<p>由于代码很少，所以这样做不会造成太大的损害。但是，即使是这样，使算法失去重用性也是可惜的。我们更愿意倒置这种依赖关系。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-1f06b9a6c333f195.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="16"></p>
+<p>图中显示了 Regulate 函数接受了两个接口参数。Thermometer 接口可以读取，而 Heater 接口可以启动和停止。Regulate 算法需要的就是这些。这就倒置了依赖关系，使得高层的调节策略不再依赖于任何温度计或者熔炉的特定细节。该算法具有很好的可重用性。</p>
+<p>通用的调节器算法：</p>
+<p>void Regulate(Thermometer t, Heater h, double minTemp,double maxTemp) {</p>
+<pre><code>for(;;)
+{
+     while (t.Read() &gt; minTemp)
+          wait(1);
+
+     h.Engate();
+
+     while (t.Read() &lt; maxTemp)
+          wait(1);
+
+     h.Disengage();
+}
+</code></pre><p>}</p>
+<p>3、怎么使用依赖倒置原则</p>
+<p>①、依赖于抽象</p>
+<ul>
+<li>任何变量都不应该持有一个指向具体类的指针或引用。如：</li>
+</ul>
+<p>class class1 {<br>    class2 * cls2 = new class2();<br>}</p>
+<p>class class2 { … }</p>
+<ul>
+<li>任何类都不应该从具体类派生。</li>
+</ul>
+<p>②、设计接口而非设计实现</p>
+<ul>
+<li>使用继承避免对类的直接绑定</li>
+</ul>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-d3905dc2b7211705.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="17"></p>
+<ul>
+<li>抽象类/接口：倾向于较少的变化；抽象是关键点，它易于修改和扩展；不要强制修改那些抽象接口/类。</li>
+</ul>
+<p>例外：有些类不可能变化，在可以直接使用具体类的情况下，不需要插入抽象层，如：字符串类。</p>
+<p>③、避免传递依赖</p>
+<ul>
+<li>避免高层依赖于低层</li>
+</ul>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-f47e0e7f3fa233e9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="18"></p>
+<ul>
+<li>使用继承和抽象类来有效地消除传递依赖</li>
+</ul>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-599ac02c4debb075.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="19"></p>
+<p>4、依赖倒置原则的优点</p>
+<p>可以减少类间的耦合性、提高系统稳定性，提高代码可读性和可维护性，可降低修改程序所造成的风险。</p>
+<h5 id="六、迪米特法则"><a href="#六、迪米特法则" class="headerlink" title="六、迪米特法则"></a>六、迪米特法则</h5><blockquote>
+<p>迪米特法则（Law of Demeter, LoD）</p>
+<p>一个软件实体应当尽可能少地与其他实体发生相互作用。</p>
+</blockquote>
+<p>如果一个系统符合迪米特法则，那么当其中某一个模块发生修改时，就会尽量少地影响其他模块，扩展会相对容易，这是对软件实体之间通信的限制，迪米特法则要求限制软件实体之间通信的宽度和深度。迪米特法则可降低系统的耦合度，使类与类之间保持松散的耦合关系。</p>
+<p>又叫最少知道原则（Least Knowledge Principle），可以简单说成：talk only to your immediate friends。在迪米特法则中，对于一个对象，其朋友包括以下几类：</p>
+<p>①、当前对象本身（this）；</p>
+<p>②、以参数形式传入到当前对象方法中的对象；</p>
+<p>③、当前对象的成员对象；</p>
+<p>④、如果当前对象的成员对象是一个集合，那么集合中的元素也都是朋友；</p>
+<p>⑤、当前对象所创建的对象。</p>
+<p>任何一个对象，如果满足上面的条件之一，就是当前对象的“朋友”，否则就是“陌生人”。在应用迪米特法则时，一个对象只能与直接朋友发生交互，不要与“陌生人”发生直接交互，这样做可以降低系统的耦合度，一个对象的改变不会给太多其他对象带来影响。</p>
+<p>迪米特法则要求我们在设计系统时，应该尽量减少对象之间的交互，如果两个对象之间不必彼此直接通信，那么这两个对象就不应当发生任何直接的相互作用，如果其中的一个对象需要调用另一个对象的某一个方法的话，可以通过第三者转发这个调用。简言之，就是通过引入一个合理的第三者来降低现有对象之间的耦合度。</p>
+<p>在将迪米特法则运用到系统设计中时要注意下面的几点：</p>
+<p>①、在类的划分上，应当尽量创建松耦合的类，类之间的耦合度越低，就越有利于复用，一个处在松耦合中的类一旦被修改，不会对关联的类造成太大波及；</p>
+<p>②、在类的结构设计上，每一个类都应当尽量降低其成员变量和成员函数的访问权限；</p>
+<p>③、在类的设计上，只要有可能，一个类型应当设计成不变类；</p>
+<p>④、在对其他类的引用上，一个对象对其他对象的引用应当降到最低。</p>
+<p>1、迪米特原则的优缺点</p>
+<p>迪米特原则的初衷在于降低类之间的耦合。由于每个类尽量减少对其他类的依赖，因此，很容易使得系统的功能模块功能独立，相互之间不存在（或很少有）依赖关系。</p>
+<p>迪米特原则不希望类直接建立直接的接触。如果真的有需要建立联系，也希望能通过它的友元类来转达。因此，应用迪米特原则有可能造成的一个后果就是：系统中存在大量的中介类，这些类之所以存在完全是为了传递类之间的相互调用关系，这在一定程度上增加了系统的复杂度。</p>
+<p>例如，购房者要购买楼盘 A、B、C 中的楼，他不必直接到楼盘去买楼，而是可以通过一个售楼处去了解情况，这样就减少了购房者与楼盘之间的耦合。</p>
+<p>2、违反迪米特原则的设计与重构</p>
+<p>下面的代码在方法体内部依赖了其他类，这严重违反迪米特原则。</p>
+<p>class Teacher { </p>
+<p>public:<br>    void command(GroupLeader groupLeader) {</p>
+<pre><code>    list&lt;Student&gt; listStudents = new list&lt;Student&gt;; 
+
+    for (int i = 0; i &lt; 20; i++) { 
+        listStudents.add(new Student()); 
+    }
+
+    groupLeader.countStudents(listStudents);
+} 
+</code></pre><p>}</p>
+<p>方法是类的一个行为，类竟然不知道自己的行为与其他类产生了依赖关系（Teacher 类中依赖了 Student 类，然而 Student 类并不在 Teacher 类的朋友圈中，一旦 Student 类被修改了，Teacher 类是根本不知道的），这是不允许的。</p>
+<p>正确的做法：</p>
+<p>class Teacher {</p>
+<p>public:<br>    void command(GroupLeader groupLeader) {</p>
+<pre><code>    groupLeader.countStudents();
+}
+</code></pre><p>}</p>
+<p>class GroupLeader { </p>
+<p>private:<br>    list<student> listStudents; </student></p>
+<p>public:<br>    GroupLeader(list<student> _listStudents) { </student></p>
+<pre><code>    this.listStudents = _listStudents;
+}
+
+void countStudents() {
+    cout&lt;&lt;&quot;女生数量是：&quot; &lt;&lt;listStudents.size() &lt;&lt;endl;
+}
+</code></pre><p>}</p>
+<p>3、使用迪米特原则时要考虑的</p>
+<p>①、朋友间也是有距离的</p>
+<p>一个类公开的 public 属性或方法越多，修改时涉及的面也就越大，变更引起的风险扩散也就越大。因此，为了保持朋友类间的距离，在设计时需要反复衡量：是否还可以再减少 public 方法和属性，是否可以修改为 private 等。</p>
+<p>注意：迪米特原则要求类“羞涩”一点，尽量不要对外公布太多的 public 方法和非静态的 public 变量，尽量内敛，多使用private、protected 等访问权限。</p>
+<p>②、是自己的就是自己的</p>
+<p>如果一个方法放在本类中，既不增加类间关系，也对本类不产生负面影响，就放置在本类中。</p>
+<h5 id="七、合成复用原则"><a href="#七、合成复用原则" class="headerlink" title="七、合成复用原则"></a>七、合成复用原则</h5><blockquote>
+<p>合成复用原则（Composite Reuse Principle, CRP）</p>
+<p>尽量使用对象组合，而不是继承来达到复用的目的。</p>
+</blockquote>
+<p>聚合：表示整体和部分的关系，表示“拥有”。</p>
+<p>组合：则是一种更强的“拥有”，部分和整体的生命周期一样。组合的新的对象完全支配其组成部分，包括它们的创建和湮灭等。一个组合关系的成分对象是不能与另一个组合关系共享的。</p>
+<p>组合是值的聚合（Aggregation by Value），而一般说的聚合是引用的聚合（Aggregation by Reference）。</p>
+<p>合成复用原则就是在一个新的对象里通过关联关系（包括组合关系和聚合关系）来使用一些已有的对象，使之成为新对象的一部分；新对象通过委派调用已有对象的方法达到复用功能的目的。简言之：复用时要尽量使用组合/聚合关系（关联关系），少用继承。</p>
+<p>在面向对象设计中，可以通过两种方法在不同的环境中复用已有的设计和实现，即通过组合/聚合关系或通过继承，但首先应该考虑使用组合/聚合，组合/聚合可以使系统更加灵活，降低类与类之间的耦合度，一个类的变化对其他类造成的影响相对较少；其次才考虑继承，在使用继承时，需要严格遵循里氏代换原则，有效使用继承会有助于对问题的理解，降低复杂度，而滥用继承反而会增加系统构建和维护的难度以及系统的复杂度，因此需要慎重使用继承复用。</p>
+<p>通过继承来进行复用的主要问题在于继承复用会破坏系统的封装性。因为继承会将基类的实现细节暴露给子类，由于基类的内部细节通常对子类来说是可见的，所以这种复用又称“白箱”复用，如果基类发生改变，那么子类的实现也不得不发生改变；从基类继承而来的实现是静态的，不可能在运行时发生改变，没有足够的灵活性；而且继承只能在有限的环境中使用。</p>
+<p>扩展对于继承的深入理解，大家可以参考《软件架构设计》文章中《见山只是山见水只是水——提升对继承的认识》。</p>
+<p>由于组合或聚合关系可以将已有的对象（也可称为成员对象）纳入到新对象中，使之成为新对象的一部分，因此新对象可以调用已有对象的功能，这样做可以使得成员对象的内部实现细节对于新对象不可见，所以这种复用又称为“黑箱”复用，相对继承关系而言，其耦合度相对较低，成员对象的变化对新对象的影响不大，可以在新对象中根据实际需要有选择性地调用成员对象的操作；合成复用可以在运行时动态进行，新对象可以动态地引用与成员对象类型相同的其他对象。</p>
+<p>一般而言，如果两个类之间是“Has-A”的关系应使用组合或聚合，如果是“Is-A”关系可使用继承。“Is-A”是严格的分类学意义上的定义，意思是一个类是另一个类的”一种”；而“Has-A”则不同，它表示某一个角色具有某一项责任。</p>
+<p>1、什么时候才应该使用继承</p>
+<p>只有当以下的条件全部被满足时，才应当使用继承关系：</p>
+<p>①、派生类是基类的一个特殊种类，而不是基类的一个角色，也就是区分 “Has-A” 和 “Is-A”。只有 “Is-A” 关系才符合继承关系，”Has-A” 关系应当用聚合来描述。</p>
+<p>②、永远不会出现需要将派生类换成另外一个类的派生类的情况。如果不能肯定将来是否会变成另外一个派生类的话，就不要使用继承。</p>
+<p>③、派生类具有扩展基类的责任，而不是具有置换掉（override）或注销掉（Nullify）基类的责任。如果一个派生类需要大量的置换掉基类的行为，那么这个类就不应该是这个基类的派生类。</p>
+<p>④、只有在分类学角度上有意义时，才可以使用继承。</p>
+<p>总的来说：</p>
+<p>如果语义上存在着明确的 “Is-A” 关系，并且这种关系是稳定的、不变的，则考虑使用继承；如果没有 “Is-A” 关系，或者这种关系是可变的，使用组合。</p>
+<p>另外一个就是只有两个类满足里氏替换原则的时候，才可能是 “Is-A” 关系。也就是说，如果两个类是 “Has-A” 关系，但是设计成了继承，那么肯定违反里氏替换原则。</p>
+<p>错误的使用继承而不是组合/聚合的一个常见原因是错误的把 “Has-A” 当成了 “Is-A”。”Is-A” 代表一个类是另外一个类的一种；”Has-A” 代表一个类是另外一个类的一个角色，而不是另外一个类的特殊种类。</p>
+<p>看一个例子：</p>
+<p>如果把“人”当成一个类，然后把雇员、经理、学生当成是“人”的派生类。这个的错误在于把“角色”的等级结构和“人”的等级结构混淆了。经理、雇员、学生是一个人的角色，一个人可以同时拥有上述角色。如果按继承来设计，那么如果一个人是雇员的话，就不可能是学生，这显然不合理。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-015e9420f97f278a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="20"></p>
+<p>正确的设计是有个抽象类“角色”，“人”可以拥有多个“角色”（聚合），“雇员”、“经理”、“学生”是“角色”的派生类。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-924eae9d86af257b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="21"></p>
+<p>2、通过组合/聚合复用的优缺点</p>
+<p>优点：</p>
+<ul>
+<li>新对象存取子对象的唯一方法是通过子对象的接口。</li>
+<li>这种复用是黑箱复用，因为子对象的内部细节是新对象所看不见的。</li>
+<li>这种复用更好地支持封装性。 </li>
+<li>这种复用实现上的相互依赖性比较小。</li>
+<li>每一个新的类可以将焦点集中在一个任务上。</li>
+<li>这种复用可以在运行时间内动态进行，新对象可以动态的引用与子对象类型相同的对象。 </li>
+<li>作为复用手段可以应用到几乎任何环境中去。</li>
+</ul>
+<p>缺点：就是系统中会有较多的对象需要管理。</p>
+<p>3、通过继承来进行复用的优缺点</p>
+<p>优点：</p>
+<ul>
+<li>新的实现较为容易，因为基类的大部分功能可以通过继承的关系自动进入派生类。</li>
+<li>修改和扩展继承而来的实现较为容易。</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>继承复用破坏封装性，因为继承将基类的实现细节暴露给派生类。由于基类的内部细节常常是对于派生类透明的，所以这种复用是透明的复用，又称“白箱”复用。</li>
+<li>如果基类发生改变，那么派生类的实现也不得不发生改变。</li>
+<li>从基类继承而来的实现是静态的，不可能在运行时间内发生改变，没有足够的灵活性。</li>
+</ul>
+<h5 id="八、接口隔离原则"><a href="#八、接口隔离原则" class="headerlink" title="八、接口隔离原则"></a>八、接口隔离原则</h5><blockquote>
+<p>接口隔离原则（Interface Segregation Principle, ISP）</p>
+<p>使用多个专门的接口，而不使用单一的总接口，即客户端不应该依赖那些它不需要的接口。</p>
+</blockquote>
+<p>根据接口隔离原则，当一个接口太大时，我们需要将它分割成一些更细小的接口，使用该接口的客户端仅需知道与之相关的方法即可。每一个接口应该承担一种相对独立的角色，不干不该干的事，该干的事都要干。这里的“接口”往往有两种不同的含义：一种是指一个类型所具有的方法特征的集合，仅仅是一种逻辑上的抽象；另外一种是指某种语言具体的“接口”定义，有严格的定义和结构，比如 Java 语言中的 interface。对于这两种不同的含义，ISP 的表达方式以及含义都有所不同：</p>
+<p>①、当把“接口”理解成一个类型所提供的所有方法特征的集合时，这就是一种逻辑上的概念，接口的划分将直接带来类型的划分。可以把接口理解成角色，一个接口只能代表一个角色，每个角色都有它特定的一个接口，此时，这个原则可以叫做“角色隔离原则”。</p>
+<p>②、如果把“接口”理解成狭义的特定语言的接口，那么 ISP 表达的意思是指接口仅仅提供客户端需要的行为，客户端不需要的行为则隐藏起来，应当为客户端提供尽可能小的单独的接口，而不要提供大的总接口。在面向对象编程语言中，实现一个接口就需要实现该接口中定义的所有方法，因此大的总接口使用起来不一定很方便，为了使接口的职责单一，需要将大接口中的方法根据其职责不同分别放在不同的小接口中，以确保每个接口使用起来都较为方便，并都承担某一单一角色。接口应该尽量细化，同时接口中的方法应该尽量少，每个接口中只包含一个客户端（如子模块或业务逻辑类）所需的方法即可，这种机制也称为“定制服务”，即为不同的客户端提供宽窄不同的接口。</p>
+<p>它包含了 2 层意思：</p>
+<ul>
+<li>接口的设计原则：接口的设计应该遵循最小接口原则，不要把用户不使用的方法塞进同一个接口里。如果一个接口的方法没有被使用到，则说明该接口过胖，应该将其分割成几个功能专一的接口。</li>
+<li>接口的依赖（继承）原则：如果一个接口 A 继承另一个接口 B，则接口 A 相当于继承了接口 B 的方法，那么继承了接口 B 后的接口 A 也应该遵循不应该包含用户不使用的方法。 反之，则说明接口 A 被 B 给污染了，应该重新设计它们的关系。</li>
+</ul>
+<p>如果用户被迫依赖他们不使用的接口，当接口发生改变时，他们也不得不跟着改变。换而言之，一个用户依赖了未使用但被其他用户使用的接口，当其他用户修改该接口时，依赖该接口的所有用户都将受到影响。这显然违反了开闭原则，也不是我们所期望的。</p>
+<p>总而言之，接口分隔原则指导我们：</p>
+<p>①、一个类对一个类的依赖应该建立在最小的接口上；</p>
+<p>②、建立单一接口，不要建立庞大臃肿的接口；</p>
+<p>③、尽量细化接口，接口中的方法尽量少。</p>
+<p>1、违反 ISP 原则的设计与重构</p>
+<p>下面我们举例说明怎么设计接口或类之间的关系，使其不违反 ISP 原则。</p>
+<p>假如有一个 Door，有 lock、unlock 功能，另外，可以在 Door 上安装一个 Alarm 而使其具有报警功能。用户可以选择一般的 Door，也可以选择具有报警功能的 Door。</p>
+<p>有以下几种设计方法：</p>
+<p>ISP 原则的违反例一：在 Door 接口里定义所有的方法。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-05bb6699e4625d1d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="10"></p>
+<p>但这样一来，依赖 Door 接口的 CommonDoor 却不得不实现未使用的 alarm() 方法。违反了 ISP 原则。</p>
+<p>ISP 原则的违反例二：在 Alarm 接口定义 alarm 方法，在 Door 接口定义 lock、unlock 方法，Door 接口继承 Alarm 接口。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-c7ffd02eefee5648.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="11"></p>
+<p>与例一一样，依赖 Door 接口的 CommonDoor 却不得不实现未使用的 alarm() 方法。违反了 ISP 原则。</p>
+<p>遵循 ISP 原则的例一：通过多重继承实现</p>
+<p>在 Alarm 接口定义 alarm 方法，在 Door 接口定义 lock、unlock 方法。接口之间无继承关系。CommonDoor 实现 Door 接口，AlarmDoor 有 2 种实现方案：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-6720f3a7c9d086ee.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="12"></p>
+<p>①、同时实现 Door 和 Alarm 接口。</p>
+<p>②、继承 CommonDoor，并实现 Alarm 接口。</p>
+<p>第 2 种方案更具有实用性。这样的设计遵循了 ISP 设计原则。</p>
+<p>遵循 ISP 原则的例二：通过关联实现</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/5294842-654d8f8a366a9fde.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="13"></p>
+<p>在这种方法里，AlarmDoor 实现了 Alarm 接口，同时把功能 lock 和 unlock 委让给 CommonDoor 对象完成。</p>
+<p>这种设计遵循了 ISP 设计原则。</p>
+<p>2、接口分隔原则的优点和适度原则</p>
+<ul>
+<li>接口分隔原则从对接口的使用上为我们对接口抽象的颗粒度建立了判断基准：在为系统设计接口的时候，使用多个专门的接口代替单一的胖接口。</li>
+<li>符合高内聚低耦合的设计思想，从而使得类具有很好的可读性、可扩展性和可维护性。</li>
+<li>注意适度原则，接口分隔要适度，避免产生大量的细小接口。</li>
+</ul>
+<p>3、单一职责原则和接口分隔原则的区别</p>
+<p>单一职责强调的是接口、类、方法的职责是单一的，强调职责，方法可以多，针对程序中实现的细节；</p>
+<p>接口分隔原则主要是约束接口，针对抽象、整体框架。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/03/12/e9-9d-a2-e5-90-91-e5-af-b9-e8-b1-a1-e7-9a-84-e5-87-a0-e5-a4-a7-e8-ae-be-e8-ae-a1-e5-8e-9f-e5-88-99/">http://yoursite.com/2019/03/12/e9-9d-a2-e5-90-91-e5-af-b9-e8-b1-a1-e7-9a-84-e5-87-a0-e5-a4-a7-e8-ae-be-e8-ae-a1-e5-8e-9f-e5-88-99/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/03/13/uiactivityindicatorview-uirefreshcontrol-uiimageview-afnetworking/" class="pre"> UIActivityIndicatorView/UIRefreshControl/UIImageView + AFNetworking		</a><a href="/2019/03/12/e5-93-88-e5-b8-8c-e8-a1-a8-e7-9a-84-e5-8e-9f-e7-90-86-e4-b8-8e-e5-ae-9e-e7-8e-b0/" class="next"> 哈希表的原理与实现		</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-5"><a class="toc-link" href="#一、七大原则之间的关系"><span class="toc-text">一、七大原则之间的关系</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#二、单一职责原则"><span class="toc-text">二、单一职责原则</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#三、开闭原则"><span class="toc-text">三、开闭原则</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#四、里氏代换原则"><span class="toc-text">四、里氏代换原则</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#五、依赖倒转原则"><span class="toc-text">五、依赖倒转原则</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#六、迪米特法则"><span class="toc-text">六、迪米特法则</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#七、合成复用原则"><span class="toc-text">七、合成复用原则</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#八、接口隔离原则"><span class="toc-text">八、接口隔离原则</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 编译过程原理(2)/">iOS 编译过程原理(2)</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/BFPRT算法/">BFPRT 算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/全排列/">全排列</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/直接插入排序/">直接插入排序</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/01-背包/">0-1 背包</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/armv7、armv7s、arm64/">armv7、armv7s、arm64</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Archives配置/">Archives 配置</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/App-Thinning/">App Thinning</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/AFNetworking/">AFNetworking</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 内存管理：MRC、ARC/">iOS 内存管理：从 MRC 到 ARC 实践</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/AFNetworking/">AFNetworking</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Flutter/">Flutter</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Games/">Games</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Leetcode/">Leetcode</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/MJRefresh/">MJRefresh</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Mac/">Mac</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OC/">OC</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OPENGL/">OPENGL</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/ReactiveCocoa/">ReactiveCocoa</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SDWebImage/">SDWebImage</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpriteKit/">SpriteKit</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Xcode/">Xcode</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">17</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/内存管理/">内存管理</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/减治法/">减治法</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/分治法/">分治法</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/前端/">前端</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/动态规划/">动态规划</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/变治法/">变治法</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/图像视频/">图像视频</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/多线程/">多线程</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/学习笔记/">学习笔记</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工程发布/">工程发布</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/底层原理/">底层原理</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/性能优化/">性能优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/排序算法/">排序算法</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/效率-工具/">效率 | 工具</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/架构设计/">架构设计</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/算法相关/">算法相关</a><span class="category-list-count">7</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/网络编程/">网络编程</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/视图-amp-动画/">视图 &amp; 动画</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">13</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计策略/">设计策略</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">8</span></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-biao"> 标签</i></div><div class="tagcloud"><a href="/tags/排序算法/" style="font-size: 15px;">排序算法</a> <a href="/tags/分治法/" style="font-size: 15px;">分治法</a> <a href="/tags/动态规划/" style="font-size: 15px;">动态规划</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-archive"> 归档</i></div><ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/05/">五月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/04/">四月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/02/">二月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/11/">十一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/04/">四月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/02/">二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/10/">十月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-you"> 友情链接</i></div><ul></ul><a href="https://www.liaoxuefeng.com/" title="廖雪峰的官方网站" target="_blank">廖雪峰的官方网站</a><ul></ul><a href="https://blog.ibireme.com/" title="ibireme" target="_blank">ibireme</a><ul></ul><a href="https://www.cnblogs.com/machao/" title="马在路上" target="_blank">马在路上</a></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>
