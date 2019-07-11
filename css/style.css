@@ -105,6 +105,12 @@ em {
   src: url("../iconfont/iconfont.eot?t=1478071541360");
   src: url("../iconfont/iconfont.eot?t=1478071541360#iefix") format('embedded-opentype'), url("../iconfont/iconfont.woff?t=1478071541360") format('woff'), url("../iconfont/iconfont.ttf?t=1478071541360") format('truetype'), url("../iconfont/iconfont.svg?t=1478071541360#iconfont") format('svg');
 }
+/*  自定义字体  */
+@font-face {
+  font-family: "DuKTi";
+  src: url("../iconfont/DuKTi.eot?t=1478071541360");
+  src: url("../iconfont/DuKTi.eot?t=1478071541360#iefix") format('embedded-opentype'), url("../iconfont/DuKTi.woff?t=1478071541360") format('woff'), url("../iconfont/DuKTi.ttf?t=1478071541360") format('truetype'), url("../iconfont/DuKTi.svg?t=1478071541360#iconfont") format('svg');
+}
 .fa {
   font-size: 16px;
   font-style: normal;
@@ -180,7 +186,7 @@ em {
 }
 /* layout */
 body {
-  font-family: "Source Code Pro", Tahoma, "Helvetica Neue", Helvetica, "Hiragino Sans GB", "Microsoft YaHei Light", "Microsoft YaHei", "Source Han Sans CN", "WenQuanYi Micro Hei", Arial, sans-serif;
+  font-family: "DuKTi", "Source Code Pro", Tahoma, "Helvetica Neue", Helvetica, "Hiragino Sans GB", "Microsoft YaHei Light", "Microsoft YaHei", "Source Han Sans CN", "WenQuanYi Micro Hei", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 14px;
