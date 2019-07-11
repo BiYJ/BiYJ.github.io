@@ -108,8 +108,7 @@ em {
 /*  自定义字体  */
 @font-face {
   font-family: "DuKTi";
-  src: url("../iconfont/DuKTi.eot?t=1478071541360");
-  src: url("../iconfont/DuKTi.eot?t=1478071541360#iefix") format('embedded-opentype'), url("../iconfont/DuKTi.woff?t=1478071541360") format('woff'), url("../iconfont/DuKTi.ttf?t=1478071541360") format('truetype'), url("../iconfont/DuKTi.svg?t=1478071541360#iconfont") format('svg');
+  src: url("../iconfont/DuKTi.eot") format('embedded-opentype'), url("../iconfont/DuKTi.woff") format('woff'), url("../iconfont/DuKTi.ttf") format('truetype'), url("../iconfont/DuKTi.svg") format('svg');
 }
 .fa {
   font-size: 16px;
@@ -186,7 +185,7 @@ em {
 }
 /* layout */
 body {
-  font-family: "DuKTi", "Source Code Pro", Tahoma, "Helvetica Neue", Helvetica, "Hiragino Sans GB", "Microsoft YaHei Light", "Microsoft YaHei", "Source Han Sans CN", "WenQuanYi Micro Hei", Arial, sans-serif;
+  font-family: DuKTi, "Source Code Pro", Tahoma, "Helvetica Neue", Helvetica, "Hiragino Sans GB", "Microsoft YaHei Light", "Microsoft YaHei", "Source Han Sans CN", "WenQuanYi Micro Hei", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 14px;
@@ -608,7 +607,7 @@ body {
 .post .post-content p code {
   margin: 0 5px;
   padding: 0 5px;
-  font-family: Source Code Pro, Monaco, Menlo, Consolas, monospace;
+  font-family: DuKTi, Source Code Pro, Monaco, Menlo, Consolas, monospace;
   color: #4d4d4c;
   background: #eee;
   font-size: 0.95em;
@@ -656,7 +655,7 @@ body {
 .post .post-content ol code {
   margin: 0 5px;
   padding: 0 5px;
-  font-family: Source Code Pro, Monaco, Menlo, Consolas, monospace;
+  font-family: DuKTi, Source Code Pro, Monaco, Menlo, Consolas, monospace;
   color: #4d4d4c;
   background: #eee;
   font-size: 0.95em;
