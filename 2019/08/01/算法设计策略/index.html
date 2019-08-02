@@ -1,0 +1,117 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>算法设计策略 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">算法设计策略</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">算法设计策略</h1><div class="post-meta"><a href="/2019/08/01/算法设计策略/#comments" class="comment-count"></a><p><span class="date">Aug 01, 2019</span><span><a href="/categories/algorithm/" class="category">algorithm</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、分治"><a href="#一、分治" class="headerlink" title="一、分治"></a>一、分治</h2><h4 id="1-1-基本思想"><a href="#1-1-基本思想" class="headerlink" title="1.1 基本思想"></a>1.1 基本思想</h4><blockquote>
+<p>将一个难以直接解决的大问题，分割成 n 个规模较小的子问题，这些子问题相互独立，且与原问题相同，然后各个击破，<font color="#cc0000">分而治之</font>。</p>
+</blockquote>
+<p>能用分治法的基本特征：</p>
+<p>①、问题缩小到一定规模容易解决</p>
+<p>②、分解成的子问题是相同种类的子问题，即该问题具有最优子结构性质（递归思想）</p>
+<p>③、分解而成的小问题在解决之后要可以合并</p>
+<p>④、子问题是相互独立的，即子问题之间没有公共的子问题</p>
+<font color="#cc0000">第 ③ 条是能分治的关键</font>。解决子问题之后如果不能合并从而解决大问题的话，那么凉凉，如果满足一、二，不满足三，即具有最优子结构的话，可以考虑贪心或者 dp。<br><br>如果不满足第 ④ 条的话，也可以用分治。但是在分治的过程中，有大量的重复子问题被多次的计算，拖慢了算法效率，这样的问题可以考虑 dp（大量重复子问题）。<br><br>分治法常常与递归结合使用：通过反复应用分治，可以使子问题与原问题类型一致而规模不断缩小，最终使子问题缩小到很容易求出其解，这和递归算法的思路一致。<br><br>根据分治法的分割原则，应把原问题分割成多少个子问题才比较适宜？每个子问题是否规模相同或怎样才为适当？这些问题很难给出肯定的回答。但人们从大量实践中发现，在使用分治法时，最好均匀划分，且在很多问题中可以取 k = 2。这种使子问题规模大致相等的做法源自一种平衡子问题的思想，它几乎总是比使子问题规模不等的做法好。<br><br>#### 1.2 分治步骤<br><br>①、分解成很多子问题<br><br>②、解决这些子问题<br><br>③、将解决的子问题合并从而解决整个大问题<br><br>化成一颗问题树的话，最底下的就是很多小问题，最上面的就是要解决的大问题，自底向上的方式求解问题。<br><br>它的一般的算法设计模式如下：<br><br>Divide-and-Conquer(P)<br><br>1.   if |P|≤n0<br>2.   then return(ADHOC(P))<br>3.   将 P 分解为较小的子问题 P1, P2, …, Pk<br>4.   for i←1 to k<br>5.   do yi ← Divide-and-Conquer(Pi) △ 递归解决 Pi<br>6.   T ← MERGE(y1,y2,…,yk) △ 合并子问题<br>7.   return(T)<br><br><br>#### 1.3 分类<br><br>根据如何由分解出的子问题得出原始问题的解，分治策略可分为两种情形：<br><br>1.   原始问题的解只存在于分解出的某一个（或某几个）子问题中，则只需要在这一（或这几个）子问题中求解即可；<br>2.   原始问题的解需要由各个子问题的解再经过综合处理得到。<br><br>#### 1.4 效果<br><br>适当运用分治策略往往可以<font color="#cc0000">较快地缩小问题求解的范围</font>，从而加快问题求解的速度。子问题最好规模相同；然后对子问题求解；最后合并这些子问题的解，得到原始问题的解。<br><br>分治策略运用于计算机算法时，往往会出现分解出来的子问题与原始问题类型相同的现象；而与原始问题相比，各个子问题的尺寸变小了。这刚好<font color="#cc0000">符合递归的特性</font>。<br><br>因此，计算机算法中的分治策略往往与递归联系在一起。<br><br>#### 1.5 算法的典型应用<br><br>    ①、MAXMIN问题<br><br>    ②、二分搜索<br><br>    ③、归并排序<br><br>    ④、寻找第 K 小的元素<br><br>    ⑤、大整数的乘法<br><br>    ⑥、Strassen 矩阵乘法<br><br>    ⑦、快速排序<br><br>    ⑧、二叉树遍历<br><br>    ⑨、棋盘覆盖<br><br>    ⑩、线性时间选择<br><br>最接近点对问题<br><br>循环赛日程表<br><br>汉诺塔。。。<br><br>#### 1.6 依据分治法设计程序时的思维过程<br><br>实际上就是类似于数学归纳法，找到解决本问题的求解方程公式，然后根据方程公式设计递归程序。<br><br>①、一定是先找到最小问题规模时的求解方法；<br>②、然后考虑随着问题规模增大时的求解方法；<br>③、找到求解的递归函数式后（各种规模或因子），设计递归程序即可。<br><br><br>文章：<a href="https://blog.csdn.net/effective_coder/article/details/8697789" target="_blank" rel="noopener">分治算法详解</a><br><br><br>## 二、减治<br><br>#### 2.1 基本思想<br><br>减治技术利用了一种关系：<font color="#cc0000">一个问题给定实例的解和同样问题较小实例的解之间的关系</font>。（利用解之间的关系，也就是说可以减少相应的计算，也可以说是一种时空平衡）<br><br>有了这种关系，我们可以自顶向下地递归求解，也可以自底向上地迭代实现，从较小实例开始求解这一角度来看减治也叫<font color="#cc0000">增量法</font>。<br><br>一旦建立了这样一种关系，既可以递归地，也可以非递归地地来运用减治技术。<br><br>#### 2.2 分类<br><br>减治法有 3 种主要的变种：<br><br>1.   减去一个常量<br>2.   减去一个常数因子<br>3.   减去的规模是可变的<br><br>#### 2.3 减去一个常量<br><br>每次算法迭代总是从实例规模中减去一个规模相同的常量。一般来说，这个常量为 1。<br><br>函数 f(n) = a<sup>n</sup> 可以用一递归定义来计算<br><br>f(n) = f(n-1) * a   <font color="#067500">如果 n &gt; 1</font>
+
+<p>f(n) = a          <font color="#067500">如果 n = 1</font></p>
+<p>虽然时间复杂度和蛮力法一致，但是体现的思想却不一样！</p>
+<h4 id="2-4-减去常量因子"><a href="#2-4-减去常量因子" class="headerlink" title="2.4 减去常量因子"></a>2.4 减去常量因子</h4><p>每次算法迭代总是从实例的规模中减去一个相同的常数因子。在的多数应用中，这样的常数因子为 2。</p>
+<p>计算 a<sup>n</sup> 的值是规模为 n 的实例，规模减半（常数因子等于 2）的实例计算就是 a<sup>n/2</sup> 的值；它们之间有着明显的关系： a<sup>n</sup> = (a<sup>n/2</sup>)<sup>2</sup>。</p>
+<p>a<sup>n</sup> = (a<sup>n/2</sup>)<sup>2</sup>                       n 是正偶数</p>
+<p>a<sup>n</sup> = (a<sup>(n-1)/2</sup>)<sup>2</sup> * a     n 是大于 1 的奇数，先提出一个 a 来再减半</p>
+<p>a<sup>n</sup> = a               n = 1</p>
+<p>上式递归根据所做的乘法次数来度量效率，该算法属于 <font color="#cc0000">O(log n)</font>;</p>
+<p>因为每次迭代的时候，以不超过两次乘法为代价，问题的规模至少会减小一半。</p>
+<h4 id="2-5-减可变规模"><a href="#2-5-减可变规模" class="headerlink" title="2.5 减可变规模"></a>2.5 减可变规模</h4><p>每次算法迭代时，规模减小的模式都是不同的。例如：欧几里德算法</p>
+<h4 id="2-6-算法思想的典型应用"><a href="#2-6-算法思想的典型应用" class="headerlink" title="2.6 算法思想的典型应用"></a>2.6 算法思想的典型应用</h4><p>减去一个常量：</p>
+<pre><code>①、插入排序
+
+③、深度优先查找
+
+④、广度优先查找
+
+⑤、拓扑排序（源删除法对无环有向图进行拓扑排序）
+
+⑥、生成排列
+
+⑦、生成子集
+</code></pre><p>减去常量因子：</p>
+<pre><code>①、折半查找
+
+②、假币问题
+
+③、俄式乘法
+
+④、约瑟夫斯问题
+</code></pre><p>减可变规模</p>
+<pre><code>①、插值查找、二叉查找树
+
+②、欧几里得算法，随着不断求余，n 越来越小
+</code></pre><h2 id="三、分治减治区别"><a href="#三、分治减治区别" class="headerlink" title="三、分治减治区别"></a>三、分治减治区别</h2><p>分治法：求解多个子问题（每个子问题都需要求解），<font color="#cc0000">合并</font>子问题的解。</p>
+<p>减治法：求解一个子问题（子问题只需要求解一次），<font color="#cc0000">扩展</font>子问题的解。</p>
+<p>求 a<sup>n</sup>。</p>
+<p>分治法：a<sup>(n/2)</sup> * a<sup>(n/2)</sup> 则左右两个 a<sup>(n/2)</sup> 均需要求解，所以时间复杂度为 O(n)。<br>减治法：(a<sup>(n/2)</sup>)<sup>2</sup> 则只需要求 a<sup>(n/2)</sup> 再平方即可，所以时间复杂度为 O(lgn)。</p>
+<p>也就是说<strong>分治法</strong>是分解的部分需要进行分开的单独计算（需要计算两遍），而<strong>减治法</strong>则利用了“一个问题给定实例的解和同样问题较小实例的解之间的关系”从而减少了计算量<strong>。</strong></p>
+<h2 id="四、变治"><a href="#四、变治" class="headerlink" title="四、变治"></a>四、变治</h2><p>基于变换的方法，首先把问题的实例变得容易求解，然后进行求解。根据<font color="#cc0000">对问题实例的变换方式</font>，变治思想有 3 种主要类型：</p>
+<ul>
+<li>变换为同样问题的一个更简单或者更方便的实例：<strong>实例化简</strong>；</li>
+<li>变换为同样实例的不同表现：<strong>改变表现</strong>；</li>
+<li>变换为另一个问题的实例， 这种问题的算法是已知的：<strong>问题化简</strong>。</li>
+</ul>
+<p>基于这种思想的算法也有很多，如：预排序（把无序变为有序，然后处理）。</p>
+<h4 id="4-1-实例化简"><a href="#4-1-实例化简" class="headerlink" title="4.1 实例化简"></a>4.1 实例化简</h4><pre><code>①、检验数组中元素的唯一性（预排序）
+
+②、模式计算（预排序）
+
+③、AVL 树
+</code></pre><h4 id="4-2-改变表现"><a href="#4-2-改变表现" class="headerlink" title="4.2 改变表现"></a>4.2 改变表现</h4><pre><code>①、2-3 树、2-3-4 树（二叉排序树）
+
+②、堆和堆排序（利用最大/小堆总是找到最大/小值）
+
+③、霍纳法则（多项式的计算）
+
+④、高斯消去法（把方程组经过初等变换，得到具有特殊性质的方程组）
+</code></pre><h4 id="4-3-问题化简"><a href="#4-3-问题化简" class="headerlink" title="4.3 问题化简"></a>4.3 问题化简</h4><pre><code>①、背包问题（线性规划）
+</code></pre><h2 id="五、动态规划"><a href="#五、动态规划" class="headerlink" title="五、动态规划"></a>五、动态规划</h2><p>将原问题分解成若干个子问题。与分治法不同的是，其分解出的子问题往往<font color="#cc0000">不是相互独立的</font>。这种情况下若用分治法会对一些子问题进行<font color="#cc0000">多次求解</font>，这显然是不必要的。动态规划法在求解过程中把所有已解决的子问题的答案保存起来，从而避免对子问题重复求解。</p>
+<p>动态规划常用于解决最优化问题。对一个最优化问题可否应用动态规划法，取决于该问题是否具有如下两个性质：</p>
+<ol>
+<li><p>最优子结构性质</p>
+<p> 当问题的最优解包含其子问题的最优解时，称该问题具有最优子结构性质。</p>
+<p> 要证明原问题具有最优子结构性质，通常采用反证法。假设由问题的最优解导出的子问题的解不是最优的，然后再设法说明在该假设下可构造出比原问题的最优解更好的解，从而导致矛盾。</p>
+</li>
+<li><p>子问题重叠性质</p>
+<p> 子问题重叠性质是指由原问题分解出的子问题不是相互独立的，存在重叠现象。</p>
+</li>
+</ol>
+<p>用动态规划法解题过程中，应当先找出最优解的结构特征，即原问题的最优解与其子问题的最优解的关联。然后有如下两种程序设计方法：</p>
+<p>①、自底向上递归法</p>
+<p>利用问题的最优子结构性质，以自底向上的方式递归地从子问题的最优解逐步构造出整个问题的最优解。</p>
+<p>②、自顶向下递归法（即备忘录法）</p>
+<p>利用问题的最优子结构性质，用与直接递归法相同的控制结构自顶向下地进行递归求解。初始时在表格中为每个子问题存入一个标识解。在求解过程中，对每个待求子问题，首先查看表格中相应的记录项。若记录项为初始时的标识值，则表示该子问题是初次遇到，此时应利用问题的最优子结构性质进行递归求解，并将结果存入表格，以备以后查看。否则则说明该问题已被求解过，直接返回表格中相应的值即可，不必重新计算。</p>
+<p>当一个问题的所有子问题都要求解时，应当用自底向上递归法。当子问题空间中的部分子问题可不必求解时，自底向上递归法会进行多余的计算，此时应采用自顶向下递归法。</p>
+<p>文章：<a href="http://www.hawstein.com/posts/dp-novice-to-advanced.html" target="_blank" rel="noopener">动态规划：从新手到专家</a></p>
+<h2 id="六、贪心"><a href="#六、贪心" class="headerlink" title="六、贪心"></a>六、贪心</h2><p>当一个问题具有最优子结构性质时，可用动态规划法求解。但有时会有比动态规划更简单<font color="#cc0000">更直接效率更高</font>的算法：贪心法。</p>
+<p>贪心法总是做出在<font color="#cc0000">当前</font>看来最好的选择，也就是说贪心法并不从整体最优考虑，它所做出的选择只是在某种意义上的局部最优选择。虽然贪心法并不能对所有问题都得到整体最优解，但是对许多问题它能产生整体最优解。有些情况下，贪心法虽然不能得到整体最优解，但其最终结果却是最优解的很好的近似。</p>
+<p>贪心法常用于解决最优化问题。对一个最优化问题可否应用贪心法，取决于该问题是否具有如下两个性质：</p>
+<ol>
+<li><p>贪心选择性质</p>
+<p> 贪心选择性质是指原问题总有一个整体最优解可通过当前的局部最优选择，即贪心选择来达到。</p>
+<p> 对于一个具体问题，要确定它是否具有贪心选择性质，通常可考察问题的一个整体最优解，并证明可修改这个最优解，使其以贪心选择开始。由此证明该问题总有一个最优解可通过贪心选择得到，即具有贪心选择性质。</p>
+</li>
+<li><p>最优子结构性质</p>
+<p> 这一点与动态规划相同。做出贪心选择后，由于最优子结构性质，原问题简化为规模更小的类似子问题。如果将子问题的最优解和之前所做的贪心选择合并，则可得到原问题的一个最优解。</p>
+</li>
+</ol>
+<p>贪心问题的整体最优解可通过一系列局部的最优选择，即贪心选择来达到。这也是贪心法与动态规划的主要区别。在动态规划中，每一步所做出的选择往往依赖于相关子问题的解。因而只有在解出相关子问题后，才能做出选择。而在贪心法中，仅做出当前状态下的最好选择，即局部最优选择。然后再去解做出这个选择之后产生的相应的子问题。贪心法所做出的贪心选择可以依赖于以往所做过的选择，但绝不依赖于将来所做的选择，也不依赖于子问题的解。正是由于这种差别，动态规划通常以自顶向上的方式解各子问题，而贪心法通常以自顶向下的方式进行，以迭代的方式做出相继的贪心选择，每做出一次贪心选择就将所求问题简化为规模更小的子问题。</p>
+<h2 id="七、回溯"><a href="#七、回溯" class="headerlink" title="七、回溯"></a>七、回溯</h2><p>回溯法是对问题的解空间树进行深度优先搜索 ，但是在对每个节点进行 DFS 之前，要先判断该节点是否有可能包含问题的解。如果肯定不包含，则跳过对以该节点为根的子树的搜索，逐层向其祖先节点回溯。如果有可能包含，则进入该子树，进行 DFS。</p>
+<p>回溯法通常的解题步骤如下：</p>
+<p>①、定义问题的解空间。</p>
+<p>②、将解空间组织成便于进行 DFS 的结构，通常采用树或图的形式。</p>
+<p>③、对解空间进行 DFS，并在搜索过程中用剪枝函数避免无效搜索。</p>
+<p>用回溯法解题时并不需要显式地存储整个解空间，而是在 DFS 过程中动态地产生问题的解空间。在任何时刻，算法只保存从根节点到当前节点的路径。如果解空间树的高度为 h，则回溯法的空间复杂度通常为 O(h)</p>
+<p>用回溯法解题时，常会遇到以下两类典型的解空间树：</p>
+<p>(1)、当所给的问题是从 n 个元素的集合 S 中找出 S 满足某种性质的子集时，相应的解空间树称为子集树，例如 <a href="http://www.cnblogs.com/laifeiyao/p/3481800.html" target="_blank" rel="noopener">0-1背包问题</a></p>
+<p>(2)、当所给的问题是找出 n 个元素满足某种性质的排列时，相应的解空间树称为排列树，例如 <a href="http://www.cnblogs.com/laifeiyao/p/3492758.html" target="_blank" rel="noopener">回溯法解旅行推销员问题</a></p>
+<p>回溯法中的剪枝函数通常分为两类：</p>
+<p>(1)、用约束函数在指定节点处剪去不满足约束的子树，例如 <a href="http://www.cnblogs.com/laifeiyao/p/3481800.html" target="_blank" rel="noopener">0-1背包问题</a></p>
+<p>(2)、用限界函数在指定节点处剪去得不到最优解的子树，例如<a href="http://www.cnblogs.com/laifeiyao/p/3492758.html" target="_blank" rel="noopener">回溯法解旅行推销员问题</a></p>
+<h2 id="八、分支限界"><a href="#八、分支限界" class="headerlink" title="八、分支限界"></a>八、分支限界</h2><p>回溯法是对解空间进行深度优先搜索，事实上任何搜索遍整个解空间的算法均可解决问题。所以采用通用图搜索（树可抽象为特殊的图）的任何实现作为搜索策略均可解决问题，只要做到穷举即可。除了深度优先搜索之外，我们还可采用广度优先搜索，而分支限界法则是对解空间进行优先级优先搜索。</p>
+<p>分支限界法的搜索策略是，在当前节点处，先生成其所有的子节点（分支），并为每个满足约束条件的子节点计算一个函数值(限界)，再将满足约束条件的子节点全部加入解空间树的活结点优先队列。然后再从当前的活节点优先队列中选择优先级最大的节点(节点的优先级由其限界函数的值来确定) 作为新的当前节点。重复这一过程，直到到达一个叶节点为止。所到达的叶节点就是最优解。</p>
+<h2 id="九、学习文章"><a href="#九、学习文章" class="headerlink" title="九、学习文章"></a>九、学习文章</h2><p><a href="https://www.cnblogs.com/laifeiyao/" target="_blank" rel="noopener">姚来飞的博客</a> &amp; <a href="https://www.cnblogs.com/laifeiyao/p/3476258.html" target="_blank" rel="noopener">常见的算法设计策略</a></p>
+<p><a href="https://www.cnblogs.com/lsgxeva/p/7800564.html" target="_blank" rel="noopener">算法设计之五大常用算法设计方法总结</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/08/01/算法设计策略/">http://yoursite.com/2019/08/01/算法设计策略/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/08/01/排序算法/" class="pre">排序算法</a><a href="/2019/07/31/简单算法/" class="next">简单算法</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、分治"><span class="toc-text">一、分治</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-1-基本思想"><span class="toc-text">1.1 基本思想</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-4-减去常量因子"><span class="toc-text">2.4 减去常量因子</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-5-减可变规模"><span class="toc-text">2.5 减可变规模</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-6-算法思想的典型应用"><span class="toc-text">2.6 算法思想的典型应用</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#三、分治减治区别"><span class="toc-text">三、分治减治区别</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、变治"><span class="toc-text">四、变治</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-实例化简"><span class="toc-text">4.1 实例化简</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-改变表现"><span class="toc-text">4.2 改变表现</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-问题化简"><span class="toc-text">4.3 问题化简</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#五、动态规划"><span class="toc-text">五、动态规划</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#六、贪心"><span class="toc-text">六、贪心</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#七、回溯"><span class="toc-text">七、回溯</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#八、分支限界"><span class="toc-text">八、分支限界</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#九、学习文章"><span class="toc-text">九、学习文章</span></a></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/08/01/排序算法/">排序算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/01/算法设计策略/">算法设计策略</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/07/31/简单算法/">简单算法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/07/31/iOS 项目/">iOS 项目</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 响应链/">iOS 响应链</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/iOS 页面流畅技巧/">iOS 页面流畅技巧</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/isa 和 Class/">isa 和 Class</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/Runtime/">Runtime</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/消息转发/">消息转发</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/23/图片加载和处理/">图片加载和处理</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">9</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>
