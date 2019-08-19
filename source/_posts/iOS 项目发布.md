@@ -1,5 +1,5 @@
 ---
-title: iOS 项目
+title: iOS 项目发布
 category: iOS原理
 ---
 
@@ -94,7 +94,7 @@ category: iOS原理
 	- 个人/公司必须经过苹果的人工审核才能在 App Store 上架，而企业级发布到自己服务器或者第三方平台是不需要审核的。
 
 
-## 二、名词介绍
+## 二、证书相关
 
 #### 2.1 开发者证书
 
@@ -190,11 +190,11 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 > 邓氏编码（D-U-N-S® Number，是 Data Universal Numbering System的缩写）。它是一个独一无二的 9 位数字全球编码系统，相当于企业的身份识别码，被广泛应用于企业识别、商业信息的组织及整理。可以帮助识别和迅速定位全球 2.4 亿家企业的信息。
 
 
-## 三、打包
+## 三、打包上传
 
 #### 3.1 payload
 
-操作步骤：
+适用于开发阶段。操作步骤：
 
 1. 选中 target -> edit Scheme，修改 run 操作的 Build Configuration 是 budeg/release。
 
@@ -370,25 +370,192 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 	
 	问题原因：plist 文件中提供的 mehtod 的 value 不对。
 
+#### 3.3 Application Loader
+
+当已经生成了 ipa 包时，可以通过 Application Loader 将包 upload 至 AppStore，操作步骤如下：
+
+1. 登录 Application Loader。路径：Xcode -> Open Developer Tool -> Application Loader
 	
-## 四、文章
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/ApplicationLoaderLogin.png)
+	</center>
+	
+	这里需要注意的是，密码不是与 Apple ID 对应的用于登录 AppStore 的密码，而是 <font color=#cc0000>``App 专用密码``</font>，获取地址：[https://appleid.apple.com/account/manage](https://appleid.apple.com/account/manage)
+	
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/ApplicationLoaderPassword.png)
+	</center>
+
+2. 上传 ipa 包
+
+	登录成功后，需要导入 ipa 包，经过 Application Loader 的检查之后，即可上传 AppStore。
+
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/ApplicationLoaderIPA.png)
+	</center>
+
+3. 报错
+
+	<center>
+		![](http://pugqga7mf.bkt.clouddn.com/ApplicationLoaderError.png)
+	</center>
+	
+	bundle = 209 的包已经在 itunes connect 上有了，新上传的包需要在此 bundle 号的基础上增加，然后重新 upload。
+
+## 四、打包审核注意
+
+1. 检查 Version
+2. 修改 BundleID
+3. 修改 Build 号
+4. 修改 pch 文件及其他宏定义。可以处理成代码自动根据 BundleID 识别当前为开发环境/发布环境
+5. 修改证书及描述文件为发布环境
+6. 询问设计人员是否要更换启动图、应用图标、市场图
+
+
+## 五、Apple Store Connect
+
+#### 5.1 新建 APP
+
+<center>
+![](http://pugqga7mf.bkt.clouddn.com/CreateApp.png)
+</center>
+
+* 名称
+	
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/AppStoreName.png)
+	</center>
+	
+* 套装 ID：即 Bundle ID，显示在开发者中心中创建好 App ID。
+
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/TaoZhuangID.png)
+	</center>
+	
+* SKU：与 Bundle ID 一样即可
+
+注意：这些信息在创建好 App 后是不能修改的，需要修改的话，只能新建一个 App 替代。[点击更多阅读](https://www.jianshu.com/p/791ca505e3d1)
+
+#### 5.2 添加 App 版本
+
+填写信息：
+
+* 此版本的新增内容。<font color=#cc0000>如果当前是第一个上线版本，则没有这一项。</font>
+
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/AppNewVersion.png)
+	</center>
+	
+* App 预览和屏幕快照。每个版本发布时，记得询问设计人员市场图是否有更新。
+	
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/AppScreenShot.png)
+	</center>
+
+* 关键词。在市场中搜索时有用，可以做优化。
+
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/AppKeyword.png)
+	</center>
+	
+* 技术支持网址。可以填写公司官网地址。
+
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/AppSupportURL.png)
+	</center>
+
+* 描述。对 app 进行说明，可以包括公司概述、功能介绍、联系方式等。
+
+	<center>
+	![](http://pugqga7mf.bkt.clouddn.com/AppDesc.png)
+	</center>
+	
+* 版权
+
+* 商务代表联系信息
+
+* App 审核信息。
+
+
+#### 5.3 导入此构建版本时出错
+
+upload 包后，在 itunes connect 中等待处理后，查看发现报错：
+
+<center>
+![](http://pugqga7mf.bkt.clouddn.com/UploadIpaError.png)
+</center>
+
+报错后，着急去排查工程里面是否有配置问题，排查一圈之后，准备重新打包 upload。就在这时，刷新 itunes connect 网页看一下状态，发现报错的已经正常了，直接用那个包提交，不用重新打包了。[点击更多阅读](https://www.jianshu.com/p/b3f024d9fd81)
+
+#### 5.4 IDFA
+
+提交审核时，IDFA 选择“否”，报错：
+
+<center>
+![](http://pugqga7mf.bkt.clouddn.com/IDFA.jpg)
+</center>
+
+百度查找文章发现原因
+
+<center>
+![](http://pugqga7mf.bkt.clouddn.com/IDFASeach.png)
+</center>
+
+着手排查工程中是否使用了 IDFA 并引入 AdSupport.framework，如果有则移除。终端使用命令：
+
+```
+$ cd 项目目录
+$ grep -r advertisingIdentifier .
+```
+
+用这条命令检测自己的工程，如果没有查到相关引用，那么就不要勾选使用 IDFA，如果查到了相关引用，并且这些文件是用于展现广告的用途，那么勾选使用了 IDFA。
+
+<center>
+![](http://pugqga7mf.bkt.clouddn.com/IDFAGrep.jpg)
+</center>
+
+log 显示极光中有使用。百度搜索“极光 IDFA”问题，跳转到极光社区，找到文章：[iOS审核时需要勾选IDFA吗？](https://community.jiguang.cn/t/ios-idfa/13099)
+
+<center>
+![](http://pugqga7mf.bkt.clouddn.com/JiGuangIDFA.png)
+</center>
+
+根据官方人员的说明，使用不带用 advertisingIdentifier 字段的方法。兴致勃勃的重新打包，等待了 10-20 分钟左右的时间，重新提交审核，IDFA 选择“否”，依然报错。
+
+已经删除了工程中导入的 AdSupport.framework，不应该啊。
+
+再次进行排查。将 ipa 包导出到本地，修改后缀名为 <font color=#cc0000>.zip</font>，解压后使用终端命令：
+
+```
+$ cd ipa解压后的文件目录
+$ grep -r AdSupport.framework .
+```
+
+<center>
+![](http://pugqga7mf.bkt.clouddn.com/AdSupportGrep.jpg)
+</center>
+
+log 显示百度统计 sdk 中导入了 AdSupport.framework，百度搜索后跳转官方网站：[iOS SDK采集IDFA注意事项](https://mtj.baidu.com/web/help/article?id=286&type=0)
+
+<center>
+![](http://pugqga7mf.bkt.clouddn.com/BaiduAdSupport.png)
+</center>
+
+百度官方的意思是设置 IDFA 为 YES 并勾选。
+
+考虑到上线紧迫，最后决策：<font color=#cc0000>移除百度统计相关代码，打包 upload</font>。
+
+
+## 六、文章
 
 [Benjamin丶](https://www.jianshu.com/u/fd1e679c3ac1) & [Apple开发者账号介绍及证书配置说明](https://www.jianshu.com/p/8190cf4a8172)
-
 [PersonChen_QJ](https://www.jianshu.com/u/80f9260b9fb7) & [iOS申请邓白氏编码图文流程](https://www.jianshu.com/p/da6663c8fd5f)
-
 [用于创建开发人员或分发证书和推送证书的CSR（证书签名请求）文件是否必须相同？](https://cloud.tencent.com/developer/ask/205801)
-
 [2019年最新苹果企业开发者账号创建证书完整流程](http://www.sohu.com/a/324460196_120174355)
-
 [MrCoderLin](https://www.jianshu.com/u/bb0d2c0a0880) & [Payload文件压缩法打包ipa](https://www.jianshu.com/p/87a1eba7caeb)
-
 [咖啡绿茶1991](https://www.jianshu.com/u/ced5bf319bfe) & [iOS命令行自动打包(archive)](https://www.jianshu.com/p/347056c3f49c)
-
 [iOS自动化打包](https://blog.csdn.net/zhangxiweicaochen/article/details/72730355)
-
 [Xcode9 xcodebuild 命令行打包遇到的坑与解决方案](https://blog.csdn.net/yuanmengong886/article/details/78214978)
-
 [一键打包完整Shell脚本xcodebuild archive](https://www.jianshu.com/p/36d2c6d65aa7)
-
 [iOS 如何填App Store Connect信息](https://www.jianshu.com/p/1c9ad924c79b)
+[iOS提交审核：您的 App 正在使用广告标识符 (IDFA)](https://www.jianshu.com/p/56892880e003)
