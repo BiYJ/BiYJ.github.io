@@ -244,21 +244,64 @@ runtime 替换 decodeObjectForKey 方法后，打印输出发现，UIButton、UI
 
 所以需要研究下如果使用静态方式 pod 子模块代码。
 
-首先将 use\_frameworks! 删除，重新执行 pod install，等 Pod installation complete! 之后，运行工程，报错，一个一个的解决。
+操作步骤：
 
-1. dyld: Library not loaded: @rpath/Realm.framework/Realm
+1. 修改各个子模块的 podspec 文件，删除依赖，修改资源的路径
 
-	现在不用 pod 导入 realm，而是将 realm.framework 拖入 basicModule 工程。这里找了[官方最新的](https://static.realm.io/downloads/objc/realm-objc-3.13.1.zip?_ga=2.256310156.625208557.1551076206-43540051.1551076206) realm.framework，它分为静态版和动态版，添加到工程的 ``Embedded Binaries``，编译时报错 ``Unknown type name namespace``。
+	```oc
+	#    s.resource_bundles = { 'xx' => ['Classes/**/*.{xib,storyboard,Bundle,png,gif,jpg,jpeg,txt,js}', 'Resource/**/*'] }
+	     s.resources = ['Classes/**/*.{xib,storyboard,Bundle,png,gif,jpg,jpeg,txt,js}', 'Resource/**/*']
+
+	#    s.dependency 'Realm', '3.11.2'
+	#    s.dependency 'RealmSwift', '3.11.2'
+
+	     ## 依赖私有库
+	#    s.dependency 'xxx'
+	```
+
+2. 删除 use_frameworks!
+
+	```oc
+	#use_frameworks!
+	```
+
+	重新执行 pod install，等 Pod installation complete! 之后，运行工程。报错，一个一个的解决。
+
+> \#import \<AlipaySDK/AlipaySDK.h\>
+
+修改为 \#import "AlipaySDK.h"
+
+> dyld: Library not loaded: @rpath/Realm.framework/Realm
+
+现在不用 pod 导入 realm，而是将 realm.framework 拖入 basicModule 工程。这里找了[官方最新的](https://static.realm.io/downloads/objc/realm-objc-3.13.1.zip?_ga=2.256310156.625208557.1551076206-43540051.1551076206) realm.framework，它分为静态版和动态版，添加到工程的 ``Embedded Binaries``，编译时报错 ``Unknown type name namespace``。
 	
-	不管通过修改 .h 为 .hpp，还是修改 build settings -> Compile Sources As -> Objectoive-C++ 都没有效果，无计可施之时想到了，可以将 use\_frameworks! 时 cocoapods 生成 的 Realm.framework 拷贝一份，拖入工程死马等活马医。
-	
-	编译运行，这个问题解决了~
+不管通过修改 .h 为 .hpp，还是修改 build settings -> Compile Sources As -> Objectoive-C++ 都没有效果，无计可施之时想到了，可以将 use\_frameworks! 时 cocoapods 生成 的 Realm.framework 拷贝一份，拖入工程死马等活马医。
 
-2. Argument list too long: recursive header expansion failed
+编译运行，这个问题解决了~
 
-	Search Paths -> Header Search Paths，去掉 ``$(PODS_ROOT)/**``，去掉不必要的 ``recursive`` search。
+> dyld: Library not loaded: @rpath/libswiftCore.dylib
+  Referenced from: /Users/.../CYKJMain.app/Frameworks/RealmSwift.framework/RealmSwift
+  Reason: image not found
+  
+在主工程中创建 xx.swift，并自动创建桥接文件。
 
-其余的就是解决一些资源加载问题，资源重名问题，动态库的引用问题 #import “” 改为 #import <>。
+<center>
+![](https://coding-net-production-file-ci.codehub.cn/3a187b30-cb3c-11e9-9601-1f29a8550414.png?sign=PIV6MKaupFKQfCsBa6GO7abI1ONhPTEyNTcyNDI1OTkmaz1BS0lEYXk4M2xGbWFTNlk0TFRkek1WTzFTZFpPeUpTTk9ZcHImZT0xNTY3Mzk1NTI0JnQ9MTU2NzE3OTUyNCZyPTgwNzc5NTAmZj0vM2ExODdiMzAtY2IzYy0xMWU5LTk2MDEtMWYyOWE4NTUwNDE0LnBuZyZiPWNvZGluZy1uZXQtcHJvZHVjdGlvbi1maWxl)
+</center>
+
+> Check dependencies
+> Argument list too long: recursive header expansion failed
+
+Search Paths -> Header Search Paths，去掉 ``$(PODS_ROOT)/**``，去掉不必要的 ``recursive`` search。原因是：参数列表太长，在递归展开的时候失败，当工程根目录的层级比较深时，Pods里面的层级也比较多时，导致路径太长，超出范围。
+
+> duplicate symbol xx in
+
+工程中出现重复的类或者 storyboard 文件等，删除或修改名称即可。
+
+<center>
+![](https://coding-net-production-file-ci.codehub.cn/5df4d200-cb3d-11e9-a629-cfad1d180165.png?sign=gDRLjswgEokgwfTYCbRPGKB9ASxhPTEyNTcyNDI1OTkmaz1BS0lEYXk4M2xGbWFTNlk0TFRkek1WTzFTZFpPeUpTTk9ZcHImZT0xNTY3Mzk2MDE0JnQ9MTU2NzE4MDAxNCZyPTE5NjczMzM4JmY9LzVkZjRkMjAwLWNiM2QtMTFlOS1hNjI5LWNmYWQxZDE4MDE2NS5wbmcmYj1jb2RpbmctbmV0LXByb2R1Y3Rpb24tZmlsZQ==)
+</center>
+
 	
 ## 二、文章
 
