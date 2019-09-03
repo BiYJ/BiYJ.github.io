@@ -1,0 +1,244 @@
+---
+title : NSPredicate
+categories : iOS原理
+---
+
+官方的解释:
+
+> The NSPredicate class is used to define logical conditions used to constrain a search either for a fetch or for in-memory filtering.
+
+NSPredicate 类是用来定义逻辑条件，用来有约束的获取内存中的对象或过滤搜索。
+
+简而言之：只选取符合条件的对象。
+
+## 一、基本语法
+
+使用谓词（NSPredicate）都需要为谓词定义<font color=#cc0000>``谓词表达式``</font>，而这个表达式必须是一个返回 BOOL 的值。
+
+谓词表达式由表达式、运算符和值构成。
+
+#### 1.1 比较运算符
+
+1. =、==：判断两个表达式是否相等，在谓词中 = 和 == 是相同的意思，而没有赋值的概念。
+
+	```oc
+    NSString * string = @"1234";
+    NSPredicate * predicate = [NSPredicate predicateWithFormat:@"SELF = '1234'"];
+    
+    // 验证对象是否符合条件。底层调用了 [xx compare:] 方法
+    if ([predicate evaluateWithObject:string]) {
+        NSLog(@"Evaluate Success!\n");
+    }
+    else {
+        NSLog(@"Evaluate Fail!\n");
+    }
+    
+    2019-08-31 11:53:35.305452+0800 Predicate[7069:1165684] Evaluate Success!
+    ```
+	当传入数组对象时，报错：<font color=#cc0000>*** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[__NSArrayI compare:]: unrecognized selector sent to instance 0x600000234c00'</font>。可以发现底层调用了 compare: 方法。
+
+2. \>=、=\>：判断左边表达式的值是否大于或等于右边表达式的值
+3. \<=、=\<：判断左边表达式的值是否小于或等于右边表达式的值
+4. \>：判断左边表达式的值是否大于右边表达式的值
+5. \<：判断左边表达式的值是否小于右边表达式的值
+6. !=、\<\>：判断两个表达式是否不相等
+
+#### 1.2 逻辑运算符
+
+1. AND、&&：逻辑与。两个表达式的值都为 YES 时，结果才为 YES。
+2. OR、||：逻辑或。要求其中一个表达式为 YES 时，结果就是 YES。
+3. NOT、!：逻辑非。对原有的表达式取反
+
+#### 1.3 关系运算符
+
+1. ANY、SOME：集合中任意一个元素满足条件，就返回 YES。
+		
+	```
+	@interface Person : NSObject
+
+	@property (nonatomic, copy) NSString * name;
+	@property (nonatomic, assign) NSInteger age;
+	
+	@end
+	
+	{
+		NSArray * arr = @[ person1, person2, ... ];  
+		predicate = [NSPredicate predicateWithFormat:@"ANY name LIKE 'Tom*2'"];
+	
+		NSLog(@"%@", [arr filteredArrayUsingPredicate:predicate]);
+	}
+
+	2019-08-31 13:33:03.764130+0800 Predicate[8478:1206451] *** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: 'The left hand side for an ALL or ANY operator must be either an NSArray or an NSSet.'
+	```
+	
+	根据报错信息得知，谓词表达式中 ANY 的操作的主体需要是 NSArray 或者 NSSet。上面 filteredArrayUsingPredicate: 方法传入的是 Person 对象，所以报错，因此 ANY 操作的数据结构要是 @[ @[] ] 双层数组。
+	
+	```
+	{
+		NSArray * arr = @[ @[ person1, person2, ... ] ];  
+		predicate = [NSPredicate predicateWithFormat:@"ANY name LIKE 'Tom*2'"];
+			
+		NSLog(@"%@", [arr filteredArrayUsingPredicate:predicate]);
+	}
+	```
+	
+2. ALL：集合中所有元素都满足条件，才返回 YES。
+3. NONE：集合中没有任何元素满足条件就返回 YES，等同于 not any。如: NONE person.age < 18，表示 person 集合中所有元素的 age >= 18 时，才返回 YES。
+4. IN：等价于 SQL 语句中的 IN 运算符，只有当左边表达式或值出现在右边的集合中才会返回 YES
+	
+	```
+	predicateString = @"self.name IN {'Tom','Jay'} || self.age IN{25,30}";
+	predicate = [NSPredicate predicateWithFormat:predicateString];
+	    
+	NSLog(@"%@ = %@", predicateString, [self.persons filteredArrayUsingPredicate:predicate]);
+	```
+
+#### 1.4 范围运算符
+
+1. BETWEEN：BETWEEN 表达式必须满足表达式 <font color=#cc0000>BETWEEN {下限，上限}</font> 的格式，要求该表达式必须大于或等于下限，并小于或等于上限
+
+	```
+	NSNumber * number = @(1234);
+    predicate = [NSPredicate predicateWithFormat:@"SELF BETWEEN {1000, 2000}"];
+    
+    if ([predicate evaluateWithObject:number]) {
+        NSLog(@"Success!");
+    }
+    else {
+        NSLog(@"Fail!");
+    }
+    
+    2019-08-31 13:06:59.443083+0800 Predicate[8050:1192540] Success!
+	```
+
+2. IN
+
+
+#### 1.5 字符串比较运算符
+
+1. BEGINSWITH：检查某个字符串是否以指定的字符串开头
+2. ENDSWITH：检查某个字符串是否以指定的字符串结尾
+3. CONTAINS：检查某个字符串是否包含指定的字符串
+4. LIKE：检查某个字符串是否匹配指定的字符串模板。其之后可以跟 ? 代表一个字符和 \* 代表任意多个字符。比如 "name LIKE '\*ac\*'"，这表示 name 的值中包含 ac 则返回 YES；"name LIKE '?ac*'"，表示 name 的第 2、3 个字符为 ac 时返回 YES。
+5. MATCHES：检查某个字符串是否匹配指定的正则表达式。虽然<font color=#cc0000>正则表达式的执行效率是最低的</font>，但其功能是最强大的，也是我们最常用的。
+
+注意：字符串比较都是区分大小写和重音符号的。如：café 和 cafe 是不一样的，Cafe 和 cafe 也是不一样的。如果希望字符串比较运算不区分大小写和重音符号，请在这些运算符后使用 <font color=#cc0000>[c]、[d]</font> 选项。其中 [c] 是不区分大小写，[d] 是不区分重音符号，其写在字符串比较运算符之后，比如：name LIKE[cd] 'cafe'，那么不论 name 是cafe、Cafe 还是 café 上面的表达式都会返回 YES。
+
+
+#### 1.6 直接量
+
+在谓词表达式中可以使用如下直接量
+
+1. FALSE、NO：代表逻辑假
+2. TRUE、YES：代表逻辑真
+3. NULL、NIL：代表空值
+4. SELF：代表正在被判断的对象自身，不区分大小写，self 也可以。
+5. "string" 或 'string'：代表字符串
+6. 数组：和 c 中的写法相同，如：{'one', 'two', 'three'}。
+7. 数值：包括整数、小数和科学计数法表示的形式
+8. 十六进制数：0x开头的数字
+9. 八进制：0o开头的数字
+10. 二进制：0b开头的数字
+
+#### 1.7 数组操作
+
+1. array[index]：指定数组中特定索引处的元素。
+2. array[first]：指定第一个元素
+3. array[last]：指定最后一个元素
+4. array[size]：指定数组大小
+
+#### 1.8 保留字
+
+下列单词都是保留字（不区分大小写）
+
+AND、OR、IN、NOT、ALL、ANY、SOME、NONE、LIKE、CASEINSENSITIVE、CI、MATCHES、CONTAINS、BEGINSWITH、ENDSWITH、BETWEEN、NULL、NIL、SELF、TRUE、YES、FALSE、NO、FIRST、LAST、SIZE、ANYKEY、SUBQUERY、CAST、TRUEPREDICATE、FALSEPREDICATE
+
+> 虽然大小写都可以，但是更推荐使用大写来表示这些保留字
+
+
+## 二、谓词的用法
+
+#### 2.1 数据校验
+
+```
+// MATCHES（正则表达式）
+NSString * phoneRegex = @"^((13[0-9])|(15[^4,\\D])|(18[0,0-9]))\\d{8}$";
+NSString * phoneNumber = @"15180168516";
+predicate = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", phoneRegex];
+    
+if ([predicate evaluateWithObject:phoneNumber]) {
+    NSLog(@"%@ 是电话号码!", phoneNumber);
+}
+else {
+    NSLog(@"%@ 不是电话号码!", phoneNumber);
+}
+```
+
+evaluateWithObject: 方法返回的是一个 BOOL 值，如果符合条件就返回 YES，不符合就返回 NO。常见的有判断手机号码、邮编等等。
+
+```
+// 检测字符串中是否有特殊字符
+- (BOOL)checkSpecialCharacter:(NSString *)string
+{
+    NSString *regex = @"[`~!@#$^&*()=|{}':;',\\[\\].<>/?~！@#￥……&*（）——|{}【】‘；：”“'。，、？]+";
+    NSPredicate *pred = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", regex];
+    return [pred evaluateWithObject:string];
+}
+```
+
+#### 2.2 过滤集合
+
+谓词本身就代表了一个逻辑条件，计算谓词之后返回的结果永远为 BOOL 类型的值。而谓词最常用的功能就是对集合进行过滤。当程序使用谓词对集合元素进行过滤时，程序会自动遍历其元素，并根据集合元素来计算谓词的值，当这个集合中的元素计算谓词并返回 YES 时，这个元素才会被保留下来。请注意程序会自动遍历其元素，它会将自动遍历过之后返回为YES的值重新组合成一个集合返回。
+
+```
+/**
+ * @brief  NSArray
+ * @return  使用指定的谓词过滤 NSArray 集合，返回符合条件的元素组成的新集合
+ */
+- (NSArray<ObjectType> *)filteredArrayUsingPredicate:(NSPredicate *)predicate;
+
+/**
+ * @brief  使用指定的谓词过滤 NSMutableArray，剔除集合中不符合条件的元素
+ */
+- (void)filterUsingPredicate:(NSPredicate *)predicate;
+
+/**
+ * @brief  NSSet
+ */
+- (NSSet<ObjectType> *)filteredSetUsingPredicate:(NSPredicate *)predicate NS_AVAILABLE(10_5, 3_0);
+
+/**
+ * @brief  NSMutableSet
+ */
+- (void)filterUsingPredicate:(NSPredicate *)predicate NS_AVAILABLE(10_5, 3_0);
+```
+
+使用谓词过滤不可变集合和可变集合的区别是：过滤不可变集合时，会返回符合条件的集合元素<font color=#cc0000>组成</font>的新集合；过滤可变集合时，没有返回值，会直接<font color=#cc0000>剔除</font>不符合条件的集合元素。
+
+#### 2.3 在谓词中使用占位符参数
+
+上面所有的例子中谓词总是固定的，然而我们在现实中处理变量时决定了谓词应该是可变的。
+
+首先如果我们想在谓词表达式中使用变量，那么我们需要了解下列两种占位符：
+
+> %K：用于动态传入属性名
+> %@：用于动态设置属性值
+
+相当于变量名与变量值。
+
+除此之外，还可以在谓词表达式中使用动态改变的属性值，就像环境变量一样。
+
+```
+NSPredicate * predicate1 = [NSPredicate predicateWithFormat:@"%K CONTAINS %@", key, value];
+NSArray * filterArray = [array filteredArrayUsingPredicate:predicate];
+
+// 包含 $VALUE 字符串
+NSPredicate * predicateTemp = [NSPredicate predicateWithFormat:@"%K > $VALUE", @"age"];
+// 指定 $VALUE 的值为 25
+NSPredicate * predicate2 = [predicateTemp predicateWithSubstitutionVariables:@{ @"VALUE" : @25} ];
+filterArray = [array filteredArrayUsingPredicate:predicate2];
+```
+
+## 三、文章
+
+[sunny_zl](https://www.jianshu.com/u/c2f0de304708) & [iOS中的谓词（NSPredicate）使用](https://www.jianshu.com/p/88be28860cde)

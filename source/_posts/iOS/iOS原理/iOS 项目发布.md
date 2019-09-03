@@ -15,7 +15,7 @@ category: iOS原理
 
 在苹果的开发者平台登录后，可在 ``People`` 界面邀请其他人员协作开发，邀请的人需要注册一个 appleId 账号，并且可以设置开发人员的权限。
 
-![](http://pugqga7mf.bkt.clouddn.com/People.png)
+![](http://dzliving.com/People.png)
 
 
 #### 1.2 辨别账号类型
@@ -24,7 +24,7 @@ category: iOS原理
 
 	账户的 Apple Developer Program 下方只有 ``Certificates，identifiers & Profiles`` 和 ``App Store Connect`` 两个图标。
 
-	![](http://pugqga7mf.bkt.clouddn.com/Personal.png)
+	![](http://dzliving.com/Personal.png)
 	
 
 2. 公司级
@@ -37,14 +37,14 @@ category: iOS原理
 	>
 	> 图标三：将 APP 上传到 App Store 的入口
 
-	![](http://pugqga7mf.bkt.clouddn.com/Company.png)
+	![](http://dzliving.com/Company.png)
 
 
 3. 企业级
 
 	账户的 Apple Developer <font color=#cc0000>Enterprise</font> Program 下方有``People``、``Certificates，identifiers & Profiles`` 两个图标，第一个图标邀请其他开发人员的入口，第二个图标是开发者证书、App ID和描述文件生成的入口。
 
-	![](http://pugqga7mf.bkt.clouddn.com/Enterprise.png)
+	![](http://dzliving.com/Enterprise.png)
 
 #### 1.3 账号对比
 
@@ -103,7 +103,7 @@ category: iOS原理
 - Developer（开发证书）
 - Distribution（发布证书）
 
-![](http://pugqga7mf.bkt.clouddn.com/Certificates.png)
+![](http://dzliving.com/Certificates.png)
 
 不论是真机调试，还是上传到 appstore 都是需要的，是一个基证书，用来证明自己开发者身份的。
 
@@ -111,7 +111,7 @@ category: iOS原理
 
 > 是一个 APP 的唯一标示，相当于人的身份证号
 
-<center>![](http://pugqga7mf.bkt.clouddn.com/Identifiers.png)</center>
+<center>![](http://dzliving.com/Identifiers.png)</center>
 
 - Description 是一个 App ID 的描述，可以随便
 - App ID Prefix 苹果自动填了，可以看出，它是一个团队的 ID Suffix
@@ -127,7 +127,7 @@ category: iOS原理
 
 当创建 CSR 时，电脑系统实际上会生成公钥和私钥对。<font color=#cc0000>CSR 包含公钥</font>。
 
-<center>![](http://pugqga7mf.bkt.clouddn.com/CSRContent.png)</center>
+<center>![](http://dzliving.com/CSRContent.png)</center>
 
 Apple 使用该公钥来制作证书。证书或多或少是一种发布公钥的方式以及关于该密钥的一些相关信息，并且验证发布实体，表示该信息是有效的。
 
@@ -136,9 +136,9 @@ Apple 使用该公钥来制作证书。证书或多或少是一种发布公钥�
 生成 CSR 文件步骤：
 
 <center>
-	![](http://pugqga7mf.bkt.clouddn.com/KeyAccess.png)
-	![](http://pugqga7mf.bkt.clouddn.com/CSR.png)
-	![](http://pugqga7mf.bkt.clouddn.com/CSR2.png)
+	![](http://dzliving.com/KeyAccess.png)
+	![](http://dzliving.com/CSR.png)
+	![](http://dzliving.com/CSR2.png)
 </center>
 
 1. 用户电子邮件地址随便填写，并不一定非要填写邮件格式，无实际作用
@@ -148,13 +148,13 @@ Apple 使用该公钥来制作证书。证书或多或少是一种发布公钥�
 
 CSR文件尽量每个证书都制作一次，将常用名称区分开来，因为该常用名称是证书中的密钥的名字。
 
-<center>![](http://pugqga7mf.bkt.clouddn.com/P12CSR.png)</center>
+<center>![](http://dzliving.com/P12CSR.png)</center>
 
 #### 2.4 .cer
 
 > 在苹果开发者中心生成的证书，导出后就是 .cer 文件。.cer 证书仅包含公钥。
 
-<center>![](http://pugqga7mf.bkt.clouddn.com/CreateCer.png)</center>
+<center>![](http://dzliving.com/CreateCer.png)</center>
 
 提交 CSR 文件后就会生成一个 cer 证书，有效期为一年。
 
@@ -181,7 +181,7 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 
 > Profiles 将 App ID、开发者证书、硬件 Device 绑定到一块儿。
 
-<center>![](http://pugqga7mf.bkt.clouddn.com/Mobile.png)</center>
+<center>![](http://dzliving.com/Mobile.png)</center>
 
 在开发者中心配置好后可以添加到 Xcode 上，也可以直接在 Xcode 上连接开发者中心生成，真机调试时需要在描述文件中添加真机的 UDID。
 
@@ -198,17 +198,17 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 
 1. 选中 target -> edit Scheme，修改 run 操作的 Build Configuration 是 budeg/release。
 
-	<center>![](http://pugqga7mf.bkt.clouddn.com/SchemeRun.png)</center>
+	<center>![](http://dzliving.com/SchemeRun.png)</center>
 
 2. 真机运行工程，在左侧工程目录 -> Products 找到 .app 文件，show in Finder。
 
-	<center>![](http://pugqga7mf.bkt.clouddn.com/DemoApp.png)</center>
+	<center>![](http://dzliving.com/DemoApp.png)</center>
 
 3. 桌面生成一个名为 Payload 的空文件夹，将 .app 文件拖入其中。
 
 4. 压缩 Payload 文件夹，修改后缀名为 .ipa，此时就可以将包上传 fir.im 网站，进行提测。
 
-	<center>![](http://pugqga7mf.bkt.clouddn.com/Payload.png)</center>
+	<center>![](http://dzliving.com/Payload.png)</center>
 
 
 #### 3.2 Archive
@@ -242,7 +242,7 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 
 	clean 成功：
 	
-	<center>![](http://pugqga7mf.bkt.clouddn.com/XCodeBuildClean.png)</center>
+	<center>![](http://dzliving.com/XCodeBuildClean.png)</center>
 	
 	②、archive 导出 .xcarchive 文件
 	
@@ -258,8 +258,8 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 	archive 成功：
 
 	<center>
-		![](http://pugqga7mf.bkt.clouddn.com/XCodeBuildArchive.png)
-		![](http://pugqga7mf.bkt.clouddn.com/CCArchive.png)	
+		![](http://dzliving.com/XCodeBuildArchive.png)
+		![](http://dzliving.com/CCArchive.png)	
 	</center>
 
 	③、导出 ipa 包
@@ -364,7 +364,7 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 	
 	导出 ipa 成功：
 	
-	<center>![](http://pugqga7mf.bkt.clouddn.com/XCodeBuildIPA.png)</center>
+	<center>![](http://dzliving.com/XCodeBuildIPA.png)</center>
 	
 	<font color=#cc0000>``Error Domain=IDEProfileLocatorErrorDomain Code=4 "No "iOS App Development"``</font>
 	
@@ -377,13 +377,13 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 1. 登录 Application Loader。路径：Xcode -> Open Developer Tool -> Application Loader
 	
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/ApplicationLoaderLogin.png)
+	![](http://dzliving.com/ApplicationLoaderLogin.png)
 	</center>
 	
 	这里需要注意的是，密码不是与 Apple ID 对应的用于登录 AppStore 的密码，而是 <font color=#cc0000>``App 专用密码``</font>，获取地址：[https://appleid.apple.com/account/manage](https://appleid.apple.com/account/manage)
 	
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/ApplicationLoaderPassword.png)
+	![](http://dzliving.com/ApplicationLoaderPassword.png)
 	</center>
 
 2. 上传 ipa 包
@@ -391,13 +391,13 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 	登录成功后，需要导入 ipa 包，经过 Application Loader 的检查之后，即可上传 AppStore。
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/ApplicationLoaderIPA.png)
+	![](http://dzliving.com/ApplicationLoaderIPA.png)
 	</center>
 
 3. 报错
 
 	<center>
-		![](http://pugqga7mf.bkt.clouddn.com/ApplicationLoaderError.png)
+		![](http://dzliving.com/ApplicationLoaderError.png)
 	</center>
 	
 	bundle = 209 的包已经在 itunes connect 上有了，新上传的包需要在此 bundle 号的基础上增加，然后重新 upload。
@@ -417,19 +417,19 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 #### 5.1 新建 APP
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/CreateApp.png)
+![](http://dzliving.com/CreateApp.png)
 </center>
 
 * 名称
 	
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/AppStoreName.png)
+	![](http://dzliving.com/AppStoreName.png)
 	</center>
 	
 * 套装 ID：即 Bundle ID，显示在开发者中心中创建好 App ID。
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/TaoZhuangID.png)
+	![](http://dzliving.com/TaoZhuangID.png)
 	</center>
 	
 * SKU：与 Bundle ID 一样即可
@@ -443,31 +443,31 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 * 此版本的新增内容。<font color=#cc0000>如果当前是第一个上线版本，则没有这一项。</font>
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/AppNewVersion.png)
+	![](http://dzliving.com/AppNewVersion.png)
 	</center>
 	
 * App 预览和屏幕快照。每个版本发布时，记得询问设计人员市场图是否有更新。
 	
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/AppScreenShot.png)
+	![](http://dzliving.com/AppScreenShot.png)
 	</center>
 
 * 关键词。在市场中搜索时有用，可以做优化。
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/AppKeyword.png)
+	![](http://dzliving.com/AppKeyword.png)
 	</center>
 	
 * 技术支持网址。可以填写公司官网地址。
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/AppSupportURL.png)
+	![](http://dzliving.com/AppSupportURL.png)
 	</center>
 
 * 描述。对 app 进行说明，可以包括公司概述、功能介绍、联系方式等。
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/AppDesc.png)
+	![](http://dzliving.com/AppDesc.png)
 	</center>
 	
 * 版权
@@ -482,7 +482,7 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 upload 包后，在 itunes connect 中等待处理后，查看发现报错：
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/UploadIpaError.png)
+![](http://dzliving.com/UploadIpaError.png)
 </center>
 
 报错后，着急去排查工程里面是否有配置问题，排查一圈之后，准备重新打包 upload。就在这时，刷新 itunes connect 网页看一下状态，发现报错的已经正常了，直接用那个包提交，不用重新打包了。[点击更多阅读](https://www.jianshu.com/p/b3f024d9fd81)
@@ -492,13 +492,13 @@ upload 包后，在 itunes connect 中等待处理后，查看发现报错：
 提交审核时，IDFA 选择“否”，报错：
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/IDFA.jpg)
+![](http://dzliving.com/IDFA.jpg)
 </center>
 
 百度查找文章发现原因
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/IDFASeach.png)
+![](http://dzliving.com/IDFASeach.png)
 </center>
 
 着手排查工程中是否使用了 IDFA 并引入 AdSupport.framework，如果有则移除。终端使用命令：
@@ -511,13 +511,13 @@ $ grep -r advertisingIdentifier .
 用这条命令检测自己的工程，如果没有查到相关引用，那么就不要勾选使用 IDFA，如果查到了相关引用，并且这些文件是用于展现广告的用途，那么勾选使用了 IDFA。
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/IDFAGrep.jpg)
+![](http://dzliving.com/IDFAGrep.jpg)
 </center>
 
 log 显示极光中有使用。百度搜索“极光 IDFA”问题，跳转到极光社区，找到文章：[iOS审核时需要勾选IDFA吗？](https://community.jiguang.cn/t/ios-idfa/13099)
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/JiGuangIDFA.png)
+![](http://dzliving.com/JiGuangIDFA.png)
 </center>
 
 根据官方人员的说明，使用不带用 advertisingIdentifier 字段的方法。兴致勃勃的重新打包，等待了 10-20 分钟左右的时间，重新提交审核，IDFA 选择“否”，依然报错。
@@ -532,13 +532,13 @@ $ grep -r AdSupport.framework .
 ```
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/AdSupportGrep.jpg)
+![](http://dzliving.com/AdSupportGrep.jpg)
 </center>
 
 log 显示百度统计 sdk 中导入了 AdSupport.framework，百度搜索后跳转官方网站：[iOS SDK采集IDFA注意事项](https://mtj.baidu.com/web/help/article?id=286&type=0)
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/BaiduAdSupport.png)
+![](http://dzliving.com/BaiduAdSupport.png)
 </center>
 
 百度官方的意思是设置 IDFA 为 YES 并勾选。

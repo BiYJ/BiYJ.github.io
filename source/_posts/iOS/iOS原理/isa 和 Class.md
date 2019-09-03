@@ -70,7 +70,7 @@ Objc 在三种层面上与 Runtime 系统进行交互：
 
 具体设置如下：
 
-![](https://upload-images.jianshu.io/upload_images/1194012-4a2ea408888ae8cd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/811/format/webp)
+![](https://upload-images.jianshu.io/upload_images/1194012-4a2ea408888ae8cd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/811)
 
 如果发现导入了两个库文件之后，仍然没有代码提示，就需要把这里的设置改成 NO，即可。
 
@@ -148,7 +148,7 @@ union isa_t
 }
 ```
 
-![](https://upload-images.jianshu.io/upload_images/1194012-06a854913380136c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/956/format/webp)
+![](https://upload-images.jianshu.io/upload_images/1194012-06a854913380136c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/956)
 
 把源码的定义转化成类图，就是上图的样子。
 
@@ -222,7 +222,7 @@ meta-class 之所以重要，是因为它存储着一个类的所有类方法。
 
 对应关系的图如下图，下图很好的描述了对象，类，元类之间的关系：
 
-![](https://upload-images.jianshu.io/upload_images/1194012-d7b097e86f9e488d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/625/format/webp)
+![](https://upload-images.jianshu.io/upload_images/1194012-d7b097e86f9e488d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/625)
 
 实线是 super\_class 指针，虚线是 isa 指针。
 
@@ -320,11 +320,11 @@ initIsa 第二个参数传入了一个 true，所以 initIsa 就会执行 else �
     };
 ```
 
-![](https://upload-images.jianshu.io/upload_images/1194012-2f2760cc2bc4034e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp)
+![](https://upload-images.jianshu.io/upload_images/1194012-2f2760cc2bc4034e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000)
 
 ISA\_MAGIC\_VALUE = 0x000001a000000001ULL 转换成二进制是 11010000000000000000000000000000000000001，结构如下图：
 
-![6](https://upload-images.jianshu.io/upload_images/1194012-78ff71b4e40f616f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/829/format/webp)
+![6](https://upload-images.jianshu.io/upload_images/1194012-78ff71b4e40f616f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/829)
 
 参数的说明：
 
@@ -422,7 +422,7 @@ private:
 }
 ```
 
-![](https://upload-images.jianshu.io/upload_images/1194012-3ab871ca22e8e5a3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/492/format/webp)
+![](https://upload-images.jianshu.io/upload_images/1194012-3ab871ca22e8e5a3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/492)
 
 根据源码，我们可以知道 cache\_t 中存储了一个 bucket\_t 的结构体，和两个 unsigned int 的变量。
 
@@ -545,9 +545,9 @@ IMP 是一个函数指针，指向的是函数的具体实现。在 runtime 中�
 
 到此，总结 objc\_class 1.0 和 2.0 的差别。
 
-![](https://upload-images.jianshu.io/upload_images/1194012-8b2987b38e6e5d2b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp)
+![](https://upload-images.jianshu.io/upload_images/1194012-8b2987b38e6e5d2b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000)
 
-![](https://upload-images.jianshu.io/upload_images/1194012-cd2c3afd17d40e9f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp)
+![](https://upload-images.jianshu.io/upload_images/1194012-cd2c3afd17d40e9f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000)
 
 
 ## 三、测试题
@@ -810,7 +810,7 @@ Sark instance = <Sark: 0x7fb570d20b10> 地址 = 0x7fff543f5a78
 my name is (null)
 ```
 
-![](//upload-images.jianshu.io/upload_images/1194012-c794987c90515f8e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp)
+![](//upload-images.jianshu.io/upload_images/1194012-c794987c90515f8e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000)
 
 ```objc
 // objc_msgSendSuper2() takes the current search class, not its superclass.
@@ -906,7 +906,7 @@ my name is <ViewController: 0x7fb570e2ad00>
 
 其实这种想法是不对的，从 obj 往上找 name 属性，完全是指针偏移了一个 offset 导致的，也就是说指针只往下偏移了一个。那么怎么证明指针只偏移了一个，而不是偏移了 4 个到最下面的 self 呢？
 
-![](https://upload-images.jianshu.io/upload_images/1194012-cccbecc99506dbe5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp)
+![](https://upload-images.jianshu.io/upload_images/1194012-cccbecc99506dbe5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000)
 
 obj 的地址是 0x7fff5c7b9a08，self 的地址是 0x7fff5c7b9a28。每个指针占 8 个字节，所以从 obj 到 self 中间确实有 4 个指针大小的间隔。如果从 obj 偏移一个指针，就到了 0x7fff5c7b9a10。我们需要把这个内存地址里面的内容打印出来。
 
@@ -924,7 +924,7 @@ LLDB 调试中，可以使用 examine 命令（简写是 x）来查看内存地�
 > 
 > u 参数可以用下面的字符来代替，b 表示单字节，h 表示双字节，w 表示四字节，g 表示八字节。当我们指定了字节长度后，GDB 会从指内存定的内存地址开始，读写指定字节，并把其当作一个值取出来。
 
-![](https://upload-images.jianshu.io/upload_images/1194012-3111309aaef61c73.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp)
+![](https://upload-images.jianshu.io/upload_images/1194012-3111309aaef61c73.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000)
 
 我们用 x 命令分别打印出 0x7fff5c7b9a10 和 0x7fff5c7b9a28 内存地址里面的内容，我们会发现两个打印出来的值是一样的，都是 0x7fbf0d606aa0。
 

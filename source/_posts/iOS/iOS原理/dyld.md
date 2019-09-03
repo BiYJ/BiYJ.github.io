@@ -33,7 +33,7 @@ $ file dyld
 ```
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/dyld_path.png)
+![](http://dzliving.com/dyld_path.png)
 </center>
 
 dyld 是 <font color=#cc0000>Mach-O 类型的通用二进制文件</font>，支持 x86_64 和 i386 两种架构。iPhone 真机对应的 dyld 支持的为 arm 系列架构。
@@ -313,7 +313,7 @@ Mach header
 一个 Mach-O 的文件头结构为：
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/MachOHeader.png)
+![](http://dzliving.com/MachOHeader.png)
 </center>
 
 各字段的含义，可参看 ``/usr/include/mach-o/loader.h``。
@@ -345,7 +345,7 @@ cryptid 代表是否加壳，1 - 加壳，0 - 已脱壳。
 Mach-O 文件可以用 GUI 图形软件 [MachOView](https://github.com/gdbinit/MachOView) 更加直观的查看相关信息。
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/MachOView.png)
+![](http://dzliving.com/MachOView.png)
 </center>
 
 
@@ -356,9 +356,9 @@ Mach-O 文件可以用 GUI 图形软件 [MachOView](https://github.com/gdbinit/M
 如图所示进行操作：
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/SymbolicBreakPoint.png)
-![](http://pugqga7mf.bkt.clouddn.com/NSObjectLoad.png)
-![](http://pugqga7mf.bkt.clouddn.com/ThreadStatck.png)
+![](http://dzliving.com/SymbolicBreakPoint.png)
+![](http://dzliving.com/NSObjectLoad.png)
+![](http://dzliving.com/ThreadStatck.png)
 </center>
 
 由上可知，load 的加载是从 ``__dyld_start`` 这个函数开始的。
@@ -504,7 +504,7 @@ static uintptr_t slideOfMainExecutable(const struct macho_header* mh)
 ```
 
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/MachOTEXT.png)
+![](http://dzliving.com/MachOTEXT.png)
 </center>
 
 应用本身的 Mach-O 及 dyld 采用的是 ``slideOfMainExecutable`` 的方式获取 slide。从上代码得知：side = Mach-O header 首地址 - Load Commands 中 \_\_TEXT 段的 VM Address 的值。
@@ -583,7 +583,7 @@ intptr_t MachOLoaded::getSlide() const
 1. Load Commands \_\_TEXT 段 VM Address 值。
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/MachOVMAddress.png)
+	![](http://dzliving.com/MachOVMAddress.png)
 	</cetner>
 
 	VM Address 的地址为 4294967296（10进制）。
@@ -591,7 +591,7 @@ intptr_t MachOLoaded::getSlide() const
 2. 在 Demo 项目中 ViewController.m ``viewDidLoad`` 方法设置断点，触发后，在 lldb 执行 ``image list``
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/ImageList.png)
+	![](http://dzliving.com/ImageList.png)
 	</center>
 
 	应用 Mach-O 的地址为 0x00000001004f8000（16进制）。
@@ -599,7 +599,7 @@ intptr_t MachOLoaded::getSlide() const
 3. 计算 viewDidLoad 在应用 Mach-O 文件中的地址，``symbol address = stack address - slide``。
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/LLVMAddress.png)
+	![](http://dzliving.com/LLVMAddress.png)
 	</center>
 
 	①、用 Mach-O 的 VM Address 减去对应虚拟地址，得到的 5210112（10进制）为 slide 值；
@@ -612,7 +612,7 @@ intptr_t MachOLoaded::getSlide() const
 4. 在 Mach-O 文件中查看。
 
 	<center>
-	![](http://pugqga7mf.bkt.clouddn.com/ViewDidLoadAddress.png)
+	![](http://dzliving.com/ViewDidLoadAddress.png)
 	</center>
 
 	可以看到，通过计算得出的值 0x100001750 与 Mach-O 中看到的值一致。
@@ -768,13 +768,13 @@ _main(const macho_header* mainExecutableMH, uintptr_t mainExecutableSlide,
 模拟器：
 	
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/DyldMainSim.png)
+![](http://dzliving.com/DyldMainSim.png)
 </center>
 	
 真机：
 	
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/DyldMainPhone.png)
+![](http://dzliving.com/DyldMainPhone.png)
 </center>
 
 具体实现在 ``useSimulatorDyld`` 这个函数中，本文不做进一步解析。
@@ -796,8 +796,8 @@ _main(const macho_header* mainExecutableMH, uintptr_t mainExecutableSlide,
 在 secheme 添加这两个环境变量，对应的字段会被设置为 true，并不需要设置 value。
 	
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/DyldPrintSetting.png)
-![](http://pugqga7mf.bkt.clouddn.com/DyldPrintLog.png)
+![](http://dzliving.com/DyldPrintSetting.png)
+![](http://dzliving.com/DyldPrintLog.png)
 </center>
 	
 但是并非每个环境变量都不需要配置 value，如：
@@ -1164,13 +1164,13 @@ _main(const macho_header* mainExecutableMH, uintptr_t mainExecutableSlide,
 模拟器：
 	
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/DyldSimAllImageInfo.png)
+![](http://dzliving.com/DyldSimAllImageInfo.png)
 </center>
 
 真机：
 	
 <center>
-![](http://pugqga7mf.bkt.clouddn.com/DyldPhoneAllImageInfo.png)
+![](http://dzliving.com/DyldPhoneAllImageInfo.png)
 </center>
 
 可以看到：模拟器打印的 image 没有 dyld，第 0 个 image 是 dyld\_sim，第一个 image 才是主程序；真机打印出的加载 image 中也没有 dyld，第 0 个 image 是主程序。

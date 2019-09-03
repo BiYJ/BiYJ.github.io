@@ -305,7 +305,9 @@ objc\_ivar\_list 结构体用来存储成员变量的列表，而 objc\_ivar 则
 
 所以当 [NSObject alloc] 这条消息发送给类对象的时候，运行时代码 objc\_msgSend() 会去它元类中查找能够响应消息的方法实现，如果找到了，就会对这个类对象执行方法调用。
 
+<center>
 ![Meta Class](https://upload-images.jianshu.io/upload_images/5294842-f45adc9fd1faea0b?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+</center>
 
 实线是 super\_class 指针，虚线是 isa 指针。而根元类的父类是 NSObject，isa 指向了自己，NSObject 没有父类。
 
@@ -420,8 +422,9 @@ property\_getName() 用来查找属性的名称，返回 c 字符串。
 property\_getAttributes() 函数挖掘属性的真实名称和 @encode 类型，返回 c 字符串。  
 class\_getProperty() 和 protocol\_getProperty() 通过给出属性名在类和协议中获得属性的引用。
 
+<center>
 ![类对象结构图](https://upload-images.jianshu.io/upload_images/5294842-e2cb59d1344df2d8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
-
+</center>
 
 ## 五、消息
 
@@ -429,7 +432,9 @@ class\_getProperty() 和 protocol\_getProperty() 通过给出属性名在类和�
 
 这里要清楚一点，objc\_msgSend() 方法看起来好像返回了数据，其实 objc\_msgSend() 从不返回数据，而是方法在运行时被调用实现后才会返回数据。下面详细叙述消息发送的步骤：
 
+<center>
 ![消息发送](https://upload-images.jianshu.io/upload_images/5294842-2d3464848b8f4fc2?imageMogr2/auto-orient/strip)
+</center>
 
 ①、首先检测这个 selector 是不是要忽略。比如 Mac OS X 开发，有了垃圾回收就不理会 retain、release 这些函数；
 
@@ -568,7 +573,9 @@ void dynamicIMP(id self, SEL _cmd) {
 
 ## 七、消息转发
 
+<center>
 ![消息转发](https://upload-images.jianshu.io/upload_images/5294842-3f7a92a32f8cc7d9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+</center>
 
 ①、通过 resolveInstanceMethod: 方法决定是否动态添加方法。如果返回 YES 则通过 class\_addMethod() 动态添加方法，消息得到处理，结束；如果返回 NO，则进入下一步；
 
@@ -636,7 +643,9 @@ forwardInvocation: 方法就是一个不能识别消息的分发中心，将这�
 
 转发和继承相似，可用于为 Objc 编程添加一些多继承的效果。就像下图那样，一个对象把消息转发出去，就好像它把另一个对象中的方法接过来或者 “继承” 过来一样。
 
+<center>
 ![](https://upload-images.jianshu.io/upload_images/5294842-70cda98ab8c42661?imageMogr2/auto-orient/strip)
+</center>
 
 在上图中 Warrior 和 Diplomat 没有继承关系，但是 Warrior 将 negotiate 消息转发给了 Diplomat 后，就好似 Diplomat 是 Warrior 的超类一样。这使得在不同继承体系下的两个类可以实现继承对方的方法，消息转发弥补了 Objc 不支持多继承的性质，也避免了因为多继承导致单个类变得臃肿复杂。
 
@@ -1085,15 +1094,21 @@ void sayFunction(id self, SEL _cmd, id param) {
 
 当一个类被编译时，实例变量的布局也就形成了，它表明访问类的实例变量的位置。从对象头部开始，实例变量依次根据自己所占空间而产生位移：
 
+<center>
 ![](https://upload-images.jianshu.io/upload_images/5294842-9b75736c89991ff2.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+</center>
 
 上图左边是 NSObject 类的实例变量布局，右边是我们写的类的布局，也就是在超类后面加上我们自己类的实例变量，看起来不错。但试想如果那天苹果更新了 NSObject 类，发布新版本的系统的话，那就悲剧了：
 
+<center>
 ![](https://upload-images.jianshu.io/upload_images/5294842-0ddfa1eb170bae83.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+</center>
 
 我们自定义的类被划了两道线，那是因为那块区域跟超类重叠了。唯有苹果将超类改为以前的布局才能拯救我们，但这样也导致它们不能再拓展它们的框架了，因为成员变量布局被死死地固定了。在脆弱的实例变量（Fragile ivars）环境下我们需要重新编译继承自 Apple 的类来恢复兼容性。那么在健壮的实例变量下会发生什么呢？
 
+<center>
 ![健壮的实例变量自动偏移](https://upload-images.jianshu.io/upload_images/5294842-a4a0f676708f0a30.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+</center>
 
 在健壮的实例变量下编译器生成的实例变量布局跟以前一样，但是当 runtime 系统检测到与超类有部分重叠时它会调整你新添加的实例变量的位移，那样你在子类中新添加的成员就被保护起来了。
 
@@ -1103,13 +1118,8 @@ void sayFunction(id self, SEL _cmd, id param) {
 ## 十、文章
 
 [Mike_zh](http://home.cnblogs.com/u/Mike-zh/) & [iOS-Runtime知识点整理](https://www.cnblogs.com/Mike-zh/p/4557014.html)
-
 [ian](https://www.ianisme.com/) & [Objective-C Runtime 1小时入门教程](https://www.ianisme.com/ios/2019.html)
-
 [iOS开发-Runtime 详解](https://www.cnblogs.com/ioshe/p/5489086.html)
-
 [iOS RunTime 之数据结构](https://www.jianshu.com/p/26c41f48267d)
-
 [iOS 模块分解—「Runtime面试、工作」](https://www.jianshu.com/p/19f280afcb24)
-
 [Runtime 源码](http://www.opensource.apple.com/source/objc4/)

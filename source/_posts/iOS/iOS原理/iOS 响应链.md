@@ -236,7 +236,5 @@ UIKit 使用基于视图的 hit-testing 来确定 Touch 事件在哪里产生。
 
 ## 六、文章
 [Using Responders and the Responder Chain to Handle Events](https://developer.apple.com/documentation/uikit/touches_presses_and_gestures/using_responders_and_the_responder_chain_to_handle_events?language=objc)
-
 [iOS开发 - 事件传递响应链](http://www.cocoachina.com/ios/20160113/14896.html)
-
 [iOS响应链（Responder Chain）](https://www.jianshu.com/p/4155c9ffe1a8)
