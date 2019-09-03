@@ -1,0 +1,328 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>iOS 项目发布 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">iOS 项目发布</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">iOS 项目发布</h1><div class="post-meta"><a href="/2019/08/06/iOS/iOS原理/iOS 项目发布/#comments" class="comment-count"></a><p><span class="date">Aug 06, 2019</span><span><a href="/categories/iOS原理/" class="category">iOS原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、Apple开发者账号"><a href="#一、Apple开发者账号" class="headerlink" title="一、Apple开发者账号"></a>一、Apple开发者账号</h2><h4 id="1-1-开发者账号类型"><a href="#1-1-开发者账号类型" class="headerlink" title="1.1 开发者账号类型"></a>1.1 开发者账号类型</h4><ul>
+<li>个人级</li>
+<li>公司级</li>
+<li>企业级</li>
+</ul>
+<p>公司和企业的可多人协作。</p>
+<p>在苹果的开发者平台登录后，可在 <code>People</code> 界面邀请其他人员协作开发，邀请的人需要注册一个 appleId 账号，并且可以设置开发人员的权限。</p>
+<p><img src="http://dzliving.com/People.png" alt></p>
+<h4 id="1-2-辨别账号类型"><a href="#1-2-辨别账号类型" class="headerlink" title="1.2 辨别账号类型"></a>1.2 辨别账号类型</h4><ol>
+<li><p>个人级</p>
+<p> 账户的 Apple Developer Program 下方只有 <code>Certificates，identifiers &amp; Profiles</code> 和 <code>App Store Connect</code> 两个图标。</p>
+<p> <img src="http://dzliving.com/Personal.png" alt></p>
+</li>
+</ol>
+<ol start="2">
+<li><p>公司级</p>
+<p> 账户的 Apple Developer Program 下方包含 <code>People</code>、<code>Certificates，identifiers &amp; Profiles</code> 和 <code>App Store Connect</code> 三个图标。</p>
+<blockquote>
+<p>图标一：邀请其他开发人员的入口</p>
+<p>图标二：开发者证书、App ID 和描述文件生成的入口</p>
+<p>图标三：将 APP 上传到 App Store 的入口</p>
+</blockquote>
+<p> <img src="http://dzliving.com/Company.png" alt></p>
+</li>
+</ol>
+<ol start="3">
+<li><p>企业级</p>
+<p> 账户的 Apple Developer <font color="#cc0000">Enterprise</font> Program 下方有<code>People</code>、<code>Certificates，identifiers &amp; Profiles</code> 两个图标，第一个图标邀请其他开发人员的入口，第二个图标是开发者证书、App ID和描述文件生成的入口。</p>
+<p> <img src="http://dzliving.com/Enterprise.png" alt></p>
+</li>
+</ol>
+<h4 id="1-3-账号对比"><a href="#1-3-账号对比" class="headerlink" title="1.3 账号对比"></a>1.3 账号对比</h4><ol>
+<li><p>个人（Individual）</p>
+<ul>
+<li>99 美元/年  </li>
+<li>只能上架到 App Store</li>
+<li>最大支持 100 台设备   </li>
+<li><p>1 人使用</p>
+<p>“个人”开发者可以申请<font color="#cc0000">升级</font>成“公司”，通过拨打苹果公司客服电话（400-6701-855）进行咨询办理。</p>
+</li>
+</ul>
+</li>
+<li><p>公司（Company）</p>
+<ul>
+<li>99美元/年</li>
+<li>只能上架到 App Store</li>
+<li>最大支持 100 台设备</li>
+<li><p>多人协作</p>
+<p>允许多个开发者进行协作开发，比个人账号多一些账号管理设置，可以设置多个 Apple ID，分为 4 种级别的权限。</p>
+<p>申请时需要填写公司的邓白氏码（DUNS Number）。</p>
+</li>
+</ul>
+</li>
+<li><p>企业（Enterprise）</p>
+<ul>
+<li>299美元/年</li>
+<li>不能上架到 App Store，只能企业内部使用。通过 item-services 分发来下载</li>
+<li>不限制设备数</li>
+<li><p>多人协作</p>
+<p>允许多个开发者进行协作开发，比个人账号多一些账号管理设置，可以设置多个 Apple ID，分为4种级别的权限。</p>
+<p>申请时需要填写公司的邓白氏码（DUNS Number）。</p>
+<p>只能企业内部使用，否则有被<font color="#cc0000">封号</font>的风险。</p>
+</li>
+</ul>
+</li>
+<li><p>总结</p>
+<ul>
+<li><p>个人级和公司级只能上架 App Store 供用户下载，企业级不能上架 App Store，只能放在自己的服务器或者三方平台；</p>
+<p>  个人/公司级账号可以将<font color="#cc0000">开发环境</font>的包上传到自己的服务器，或者第三方平台。首先在开发者账号添加最多 100 个手机的 UUID，创建开发 developer 证书和描述文件，将它两下载到电脑上，双击安装，在 Xcode 选择开发证书打包。这种可调式（Debug）包的有效期也是一年，一年内需要重新创建证书，并更新 ipa 包，否则 APP 将闪退。注意：每次添加设备 UUID 需要重新生成描述文件。    </p>
+</li>
+<li><p>企业级账号，每年至少重新打包 ipa 一次，更新 ipa 包中的证书信息，证书的有效期是一年，一年不更新，APP将闪退，无法进入。个人/公司级别的没有限制，只要成功上架到 App Store，如果没有特殊情况，理论可以放到苹果公司倒闭也不用去更新。</p>
+</li>
+<li><p>安装企业级账号分发的包后，需要去设置中信任 APP，系统级限制，无法跳过。个人/公司级没有该限制。</p>
+</li>
+<li><p>个人/公司必须经过苹果的人工审核才能在 App Store 上架，而企业级发布到自己服务器或者第三方平台是不需要审核的。</p>
+</li>
+</ul>
+</li>
+</ol>
+<h2 id="二、证书相关"><a href="#二、证书相关" class="headerlink" title="二、证书相关"></a>二、证书相关</h2><h4 id="2-1-开发者证书"><a href="#2-1-开发者证书" class="headerlink" title="2.1 开发者证书"></a>2.1 开发者证书</h4><p>总共有两种类型：</p>
+<ul>
+<li>Developer（开发证书）</li>
+<li>Distribution（发布证书）</li>
+</ul>
+<p><img src="http://dzliving.com/Certificates.png" alt></p>
+<p>不论是真机调试，还是上传到 appstore 都是需要的，是一个基证书，用来证明自己开发者身份的。</p>
+<h4 id="2-2-App-ID"><a href="#2-2-App-ID" class="headerlink" title="2.2 App ID"></a>2.2 App ID</h4><blockquote>
+<p>是一个 APP 的唯一标示，相当于人的身份证号</p>
+</blockquote>
+<center><img src="http://dzliving.com/Identifiers.png" alt></center>
+
+<ul>
+<li>Description 是一个 App ID 的描述，可以随便</li>
+<li>App ID Prefix 苹果自动填了，可以看出，它是一个团队的 ID Suffix</li>
+<li>App ID Suffix 有两个选项：<ul>
+<li>Explicit App ID : 一个明确的 App ID，什么意思呢？可以这么来解释：我们做项目时的Bundle Identifier (Bundle ID)是用来标示我们的 app 的。我们的 App ID 也是用来标示我们的app 的。这两个有什么联系呢？Explicit App ID 就是要我们确定一个唯一的 Bundle ID，用来标示我们的 app，使它有一个<font color="#cc0000">固定的</font>身份。可以发现，当提交应用到苹果时，如果我们一开始没写 Explicit App ID，苹果会自动帮我们生成一个与我们发布时填的一样的 Bundle ID 到我们的 App ID 中。填写 Explicit App ID 的格式为：com.xxx.yyy。</li>
+<li>Wildcard App ID : 一个通配符的 App ID。这个 App ID 能够在所有能够匹配的应用中使用。填写 WildcardApp ID 的格式为：com.xxx.*。</li>
+</ul>
+</li>
+</ul>
+<p>手机安装 app 时，会先查找是否已有相同 App ID 的 app，如果没有，则直接进行安装；如果已有，则进行覆盖安装。</p>
+<h4 id="2-3-CSR"><a href="#2-3-CSR" class="headerlink" title="2.3 CSR"></a>2.3 CSR</h4><blockquote>
+<p>在苹果开发者中心生成证书时需要一个 CSR（证书签名请求）文件。</p>
+</blockquote>
+<p>当创建 CSR 时，电脑系统实际上会生成公钥和私钥对。<font color="#cc0000">CSR 包含公钥</font>。</p>
+<center><img src="http://dzliving.com/CSRContent.png" alt></center>
+
+<p>Apple 使用该公钥来制作证书。证书或多或少是一种发布公钥的方式以及关于该密钥的一些相关信息，并且验证发布实体，表示该信息是有效的。</p>
+<p>由于每个证书都有自己的公钥 - 私钥对，因此推送证书、开发发证书和发布证书都可以使用不同的 CSR，每个证书用于验证和保护该特定项目。</p>
+<p>生成 CSR 文件步骤：</p>
+<center><br>    <img src="http://dzliving.com/KeyAccess.png" alt><br>    <img src="http://dzliving.com/CSR.png" alt><br>    <img src="http://dzliving.com/CSR2.png" alt><br></center>
+
+<ol>
+<li>用户电子邮件地址随便填写，并不一定非要填写邮件格式，无实际作用</li>
+<li>常用名字使用默认的就可以，也可以修改</li>
+<li>选择存储到磁盘。</li>
+<li>选择继续，保存到指定位置即可。最终得到一个 <code>CertificateSigningRequest.certSigningRequest</code> 文件，也就是 CSR 文件。该文件后缀名不要更改，文件名可自由指定。</li>
+</ol>
+<p>CSR文件尽量每个证书都制作一次，将常用名称区分开来，因为该常用名称是证书中的密钥的名字。</p>
+<center><img src="http://dzliving.com/P12CSR.png" alt></center>
+
+<h4 id="2-4-cer"><a href="#2-4-cer" class="headerlink" title="2.4 .cer"></a>2.4 .cer</h4><blockquote>
+<p>在苹果开发者中心生成的证书，导出后就是 .cer 文件。.cer 证书仅包含公钥。</p>
+</blockquote>
+<center><img src="http://dzliving.com/CreateCer.png" alt></center>
+
+<p>提交 CSR 文件后就会生成一个 cer 证书，有效期为一年。</p>
+<p>证书不可轻易删除，可能会造成相应的 Provisioning Profiles 失效，尤其是企业级的发布证书，删除后已经安装在手机上的 APP 将会闪退。如果是一个团队大家都在用，把这个证书删除了，会导致别人的描述文件失效。</p>
+<h4 id="2-5-p12"><a href="#2-5-p12" class="headerlink" title="2.5 .p12"></a>2.5 .p12</h4><blockquote>
+<p>.p12证书可能既包含公钥也包含私钥。</p>
+</blockquote>
+<p>双击安装下载后的 .cer 文件，都可以在<code>钥匙串访问</code>工具中导出 .p12 文件。</p>
+<p>为什么要导出.p12文件？</p>
+<p>开发证书和发布证书是有数量限制的，当超过数量后再也申请不了。</p>
+<p>多台电脑开发程序时，没必要生成很多的证书，导出证书生成的 .p12 文件，供给所有的 mac 设备使用，使新设备不需要在苹果开发者网站重新申请开发和发布证书，就能使用。</p>
+<p>点击 .p12 文件加入钥匙串中，使我们的电脑<font color="#cc0000">具备开发的证明</font>。</p>
+<p>注意：一般 .p12 文件是给别人使用的，本机必须已经有一个带秘钥的证书才可以生成.p12文件。</p>
+<h4 id="2-6-描述文件"><a href="#2-6-描述文件" class="headerlink" title="2.6 描述文件"></a>2.6 描述文件</h4><blockquote>
+<p>Profiles 将 App ID、开发者证书、硬件 Device 绑定到一块儿。</p>
+</blockquote>
+<center><img src="http://dzliving.com/Mobile.png" alt></center>
+
+<p>在开发者中心配置好后可以添加到 Xcode 上，也可以直接在 Xcode 上连接开发者中心生成，真机调试时需要在描述文件中添加真机的 UDID。</p>
+<h4 id="2-7-邓白氏码"><a href="#2-7-邓白氏码" class="headerlink" title="2.7 邓白氏码"></a>2.7 邓白氏码</h4><blockquote>
+<p>邓氏编码（D-U-N-S® Number，是 Data Universal Numbering System的缩写）。它是一个独一无二的 9 位数字全球编码系统，相当于企业的身份识别码，被广泛应用于企业识别、商业信息的组织及整理。可以帮助识别和迅速定位全球 2.4 亿家企业的信息。</p>
+</blockquote>
+<h2 id="三、打包上传"><a href="#三、打包上传" class="headerlink" title="三、打包上传"></a>三、打包上传</h2><h4 id="3-1-payload"><a href="#3-1-payload" class="headerlink" title="3.1 payload"></a>3.1 payload</h4><p>适用于开发阶段。操作步骤：</p>
+<ol>
+<li><p>选中 target -&gt; edit Scheme，修改 run 操作的 Build Configuration 是 budeg/release。</p>
+ <center><img src="http://dzliving.com/SchemeRun.png" alt></center>
+</li>
+<li><p>真机运行工程，在左侧工程目录 -&gt; Products 找到 .app 文件，show in Finder。</p>
+ <center><img src="http://dzliving.com/DemoApp.png" alt></center>
+</li>
+<li><p>桌面生成一个名为 Payload 的空文件夹，将 .app 文件拖入其中。</p>
+</li>
+<li><p>压缩 Payload 文件夹，修改后缀名为 .ipa，此时就可以将包上传 fir.im 网站，进行提测。</p>
+ <center><img src="http://dzliving.com/Payload.png" alt></center>
+
+
+</li>
+</ol>
+<h4 id="3-2-Archive"><a href="#3-2-Archive" class="headerlink" title="3.2 Archive"></a>3.2 Archive</h4><ol>
+<li><p>常规打包方式</p>
+<p> 运行设备选择 <code>Generic iOS Device</code> 或者真机，顶部 Xcode 导航栏 -&gt; Product -&gt; Archive。</p>
+</li>
+<li><p>命令行使用 xcodebuild 自动打包</p>
+<p> ①、clean 工程</p>
+ <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ cd Desktop/CYKJ/CYKJMain/CYKJMain/</span><br><span class="line"></span><br><span class="line">$ xcodebuild clean -project CYKJMain.xcodeproj -scheme CC -configuration Release</span><br><span class="line"></span><br><span class="line">$ xcodebuild clean -workspace CYKJMain.xcworkspace -scheme CC -configuration Release</span><br></pre></td></tr></table></figure>
+<p> 如果工程使用了 pod，选择 <code>-workspace</code>，否则使用 <code>-project</code>。</p>
+<p> 上面的命令中：</p>
+<blockquote>
+<p>-project CYKJMain.xcodeproj : 编译项目名称  </p>
+<p>-workspace CYKJMain.xcworkspace : 编译工作空间名称  </p>
+<p>-scheme CC : scheme 名称</p>
+<p>-configuration Release : (Debug/Release)</p>
+</blockquote>
+<p> clean 成功：</p>
+ <center><img src="http://dzliving.com/XCodeBuildClean.png" alt></center>
+
+<p> ②、archive 导出 .xcarchive 文件</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ xcodebuild archive -project CYKJMain.xcodeproj -scheme CC -archivePath /Users/cykj/Desktop/cc.xcarchive</span><br><span class="line"></span><br><span class="line">$ xcodebuild archive -workspace CYKJMain.xcworkspace -scheme CC -archivePath /Users/cykj/Desktop/cc.xcarchive</span><br></pre></td></tr></table></figure>
+<p> 上面的命令中：</p>
+<blockquote>
+<p>-archivePath /Users/cykj/Desktop/cc.xcarchive : 导出 .xcarchive 文件的目录以及文件名称</p>
+</blockquote>
+<p> archive 成功：</p>
+ <center><br>     <img src="http://dzliving.com/XCodeBuildArchive.png" alt><br>     <img src="http://dzliving.com/CCArchive.png" alt><br> </center>
+
+<p> ③、导出 ipa 包</p>
+ <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ xcodebuild -exportArchive -archivePath /Users/cykj/Desktop/cc.xcarchive -exportPath /Users/cykj/Desktop/cc -exportFormat ipa -exportProvisioningProfile <span class="string">"developmentProfile"</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>上面的命令中:  
+
+&gt; -archivePath /Users/cykj/Desktop/cc.xcarchive : 刚刚导出的 .xcarchive 文件的目录  
+&gt;
+&gt; -exportPath /Users/cykj/Desktop/cc : 将要导出的 ipa 文件的目录以及文件名
+&gt;
+&gt; -exportFormat ipa : 导出为ipa文件
+&gt;
+&gt; -exportProvisioningProfile &quot;developmentProfile&quot; : 工程配置的 profile 文件的名称
+
+&lt;font color=#cc0000&gt;``xcodebuild: error: invalid option ‘-exportFormat’``&lt;/font&gt;
+
+报错原因：Xcode8 之后，对之前的 exportFormat 方式不再支持。
+
+解决方法：不使用 exportFormat ipa 引入 ``exportOptionsPlist``。
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ xcodebuild -exportArchive -archivePath &quot;$&#123;ARCHIVEPATH&#125;/$&#123;TARGET_NAME&#125;.xcarchive&quot; -exportPath $&#123;EXPORTPATH&#125; -exportOptionsPlist $&#123;EXPORTOPTIONSPLIST&#125;</span><br></pre></td></tr></table></figure>
+
+
+直接使用 xcodebuild -help 查看 exportOptionsPlist。
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">Available keys for -exportOptionsPlist:</span><br><span class="line"></span><br><span class="line">compileBitcode : Bool</span><br><span class="line"></span><br><span class="line">  		For non-App Store exports, should Xcode re-compile the app from bitcode? Defaults to YES.</span><br><span class="line"></span><br><span class="line">embedOnDemandResourcesAssetPacksInBundle : Bool</span><br><span class="line"></span><br><span class="line">	For non-App Store exports, if the app uses On Demand Resources and this is YES, asset packs are embedded in the app bundle so that the app can be tested without a server to host asset packs. Defaults to YES unless onDemandResourcesAssetPacksBaseURL is specified.</span><br><span class="line"></span><br><span class="line">iCloudContainerEnvironment</span><br><span class="line"></span><br><span class="line">	For non-App Store exports, if the app is using CloudKit, this configures the &quot;com.apple.developer.icloud-container-environment&quot; entitlement. Available options: Development and Production. Defaults to Development.</span><br><span class="line"></span><br><span class="line">manifest : Dictionary</span><br><span class="line"></span><br><span class="line">	For non-App Store exports, users can download your app over the web by opening your distribution manifest file in a web browser. To generate a distribution manifest, the value of this key should be a dictionary with three sub-keys: appURL, displayImageURL, fullSizeImageURL. The additional sub-key assetPackManifestURL is required when using on demand resources.</span><br><span class="line"></span><br><span class="line">method : String</span><br><span class="line"></span><br><span class="line">	Describes how Xcode should export the archive. Available options: app-store, ad-hoc, package, enterprise, development, and developer-id. The list of options varies based on the type of archive. Defaults to development.</span><br><span class="line"></span><br><span class="line">onDemandResourcesAssetPacksBaseURL : String</span><br><span class="line"></span><br><span class="line">	For non-App Store exports, if the app uses On Demand Resources and embedOnDemandResourcesAssetPacksInBundle isn&apos;t YES, this should be a base URL specifying where asset packs are going to be hosted. This configures the app to download asset packs from the specified URL.</span><br><span class="line"></span><br><span class="line">teamID : String</span><br><span class="line"></span><br><span class="line">	The Developer Portal team to use for this export. Defaults to the team used to build the archive.</span><br><span class="line"></span><br><span class="line">thinning : String</span><br><span class="line"></span><br><span class="line">	For non-App Store exports, should Xcode thin the package for one or more device variants? Available options: &lt;none&gt; (Xcode produces a non-thinned universal app), &lt;thin-for-all-variants&gt; (Xcode produces a universal app and all available thinned variants), or a model identifier for a specific device (e.g. &quot;iPhone7,1&quot;). Defaults to &lt;none&gt;.</span><br><span class="line"></span><br><span class="line">uploadBitcode : Bool</span><br><span class="line"></span><br><span class="line">	For App Store exports, should the package include bitcode? Defaults to YES.</span><br><span class="line"></span><br><span class="line">uploadSymbols : Bool</span><br><span class="line"></span><br><span class="line">	For App Store exports, should the package include symbols? Defaults to YES.</span><br></pre></td></tr></table></figure>
+
+
+plist 格式：
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt;</span><br><span class="line">&lt;plist version=&quot;1.0&quot;&gt;</span><br><span class="line">&lt;dict&gt;</span><br><span class="line">	&lt;key&gt;teamID&lt;/key&gt;</span><br><span class="line">		&lt;string&gt;xxxx&lt;/string&gt;</span><br><span class="line">	&lt;key&gt;method&lt;/key&gt;</span><br><span class="line">		&lt;string&gt;app-store&lt;/string&gt;</span><br><span class="line">	&lt;key&gt;compileBitcode&lt;/key&gt;</span><br><span class="line">		&lt;false/&gt;</span><br><span class="line">	&lt;key&gt;provisioningProfiles&lt;/key&gt;</span><br><span class="line">		&lt;dict&gt;</span><br><span class="line">			&lt;key&gt;com.xxx.yyy&lt;/key&gt;</span><br><span class="line">				&lt;string&gt;&#123;iOS Provisioning Profiles Name&#125;&lt;/string&gt;</span><br><span class="line">		&lt;/dict&gt;</span><br><span class="line">&lt;/dict&gt;</span><br><span class="line">&lt;/plist&gt;</span><br></pre></td></tr></table></figure>
+
+
+命令行：
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ xcodebuild -exportArchive -exportOptionsPlist /Users/cykj/Desktop/cc.plist -archivePath /Users/cykj/Desktop/cc.xcarchive -exportPath /Users/cykj/Desktop/cc</span><br></pre></td></tr></table></figure>
+
+
+导出 ipa 成功：
+
+&lt;center&gt;![](http://dzliving.com/XCodeBuildIPA.png)&lt;/center&gt;
+
+&lt;font color=#cc0000&gt;``Error Domain=IDEProfileLocatorErrorDomain Code=4 &quot;No &quot;iOS App Development&quot;``&lt;/font&gt;
+
+问题原因：plist 文件中提供的 mehtod 的 value 不对。
+</code></pre><h4 id="3-3-Application-Loader"><a href="#3-3-Application-Loader" class="headerlink" title="3.3 Application Loader"></a>3.3 Application Loader</h4><p>当已经生成了 ipa 包时，可以通过 Application Loader 将包 upload 至 AppStore，操作步骤如下：</p>
+<ol>
+<li><p>登录 Application Loader。路径：Xcode -&gt; Open Developer Tool -&gt; Application Loader</p>
+ <center><br> <img src="http://dzliving.com/ApplicationLoaderLogin.png" alt><br> </center>
+
+<p> 这里需要注意的是，密码不是与 Apple ID 对应的用于登录 AppStore 的密码，而是 <font color="#cc0000"><code>App 专用密码</code></font>，获取地址：<a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener">https://appleid.apple.com/account/manage</a></p>
+ <center><br> <img src="http://dzliving.com/ApplicationLoaderPassword.png" alt><br> </center>
+</li>
+<li><p>上传 ipa 包</p>
+<p> 登录成功后，需要导入 ipa 包，经过 Application Loader 的检查之后，即可上传 AppStore。</p>
+ <center><br> <img src="http://dzliving.com/ApplicationLoaderIPA.png" alt><br> </center>
+</li>
+<li><p>报错</p>
+ <center><br>     <img src="http://dzliving.com/ApplicationLoaderError.png" alt><br> </center>
+
+<p> bundle = 209 的包已经在 itunes connect 上有了，新上传的包需要在此 bundle 号的基础上增加，然后重新 upload。</p>
+</li>
+</ol>
+<h2 id="四、打包审核注意"><a href="#四、打包审核注意" class="headerlink" title="四、打包审核注意"></a>四、打包审核注意</h2><ol>
+<li>检查 Version</li>
+<li>修改 BundleID</li>
+<li>修改 Build 号</li>
+<li>修改 pch 文件及其他宏定义。可以处理成代码自动根据 BundleID 识别当前为开发环境/发布环境</li>
+<li>修改证书及描述文件为发布环境</li>
+<li>询问设计人员是否要更换启动图、应用图标、市场图</li>
+</ol>
+<h2 id="五、Apple-Store-Connect"><a href="#五、Apple-Store-Connect" class="headerlink" title="五、Apple Store Connect"></a>五、Apple Store Connect</h2><h4 id="5-1-新建-APP"><a href="#5-1-新建-APP" class="headerlink" title="5.1 新建 APP"></a>5.1 新建 APP</h4><center><br><img src="http://dzliving.com/CreateApp.png" alt><br></center>
+
+<ul>
+<li><p>名称</p>
+  <center><br>  <img src="http://dzliving.com/AppStoreName.png" alt><br>  </center>
+</li>
+<li><p>套装 ID：即 Bundle ID，显示在开发者中心中创建好 App ID。</p>
+  <center><br>  <img src="http://dzliving.com/TaoZhuangID.png" alt><br>  </center>
+</li>
+<li><p>SKU：与 Bundle ID 一样即可</p>
+</li>
+</ul>
+<p>注意：这些信息在创建好 App 后是不能修改的，需要修改的话，只能新建一个 App 替代。<a href="https://www.jianshu.com/p/791ca505e3d1" target="_blank" rel="noopener">点击更多阅读</a></p>
+<h4 id="5-2-添加-App-版本"><a href="#5-2-添加-App-版本" class="headerlink" title="5.2 添加 App 版本"></a>5.2 添加 App 版本</h4><p>填写信息：</p>
+<ul>
+<li><p>此版本的新增内容。<font color="#cc0000">如果当前是第一个上线版本，则没有这一项。</font></p>
+  <center><br>  <img src="http://dzliving.com/AppNewVersion.png" alt><br>  </center>
+</li>
+<li><p>App 预览和屏幕快照。每个版本发布时，记得询问设计人员市场图是否有更新。</p>
+  <center><br>  <img src="http://dzliving.com/AppScreenShot.png" alt><br>  </center>
+</li>
+<li><p>关键词。在市场中搜索时有用，可以做优化。</p>
+  <center><br>  <img src="http://dzliving.com/AppKeyword.png" alt><br>  </center>
+</li>
+<li><p>技术支持网址。可以填写公司官网地址。</p>
+  <center><br>  <img src="http://dzliving.com/AppSupportURL.png" alt><br>  </center>
+</li>
+<li><p>描述。对 app 进行说明，可以包括公司概述、功能介绍、联系方式等。</p>
+  <center><br>  <img src="http://dzliving.com/AppDesc.png" alt><br>  </center>
+</li>
+<li><p>版权</p>
+</li>
+<li><p>商务代表联系信息</p>
+</li>
+<li><p>App 审核信息。</p>
+</li>
+</ul>
+<h4 id="5-3-导入此构建版本时出错"><a href="#5-3-导入此构建版本时出错" class="headerlink" title="5.3 导入此构建版本时出错"></a>5.3 导入此构建版本时出错</h4><p>upload 包后，在 itunes connect 中等待处理后，查看发现报错：</p>
+<center><br><img src="http://dzliving.com/UploadIpaError.png" alt><br></center>
+
+<p>报错后，着急去排查工程里面是否有配置问题，排查一圈之后，准备重新打包 upload。就在这时，刷新 itunes connect 网页看一下状态，发现报错的已经正常了，直接用那个包提交，不用重新打包了。<a href="https://www.jianshu.com/p/b3f024d9fd81" target="_blank" rel="noopener">点击更多阅读</a></p>
+<h4 id="5-4-IDFA"><a href="#5-4-IDFA" class="headerlink" title="5.4 IDFA"></a>5.4 IDFA</h4><p>提交审核时，IDFA 选择“否”，报错：</p>
+<center><br><img src="http://dzliving.com/IDFA.jpg" alt><br></center>
+
+<p>百度查找文章发现原因</p>
+<center><br><img src="http://dzliving.com/IDFASeach.png" alt><br></center>
+
+<p>着手排查工程中是否使用了 IDFA 并引入 AdSupport.framework，如果有则移除。终端使用命令：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cd 项目目录</span><br><span class="line">$ grep -r advertisingIdentifier .</span><br></pre></td></tr></table></figure>
+<p>用这条命令检测自己的工程，如果没有查到相关引用，那么就不要勾选使用 IDFA，如果查到了相关引用，并且这些文件是用于展现广告的用途，那么勾选使用了 IDFA。</p>
+<center><br><img src="http://dzliving.com/IDFAGrep.jpg" alt><br></center>
+
+<p>log 显示极光中有使用。百度搜索“极光 IDFA”问题，跳转到极光社区，找到文章：<a href="https://community.jiguang.cn/t/ios-idfa/13099" target="_blank" rel="noopener">iOS审核时需要勾选IDFA吗？</a></p>
+<center><br><img src="http://dzliving.com/JiGuangIDFA.png" alt><br></center>
+
+<p>根据官方人员的说明，使用不带用 advertisingIdentifier 字段的方法。兴致勃勃的重新打包，等待了 10-20 分钟左右的时间，重新提交审核，IDFA 选择“否”，依然报错。</p>
+<p>已经删除了工程中导入的 AdSupport.framework，不应该啊。</p>
+<p>再次进行排查。将 ipa 包导出到本地，修改后缀名为 <font color="#cc0000">.zip</font>，解压后使用终端命令：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cd ipa解压后的文件目录</span><br><span class="line">$ grep -r AdSupport.framework .</span><br></pre></td></tr></table></figure>
+<center><br><img src="http://dzliving.com/AdSupportGrep.jpg" alt><br></center>
+
+<p>log 显示百度统计 sdk 中导入了 AdSupport.framework，百度搜索后跳转官方网站：<a href="https://mtj.baidu.com/web/help/article?id=286&amp;type=0" target="_blank" rel="noopener">iOS SDK采集IDFA注意事项</a></p>
+<center><br><img src="http://dzliving.com/BaiduAdSupport.png" alt><br></center>
+
+<p>百度官方的意思是设置 IDFA 为 YES 并勾选。</p>
+<p>考虑到上线紧迫，最后决策：<font color="#cc0000">移除百度统计相关代码，打包 upload</font>。</p>
+<h2 id="六、文章"><a href="#六、文章" class="headerlink" title="六、文章"></a>六、文章</h2><p><a href="https://www.jianshu.com/u/fd1e679c3ac1" target="_blank" rel="noopener">Benjamin丶</a> &amp; <a href="https://www.jianshu.com/p/8190cf4a8172" target="_blank" rel="noopener">Apple开发者账号介绍及证书配置说明</a><br><a href="https://www.jianshu.com/u/80f9260b9fb7" target="_blank" rel="noopener">PersonChen_QJ</a> &amp; <a href="https://www.jianshu.com/p/da6663c8fd5f" target="_blank" rel="noopener">iOS申请邓白氏编码图文流程</a><br><a href="https://cloud.tencent.com/developer/ask/205801" target="_blank" rel="noopener">用于创建开发人员或分发证书和推送证书的CSR（证书签名请求）文件是否必须相同？</a><br><a href="http://www.sohu.com/a/324460196_120174355" target="_blank" rel="noopener">2019年最新苹果企业开发者账号创建证书完整流程</a><br><a href="https://www.jianshu.com/u/bb0d2c0a0880" target="_blank" rel="noopener">MrCoderLin</a> &amp; <a href="https://www.jianshu.com/p/87a1eba7caeb" target="_blank" rel="noopener">Payload文件压缩法打包ipa</a><br><a href="https://www.jianshu.com/u/ced5bf319bfe" target="_blank" rel="noopener">咖啡绿茶1991</a> &amp; <a href="https://www.jianshu.com/p/347056c3f49c" target="_blank" rel="noopener">iOS命令行自动打包(archive)</a><br><a href="https://blog.csdn.net/zhangxiweicaochen/article/details/72730355" target="_blank" rel="noopener">iOS自动化打包</a><br><a href="https://blog.csdn.net/yuanmengong886/article/details/78214978" target="_blank" rel="noopener">Xcode9 xcodebuild 命令行打包遇到的坑与解决方案</a><br><a href="https://www.jianshu.com/p/36d2c6d65aa7" target="_blank" rel="noopener">一键打包完整Shell脚本xcodebuild archive</a><br><a href="https://www.jianshu.com/p/1c9ad924c79b" target="_blank" rel="noopener">iOS 如何填App Store Connect信息</a><br><a href="https://www.jianshu.com/p/56892880e003" target="_blank" rel="noopener">iOS提交审核：您的 App 正在使用广告标识符 (IDFA)</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/08/06/iOS/iOS原理/iOS 项目发布/">http://yoursite.com/2019/08/06/iOS/iOS原理/iOS 项目发布/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/08/06/iOS/iOS原理/iOS 单例/" class="pre">iOS 单例</a><a href="/2019/08/06/iOS/iOS优化/iOS 内置图片瘦身/" class="next">iOS 内置图片瘦身</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、Apple开发者账号"><span class="toc-text">一、Apple开发者账号</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-1-开发者账号类型"><span class="toc-text">1.1 开发者账号类型</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-2-辨别账号类型"><span class="toc-text">1.2 辨别账号类型</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-3-账号对比"><span class="toc-text">1.3 账号对比</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#二、证书相关"><span class="toc-text">二、证书相关</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-开发者证书"><span class="toc-text">2.1 开发者证书</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-App-ID"><span class="toc-text">2.2 App ID</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3-CSR"><span class="toc-text">2.3 CSR</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-4-cer"><span class="toc-text">2.4 .cer</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-5-p12"><span class="toc-text">2.5 .p12</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-6-描述文件"><span class="toc-text">2.6 描述文件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-7-邓白氏码"><span class="toc-text">2.7 邓白氏码</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三、打包上传"><span class="toc-text">三、打包上传</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-payload"><span class="toc-text">3.1 payload</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-Archive"><span class="toc-text">3.2 Archive</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-Application-Loader"><span class="toc-text">3.3 Application Loader</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、打包审核注意"><span class="toc-text">四、打包审核注意</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#五、Apple-Store-Connect"><span class="toc-text">五、Apple Store Connect</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-新建-APP"><span class="toc-text">5.1 新建 APP</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-2-添加-App-版本"><span class="toc-text">5.2 添加 App 版本</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-3-导入此构建版本时出错"><span class="toc-text">5.3 导入此构建版本时出错</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-4-IDFA"><span class="toc-text">5.4 IDFA</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#六、文章"><span class="toc-text">六、文章</span></a></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/09/03/静态、动态 Pod/">静态、动态 pod</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/31/iOS/iOS原理/NSPredicate/">NSPredicate</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/30/iOS/iOS原理/静态、动态 Pod/">静态、动态 pod</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/17/iOS/iOS原理/编程思想/">编程思想</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/07/iOS/iOS原理/dyld/">dyld</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/06/工具/终端/">终端</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/06/工具/Xcode/">Xcode</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/06/算法/算法设计策略/">算法设计策略</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/06/iOS/iOS优化/重构AppDelegate/">重构 AppDelegate</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/06/算法/简单算法/">简单算法</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">19</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">3</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>
