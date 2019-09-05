@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>http://yoursite.com/2019/09/03/%E9%9D%99%E6%80%81%E3%80%81%E5%8A%A8%E6%80%81%20Pod/</loc>
-    <lastmod>2019-09-03</lastmod>
-  </url>  <url>
     <loc>http://yoursite.com/2019/05/23/iOS/iOS%E5%8E%9F%E7%90%86/pthread_rwlock_t/</loc>
     <lastmod>2019-09-03</lastmod>
   </url>  <url>
@@ -94,10 +91,10 @@
     <loc>http://yoursite.com/2019/08/06/iOS/iOS%E4%BC%98%E5%8C%96/%E9%87%8D%E6%9E%84AppDelegate/</loc>
     <lastmod>2019-08-05</lastmod>
   </url>  <url>
-    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E7%AE%80%E5%8D%95%E7%AE%97%E6%B3%95/</loc>
+    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E7%AC%AC%20k%20%E5%B0%8F%E7%9A%84%E6%95%B0/</loc>
     <lastmod>2019-08-05</lastmod>
   </url>  <url>
-    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E7%AC%AC%20k%20%E5%B0%8F%E7%9A%84%E6%95%B0/</loc>
+    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E7%AE%80%E5%8D%95%E7%AE%97%E6%B3%95/</loc>
     <lastmod>2019-08-05</lastmod>
   </url>  <url>
     <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%B1%82%E7%AC%AC%20k%20%E5%B0%8F:%E5%A4%A7%E5%85%83%E7%B4%A0/</loc>
@@ -109,10 +106,10 @@
     <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%9C%80%E9%95%BF%E5%9B%9E%E6%96%87%E5%AD%90%E4%B8%B2/</loc>
     <lastmod>2019-08-05</lastmod>
   </url>  <url>
-    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%A3%8B%E7%9B%98%E8%A6%86%E7%9B%96/</loc>
+    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%9E%84%E9%80%A0%E5%AD%90%E9%9B%86/</loc>
     <lastmod>2019-08-05</lastmod>
   </url>  <url>
-    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%9E%84%E9%80%A0%E5%AD%90%E9%9B%86/</loc>
+    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%A3%8B%E7%9B%98%E8%A6%86%E7%9B%96/</loc>
     <lastmod>2019-08-05</lastmod>
   </url>  <url>
     <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%9C%80%E9%95%BF%E4%B8%8A%E5%8D%87%E5%AD%90%E5%BA%8F%E5%88%97/</loc>

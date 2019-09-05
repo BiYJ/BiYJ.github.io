@@ -2,13 +2,6 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>http://yoursite.com/2019/09/03/%E9%9D%99%E6%80%81%E3%80%81%E5%8A%A8%E6%80%81%20Pod/</loc>
-    
-    <lastmod>2019-09-03T10:58:18.087Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://yoursite.com/2019/05/23/iOS/iOS%E5%8E%9F%E7%90%86/pthread_rwlock_t/</loc>
     
     <lastmod>2019-09-03T10:57:21.942Z</lastmod>
@@ -226,14 +219,14 @@
   </url>
   
   <url>
-    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E7%AE%80%E5%8D%95%E7%AE%97%E6%B3%95/</loc>
+    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E7%AC%AC%20k%20%E5%B0%8F%E7%9A%84%E6%95%B0/</loc>
     
     <lastmod>2019-08-05T16:07:52.659Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E7%AC%AC%20k%20%E5%B0%8F%E7%9A%84%E6%95%B0/</loc>
+    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E7%AE%80%E5%8D%95%E7%AE%97%E6%B3%95/</loc>
     
     <lastmod>2019-08-05T16:07:52.659Z</lastmod>
     
@@ -261,14 +254,14 @@
   </url>
   
   <url>
-    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%A3%8B%E7%9B%98%E8%A6%86%E7%9B%96/</loc>
+    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%9E%84%E9%80%A0%E5%AD%90%E9%9B%86/</loc>
     
     <lastmod>2019-08-05T16:07:52.656Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%9E%84%E9%80%A0%E5%AD%90%E9%9B%86/</loc>
+    <loc>http://yoursite.com/2019/08/06/%E7%AE%97%E6%B3%95/%E6%A3%8B%E7%9B%98%E8%A6%86%E7%9B%96/</loc>
     
     <lastmod>2019-08-05T16:07:52.656Z</lastmod>
     
