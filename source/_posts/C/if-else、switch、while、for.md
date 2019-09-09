@@ -18,10 +18,10 @@ categories: C
 switch-case 与 if-else 的根本区别：
 
 > switch 会生成一个<font color=#cc0000>跳转表</font>来指示实际的 case 分支的地址，而这个跳转表的索引号与 switch 变量的值是相等的。
->
-> 所以 switch-case 不用像 if-else 那样遍历条件分支直到命中条件，只需访问对应索引号的表项从而到达定位分支。
 
-具体地说，switch-case 会生成一份大小（表项数）为最大 case 常量 +1 的跳转表，程序首先判断 switch 变量是否大于最大 case 常量，若大于，则跳到 default 分支处理；否则取得索引号为 switch 变量大小的跳表项的地址（即跳表的起始地址+表项大小 \* 索引号），程序接着跳到此地址执行，到此完成了分支的跳转。
+所以 switch-case 不用像 if-else 那样遍历条件分支直到命中条件，只需访问对应索引号的表项从而到达定位分支。
+
+具体地说，switch-case 会生成一份大小（表项数）为最大 case 常量 +1 的跳转表，程序首先判断 switch 变量是否大于最大 case 常量，若大于，则跳到 default 分支处理；否则取得索引号为 switch 变量大小的跳表项的地址（即跳表的起始地址+表项大小 * 索引号），程序接着跳到此地址执行，到此完成了分支的跳转。
 
 ```
 int main() {
@@ -63,12 +63,12 @@ _main:                                  ## @main
 Lfunc_begin0:
 	.loc	1 12 0                  ## /Users/cykj/Desktop/Demo/Demo/MyC.c:12:0
 	.cfi_startproc
-\## %bb.0:
+## %bb.0:
 	pushq	%rbp
-	.cfi\_def\_cfa_offset 16
+	.cfi_def_cfa_offset 16
 	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	.cfi\_def\_cfa_register %rbp
+	.cfi_def_cfa_register %rbp
 	movl	$0, -4(%rbp)
 Ltmp0:
 	.loc	1 14 7 prologue_end     ## /Users/cykj/Desktop/Demo/Demo/MyC.c:14:7
@@ -82,7 +82,7 @@ Ltmp0:
 	movq	%rcx, -24(%rbp)         ## 8-byte Spill
 	movq	%rdx, -32(%rbp)         ## 8-byte Spill
 	ja	LBB0_6
-\## %bb.8:
+## %bb.8:
 	.loc	1 0 5                   ## /Users/cykj/Desktop/Demo/Demo/MyC.c:0:5
 	leaq	LJTI0_0(%rip), %rax
 	movq	-24(%rbp), %rcx         ## 8-byte Reload
@@ -129,19 +129,19 @@ Lfunc_end0:
 	.cfi_endproc
 	.p2align	2, 0x90
 	.data_region jt32
-L0\_0\_set\_1 = LBB0\_1-LJTI0_0
-L0\_0\_set\_2 = LBB0\_2-LJTI0_0
-L0\_0\_set\_3 = LBB0\_3-LJTI0_0
-L0\_0\_set\_4 = LBB0\_4-LJTI0_0
-L0\_0\_set\_5 = LBB0\_5-LJTI0_0
+L0_0_set_1 = LBB0_1-LJTI0_0
+L0_0_set_2 = LBB0_2-LJTI0_0
+L0_0_set_3 = LBB0_3-LJTI0_0
+L0_0_set_4 = LBB0_4-LJTI0_0
+L0_0_set_5 = LBB0_5-LJTI0_0
 LJTI0_0:
-	.long	L0\_0\_set_1
-	.long	L0\_0\_set_2
-	.long	L0\_0\_set_3
-	.long	L0\_0\_set_4
-	.long	L0\_0\_set_5
-	.end\_data\_region
-                                        ## \-\- End function
+	.long	L0_0_set_1
+	.long	L0_0_set_2
+	.long	L0_0_set_3
+	.long	L0_0_set_4
+	.long	L0_0_set_5
+	.end_data_region
+                                        ## -- End function
 ```
 
 由此看来，switch 有点以空间换时间的意思，而事实上也的确如此。
