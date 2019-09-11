@@ -1,6 +1,6 @@
 ---
 title: pthread_rwlock_t
-categories: iOS原理
+categories: iOS多线程
 ---
 
 ## 一、读写锁
