@@ -104,3 +104,150 @@ Other linker flags 设置的值<font color=#cc0000>实际上就是 ld 命令执�
 
 	[Xcode 中 other linker flags 的作用](https://blog.csdn.net/bobo553443/article/details/78633340)
 	[当我们在设置 Other Linker Flags -lstdc++时，我们到底在设置什么？](https://blog.csdn.net/fly1183989782/article/details/80558831)
+	
+
+## 三、Archive
+
+![](https://upload-images.jianshu.io/upload_images/5294842-1b5c4ce68e064e85.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+1. iOS App Store
+
+	保存到本地，准备上传 App Store 或者在越狱的 iOS 设备上使用，利用的是 Distribution 描述文件，关联 production 证书；
+
+2. Ad Hoc
+
+	保存到本地，准备在开发者账户下添加了 UDID 的设备上使用，利用的是 Distribution 描述文件，关联 production 证书；
+
+	> 官方解释：Ad Hoc 模式的包和将来发布到 App Store 的包在各种功能测试上是一样的，只要 Ad Hoc 模式下测试（推送、内购等）没有问题，发布到 App Store 也是没有问题的。
+
+3. Enterprise
+
+	主要针对企业级账户下准备本地服务器分发的 app。利用的是 Distribution 描述文件，关联 production 证书；
+
+4. Development
+
+	保存到本地，给添加了 UDID 的设备使用，开发者模式打包 ipa，通过 development 描述文件，关联 development 证书。
+
+	<center>
+	![](https://upload-images.jianshu.io/upload_images/5294842-1c407b5f2ac4059c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+	![](https://upload-images.jianshu.io/upload_images/5294842-5981e6b0bcac4065.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+	</center>
+
+5. Rebuild from Bitcode**
+
+	如果工程 Bitcode 为 NO，则不会有此选项。
+
+6. Strip Swift symbols
+
+	去除 swift 符号，勾选后会让 ipa 包内存小一些，对包进行了一个压缩。如果项目中未包含 swift 代码，则没有此选项。
+
+7. Include manifest for over-the-air installation
+
+	勾选后用户可以在 safari 中下载应用，而不必移步 App Store。
+
+8. Upload your app's symbols to receive symbolicated reports from Apple
+
+	上传应用程序的符号以接收来自苹果的符号化报告。
+
+	<center>
+	![](https://upload-images.jianshu.io/upload_images/5294842-988e01e7cc35ade7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+	</center>
+	
+9. 学习文章
+
+	[Understanding and Analyzing Application Crash Reports](https://developer.apple.com/library/archive/technotes/tn2151/_index.html)
+	
+
+## 四、armv7、armv7s、arm64
+
+#### 4.1 前言
+
+ARM 处理器，特点是体积小、低功耗、低成本、高性能，所以几乎所有手机处理器都基于 ARM，在嵌入式系统中应用广泛。
+
+armv6｜armv7｜armv7s｜arm64 都是 ARM 处理器的指令集，这些指令集都是<font color=#cc0000>向下兼容</font>的，例如 armv7 指令集兼容 armv6，只是使用 armv6 的时候无法发挥出其性能，无法使用 armv7 的新特性，从而会导致程序执行效率没那么高。
+
+#### 4.2 介绍
+
+*   armv7｜armv7s｜arm64 都是 ARM 处理器的指令集
+*   i386｜x86_64 是 Mac 处理器的指令集
+
+|:-------------:|:-------------:|:-----:|
+|arm64|iPhone6s \| iphone6s plus \| iPhone6 \| iPhone6 plus \| iPhone5S \| iPad Air \| iPad mini2 | 真机 64 位 |
+|armv7s|iPhone5 \| iPhone5C \| iPad4|真机 32 位|
+|armv7|iPhone4\|iPhone4S\|iPad\|iPad2\|iPad3\|iPad mini\|iPod Touch 3G\|iPod Touch4|真机 32 位|
+|i386|针对 intel 通用微处理器 32 位处理器|模拟器 32 位|
+|x86_64|是针对 x86 架构的 64 位处理器|模拟器 64 位|
+
+模拟器并不运行 arm 代码，软件会被编译成 x86 可以运行的指令。所以生成静态库时都是会先生成两个 .a，一个是 i386 的用于在模拟器运行，另一个是在真实设备上运行的，然后再用命令将两个 .a 合并成一个。
+
+#### 4.3 Xcode 的指令集选项
+
+1. Architectures
+
+	> Space-separated list of identifiers. Specifies the architectures (ABIs, processor models) to which the binary is targeted. When this build setting specifies more than one architecture, the generated binary may contain object code for each of the specified architectures. 
+
+	指定工程被编译成可支持哪些指令集类型。支持的指令集越多，就会编译出包含多个指令集代码的数据包，对应生成二进制包就越大，也就是 ipa 包会变大。
+
+2. Valid Architectures
+
+	> Space-separated list of identifiers. Specifies the architectures for which the binary may be built. During the build, this list is intersected with the value of ARCHS build setting; the resulting list specifies the architectures the binary can run on. If the resulting architecture list is empty, the target generates no binary. 
+
+	限制可能被支持的指令集的范围，也就是 Xcode 编译出来的二进制包类型最终从这些类型产生。而编译出哪种指令集的包，将由Architectures 与 Valid Architectures 的交集来确定。
+
+	①、Valid Architectures 支持 arm 指令集版本设置为：armv7/armv7s/arm64，对应的 Architectures 支持 arm 指令集版本为：armv7s，这时 Xcode 只会生成一个 armv7s 指令集的二进制包。
+
+	②、将 Architectures 支持 arm 指令集设置为：armv7/armv7s，对应的 Valid Architectures 的支持的指令集设置为：armv7s/arm64，那么此时，XCode 生成二进制包所支持的指令集只有 armv7s。
+
+3. Build Active Architecture Only
+
+	指定是否只对当前连接设备所支持的指令集编译。
+
+	debug 时设置成 YES 是为了编译速度更快，它只编译当前的 architecture 版本；而 release 时设置为 NO 会编译所有的版本。 编译出的版本是向下兼容的，连接的设备的指令集匹配是由高到低（arm64 > armv7s > armv7）依次匹配的。比如设置为 YES，用 iphone4 编译出来的是 armv7 版本的，iphone5 也可以运行，但是 armv6 的设备就不能运行。  所以，一般 debug 的时候可以选择设置为 YES，release 的时候要改为 NO，以适应不同设备。 
+
+	<center>
+	![](http://dzliving.com/iOSArchitecture.png)
+	</center>
+
+如果你对 ipa 安装包大小有要求，可以减少安装包的指令集的数量，这样就可以尽可能的减少包的大小。当然这样做会使部分设备出现性能损失，当然在普通应用中这点体现几乎感觉不到，至少不会威胁到用户体检。
+
+*   $(ARCHS_STANDARD)   
+    默认值，以各版本实际的值为准。XCode5 中值为 armv7 armv7s，在 XCode5.1 时，强制加入了对 arm64 的编译，于是该值为 armv7,armv7s,arm64。当前 Xcode10.1 默认为 Standard architectures(armv7,arm64)。
+*   $(ARCHS\_STANDARD\_32_BIT)   
+    Xcode5 和 5.1 都为 armv7,armv7s，旧一点的版本中应该对应的就只有 armv7。<font color=#cc0000>（待验证）</font>
+*   $(ARCHS\_STANDARD\_INCLUDING\_64\_BIT)   
+    XCode5 和 5.1 都为 armv7,armv7s,arm64
+
+使用 standard architectures (including 64-bit)(armv7,arm64) 参数，则打的包里面有 32 位、64 位两份代码，在iPhone5s（64 位）下，会首选运行 64 位代码包。包含两种架构的代码包，只有运行在 iOS6、iOS7 系统上。 
+
+而使用 standard architectures (armv7,armv7s) 参数， 则打的包里只有 32 位代码， iPhone5s 可以兼容 32 位代码，但是这会降低 iPhone5s 的性能。 
+
+开启 arm64 支持后，不能开发 iOS 5.1.1 之前的版本，要强制将 deployment target 设置为 5.1.1 或之后。Xcode4.5 中移除了对 arm6 的支持。
+
+#### 4.4 查看 .a/framework 库支持的指令集
+
+通过 lipo 命令查看 .a 库所支持的指令集。
+
+```
+$ lipo -info AFNetworking
+$ lipo -info AFNetworking.framework/AFNetworking
+Non-fat file: AFNetworking.framework/AFNetworking is architecture: x86_64
+$ lipo -info *.a
+Architectures in the fat file: libPods-AFNetworking.a are: armv7 armv7s
+Architectures in the fat file: libPods.a are: armv7 armv7s
+$ lipo -info libBloodTester.a
+Architectures in the fat file: libBloodTester.a are: armv7 i386 x86_64 arm64
+```
+
+#### 4.5 CocoaPods与Architecture
+
+出现问题 <font color=#cc0000>ld: library not found for -lAFNetworking</font>，需要将 pods 的 Architectures 设置成与工程 targets 里的相同。
+
+![](https://upload-images.jianshu.io/upload_images/5294842-ac1144fb7f36f684.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+#### 4.6 如何选择支持的指令集？
+
+如果你的软件对安装包大小非常敏感，你可以减少安装包中的指令集数据包，而且这能达到立竿见影的效果。
+
+很久前 xcode 支持的指令集是 armv7/armv7s，后来改成只支持 armv7 后，比原来小了 10MB 左右。目前 AppStore 上的一些知名应用，比如百度地图、腾讯地图通过反汇编工具查看后，也都只支持 armv7 指令集。<font color=#cc0000>（待验证）</font>
+
+根据向下兼容原则，armv7 指令集的应用是可以正常在支持 armv7s/arm64 指令集的机器上运行的。
