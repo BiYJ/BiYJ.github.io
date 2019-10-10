@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>GCD实现 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">GCD实现</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">GCD实现</h1><div class="post-meta"><a href="/2019/09/16/iOS/iOS多线程/GCD实现/#comments" class="comment-count"></a><p><span class="date">Sep 16, 2019</span><span><a href="/categories/iOS多线程/" class="category">iOS多线程</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、Dispatch-Queue"><a href="#一、Dispatch-Queue" class="headerlink" title="一、Dispatch Queue"></a>一、Dispatch Queue</h2><p>不难想象 GCD 的实现需要使用以下这些工具。</p>
+<p>①、用于管理追加的 Block 的 C 语言层实现的 <font color="#cc0000">FIFO 队列</font>；</p>
+<p>②、Atomic 函数中实现的用于排他控制的<font color="#cc0000">轻量级信号</font>；</p>
+<p>③、用于管理线程的 C 语言层实现的<font color="#cc0000">一些容器</font>。</p>
+<p>但如果只用了这些内容便可实现，那么就不需要内核级的实现了。官方说明：</p>
+<blockquote>
+<p>通常，应用程序中编写的线程管理用的代码要在系统级实现。</p>
+</blockquote>
+<p>在系统（iOS 和 OS X 的核心 XNU 内核）级上的实现。因此，无论编程人员如何努力编写管理线程的代码，在性能方面都不可能超过 XNU 内核级所实现的 GCD。</p>
+<p>使用 GCD 不必编写线程的创建、销毁等管理代码，而可以在线程中集中实现处理内容。我们应该尽量多使用 GCD 或者使用了 Cocoa 框架 GCD 的 NSOperationQueue 类等 API。</p>
+<p>用于实现 Dispatch Queue 而使用的软件组件。</p>
+<center><br><img src="https://upload-images.jianshu.io/upload_images/5294842-76ca86d8be6976a0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="1"><br></center>
+
+<p>编程人员所使用的 GCD 的 API 全部为包含在 libdispatch 库的 C 语言函数。Dispatch Queue 通过<font color="#cc0000">结构体和链表</font>，被实现为 FIFO 队列。FIFO 队列管理通过 dispatch_async 等函数所追加的 block。</p>
+<p>Block 并不直接加入  FIFO 队列，而是先加入 Dispatch Continuation 这一个 <font color="#cc0000">dispatch_continuation_t</font> 类型结构体中，然后再加入 FIFO 队列。该 Dispatch Continuation 用于记录 Block 所属的 Dispatch Group 和一些其他信息，相当于一般常说的上下文。</p>
+<center><br><img src="https://upload-images.jianshu.io/upload_images/5294842-7320d9613aed8c76.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="2"><br></center>
+
+<p>Dispatch Queue 可通过 <font color="#cc0000">dispatch_set_target_queue</font> 函数设定执行该 Dispatch Queue 处理的 Dispatch Queue 为目标。该目标可像串珠子一样，设定多个连接在一起的 Dispatch Queue。但是在连接串的最后必须设定为 Main Dispatch Queue 或各种优先级的 Global Dispatch Queue，或者准备用于 Serial Dispatch Queue 的各种优先级的 Global Dispatch Queue。</p>
+<p>Global Dispatch Queue 有 8 种：</p>
+<ul>
+<li>Global Dispatch Queue（High Priority）</li>
+<li>Global Dispatch Queue（Default Priority）</li>
+<li>Global Dispatch Queue（Low Priority）</li>
+<li>Global Dispatch Queue（Background Priority）</li>
+<li>Global Dispatch Queue（High Overcommit Priority）</li>
+<li>Global Dispatch Queue（Default Overcommit Priority）</li>
+<li>Global Dispatch Queue（Low Overcommit Priority）</li>
+<li>Global Dispatch Queue（Background Overcommit Priority）</li>
+</ul>
+<p>优先级带有 <font color="#cc0000">Overcommit</font> 的 Global Dispatch Queue 使用在 Serial Dispatch Queue 中。如 Overcommit 这个名称所示，不管系统状态如何，都会<font color="#cc0000">强制生成</font>线程的 Dispatch Queue。</p>
+<p>这 8 种 Global Dispatch Queue 各使用 1 个 pthread_workqueue。GCD 初始化时，使用 <font color="#cc0000">pthread_workqueue_create_np</font> 函数生成 pthread_workqueue。</p>
+<p>pthread_workqueue 包含在 Libc 提供的 pthreads API 中。其使用 bsdthread_register 和 workq_open 系统调用，在初始化 XNU 内核的 workqueue 之后获取 workqueue 信息。</p>
+<center><br><img src="https://upload-images.jianshu.io/upload_images/5294842-816faa7ca4c6ff96.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"><br></center>
+
+<p>XNU 内核持有 4 种 workqueue：</p>
+<ul>
+<li>WORKQUEUE_HIGH_PRIOQUEUE</li>
+<li>WORKQUEUE_DEFAULT_PRIOQUEUE</li>
+<li>WORKQUEUE_LOW_PRIOQUEUE</li>
+<li>WORKQUEUE_BG_PRIOQUEUE</li>
+</ul>
+<p>该执行优先级和 Global Dispatch Queue 的 4 种优先级相同。</p>
+<center><br><img src="https://upload-images.jianshu.io/upload_images/5294842-6e6083b134f2f075.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="9"><br></center>
+
+<p>当在 Global Dispatch Queue 中执行 Block 时，libdispatch 从 Global Dispatch Queue 自身的 FIFO 队列取出 Dispatch Continuation，调用 pthread_workqueue_additem_np 函数，把该 Global Dispatch Queue 自身、符合其优先级的 workqueue 信息以及为执行 Dispatch Continuation 的回调函数等传递给参数。</p>
+<p>pthread_workqueue_additem_np 函数使用 workq_kernreturn 系统调用，通知 workqueue 增加应当执行的项目。根据该通知，XNU 内核基于系统状态判断是否要生成线程。如果是 Overcommit 优先级的 Global Dispatch Queue，workqueue 则始终生成线程。</p>
+<p>该线程虽然与 iOS 和 OS X 中通常使用的线程大致相同，但是有一部分 pthread API 不能使用。详见苹果官方文档《并行编码指南》的“与 POSIX 线程的互换性”。</p>
+<p>另外，因为 workqueue 生成的线程在实现用于 workqueue 的线程计划表中运行，所以与一般线程的上下文切换不同。</p>
+<p>workqueue 的线程执行 pthread_workqueue 函数，该函数调用 libdispatch 的回调函数。在该回调函数中执行加入到 Dispatch Continuation 的 Block。</p>
+<p>Block 执行结束后，进行通知 Dispatch Group 结束、释放 Dispatch Continuation 等处理，开始准备执行加入到 Global Dispatch Queue 中的下一个 Block。</p>
+<p>总结：</p>
+<p>①、block、block 所属的 group、其他信息加入的 dispatch_continuation_t 结构体中；</p>
+<p>②、将 dispatch_continuation_t 加入 FIFO 队列；</p>
+<p>③、Dispatch_Queue 通过 dispatch_set_target_queue 设置目标 Queue；</p>
+<p>④、GCD 初始化时，pthread_workqueue_create_np 生成 pthread_workqueue;</p>
+<p>⑤、pthread_workqueue 使用 bsdthread_register 和 workq_open 系统调用，在初始化 XNU 内核的 workqueue 之后获取 workqueue 信息；</p>
+<p>⑥、当在 Global Dispatch Queue 执行 Block 时 libdispatch 从 FIFO 队列中取出 Dispatch Continuation；</p>
+<p>⑦、调用 pthread_workqueue_additem_np 函数，将该 Global Dispatch Queue 自身、符合其优先级的 workqueue 信息以及为执行 Dispatch Continuation 的回调函数等传递给参数；</p>
+<p>⑧、pthread_workqueue_additem_np 内部调用 workq_kernreturn 系统调用，通知 workqueue 增加应当执行的项目；</p>
+<p>⑨、XNU 内核基于系统状态判断是否要生成线程；</p>
+<p>⑩、workqueue 的线程执行 pthread_workqueue 函数，该函数调用 libdispatch 的回调函数，在该回调函数中执行加入到 Dispatch Continuation 的 Block。Block 执行结束后，通知 Dispatch Group 结束、释放 Dispatch Continuation 等处理，开始准备下一个 Block 的执行。</p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/09/16/iOS/iOS多线程/GCD实现/">http://yoursite.com/2019/09/16/iOS/iOS多线程/GCD实现/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/09/16/iOS/iOS多线程/pthread_rwlock_t/" class="pre">pthread_rwlock_t</a><a href="/2019/09/16/iOS/iOS多线程/GCD/" class="next">GCD</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、Dispatch-Queue"><span class="toc-text">一、Dispatch Queue</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/09/16/iOS/iOS音视频/图片处理/">图片处理</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/09/16/iOS/iOS音视频/Premultiplied Alpha/">Premultiplied Alpha</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/09/16/iOS/iOS架构/垃圾代码/">添加垃圾代码</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/09/16/iOS/iOS多线程/pthread_rwlock_t/">pthread_rwlock_t</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/09/16/iOS/iOS多线程/GCD实现/">GCD实现</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/09/16/iOS/iOS多线程/GCD/">GCD</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/09/16/iOS/iOS多线程/GCD深入/">GCD深入</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/09/16/iOS/iOS原理/NSProxy/">NSProxy</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/09/10/iOS/iOS架构/组件化方案/">组件化方案</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/09/10/iOS/iOS原理/iOS 编译过程原理(1)/">iOS 编译过程原理(1)</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">24</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS音视频/">iOS音视频</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/阅读源码/">阅读源码</a><span class="category-list-count">1</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>
