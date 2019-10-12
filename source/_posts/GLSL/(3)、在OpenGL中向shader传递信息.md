@@ -1,0 +1,155 @@
+---
+title: 【GLSL】三、在OpenGL中向shader传递信息
+categories: OpenGL
+---
+
+原文：http://www.cnblogs.com/mazhenyu/p/5580946.html **引言**一个 OpenGL 程序可以用多种方式和 shader 通信。注意这种通信是单向的，因为 shader 的输出只能是渲染到某些目标，比如颜色和深度缓存。 OpenGL 的部分状态可以被 shader 访问，因此程序改变 OpenGL 某些状态就可以与 shader 进行通信了。例如一个程序想把光的颜色传给 shader，可以直接调用 OpenGL 接口，就像使用固定功能流水线时做的那样。 不过，使用 OpenGL 状态并不是设置 shader 中使用数据的直观方式。比如一个 shader 需要一个表示时间变化的变量来计算动画，在 OpenGL 状态中就没有现成的变量可用。当然，你可以使用没有用到的"镜面光截止角度(cutoffangle)"这样一个变量表示时间，但显然让人难以接受。 幸运的是 GLSL 允许用户自定义变量，实现 OpenGL 应用程序与 shader 通信。有了这个功能，你就可以命名一个叫做 timeElapsed 的变量表示经过的时间。 上文的讨论涉及到了 GLSL 提供的两种类型修饰符(更多的类型将在后面提到)：·       一致变量 - Uniform·       属性  - Attribute 在 shader 中定义的变量如果用这两种类型修饰符，表示对 shader 来说，它们是只读的。下面将详细讲述怎样使用这些类型的变量。 还有一种将变量送给 shader 的方法：使用纹理。一个纹理不止可以表示一张图片，它还可以表示一个数组。事实上，你完全可以决定如何在 shader 中解释纹理数据，即使它真是一幅图片。 1**、数据类型和变量**下面是 GLSL 中的基本数据类型：·       float·       bool·       int浮点类型与 C 中类似，布尔类型可以为 true 或 false。这些基本类型可以组成 2、3 或 4 维向量，如下所示：·       vec{2,3,4} a vector of 2,3,or 4 floats·       bvec{2,3,4} bool vector·       ivec{2,3,4} vector of integers GLSL 还包括 2×2、3×3 或 4×4 型矩阵，因为这些矩阵类型在图形处理中很常用：·       mat2·       mat3·       mat4 此外，还有一组用来实现纹理访问的特殊类型，它们被称为采样器(sampler)，在读取纹理值(也称为纹素 texel)时用到。下面就是纹理采样用到的数据类型：·       sampler1D – for 1D textures·       sampler2D – for 2D textures·       sampler3D – for 3D textures·       samplerCube – for cube map textures·       sampler1DShadow – for shadow maps·       sampler2DShadow – for shadow maps 在 GLSL 中，可以像 C 一样声明和访问数组，但是不能在声明时初始化数组。GLSL 还可以定义结构体：struct dirlight{vec3 color;vec3 direction;};   **变量**声明一个基本类型变量的方法与 C 类似，你还可以在声明它的同时进行初始bool d = true;   // d is trueint c = 2;     // c is initialized with 2  float a, b;     // two vector (yes, the comments are like in C)   声明其它类型变量也是按照这种方法，但是初始化与 C 语言有区别。GLSL 非常依赖构造函数实现初始化和类型转换。float b = 2;        // incorrect, there is no automatic type castingfloat e = (float)2; // incorrect, requires constructors for type casting  int a = 2;  float c = float(a); // correct. c is 2.0  vec3 f;             // declaring f as a vec3  vec3 g = vec3(1.0,2.0,3.0); // declaring and initializing g   在 GLSL 中使用一些变量初始化其它变量是非常灵活的。你只需要给出需要的数据成员即可。请看下面的例子：vec2 a = vec2(1.0, 2.0);  vec2 b = vec2(3.0, 4.0);  vec4 c = vec4(a, b)   // c = vec4(1.0, 2.0, 3.0, 4.0);  vec2 g = vec2(1.0, 2.0);  float h = 3.0;  vec3 j = vec3(g, h);   矩阵的初始化也是类似方法，矩阵包含很多种构造函数，下面的例子给出了一些初始化矩阵的构造函数：mat4 m = mat4(1.0)   // initializing the diagonal of the matrix with 1.0  vec2 a = vec2(1.0, 2.0);  vec2 b = vec2(3.0, 4.0);  mat2 n = mat2(a, b);  // matrices are assigned in column major order  mat2 k = mat2(1.0, 0.0, 1.0, 0.0);  // all elements are specified   下面的例子给出了初始化结构体的方法：struct dirlight     // type definition {  vec3 color;vec3 direction;  };  dirlight d1;  dirlight d2 = dirlight(vec3(1.0, 1.0, 0.0), vec3(0.8, 0.8, 0.4));   在 GLSL 中还有一些实用的选择器(selector)，可以简化我们的操作并让代码更简洁。访问一个向量可以使用如下的方法：vec4 a = vec4(1.0, 2.0, 3.0, 4.0);  float posX  = a.x;  float posY  = a\[1\];  vec2 posXY  = a.xy;  float depth = a.w 在上面的代码片段中，可以使用 x、y、z、w 来访问向量成员。如果是颜色的话可以使用 r、g、b、a，如果是纹理坐标的话可以使用 s、t、p、q。注意表示纹理坐标通常是使用 s、t、r、q，但 r 已经表示颜色中的红色了，所以纹理坐标中需要使用 p 来代替。 矩阵的选择器可以使用一个或两个参数，比如 m\[0\] 或者 m\[2\]\[3\]。第一种情况选择了第一列，第二种情况选择了一个数据成员。 对于结构体来说，可以像在 C 语言中一样访问其成员。所以访问前面定义的结构体，可以使用如下的代码：d1.direction = vec3(1.0, 1.0, 1.0);   **2、变量修饰符**修饰符给出了变量的特殊含义，GLSL 中有如下修饰符：·       const       声明一个编译期常量。·       attribute   随不同顶点变化的全局变量，由 OpenGL 应用程序传给顶点 shader。这个修饰符只能用在顶点 shader 中，在 shader 中它是一个只读变量。·       uniform     随不同图元变化的全局变量（即不能在 glBegin/glEnd 中设置），由 OpenGL 应用程序传给shader。这个修饰符能用在顶点和片断 shader 中，在 shader 中它是一个只读变量。·       varying用于顶点 shader 和片断 shader 间传递的插值数据，在顶点 shader 中可写，在片断 shader中只读。 **3、一致变量（Uniform Variables）**不同于顶点属性在每个顶点有其自己的值，一个一致变量在一个图元的绘制过程中是不会改变的，所以其值不能在 glBegin/glEnd 中设置。一致变量适合描述在一个图元中、一帧中甚至一个场景中都不变的值。一致变量在顶点 shader 和片断 shader 中都是只读的。 首先你需要获得变量在内存中的位置，这个信息只有在连接程序之后才可获得。注意，对某些驱动程序，在获得存储位置前还必须使用程序(调用 glUseProgram)。 获取一个一致变量的存储位置只需要给出其在 shader 中定义的变量名即可：/** *  @param   program  - the hanuler to the program *  @param   name   - the name of the variable */ GLint glGetUniformLocation(GLuint program, const char \*name); 返回值就是变量位置，可以用此信息设置变量的值。根据变量的数据类型不同，有一系列函数可以用来设置一致变量。用来设置浮点值的一组函数如下：/\*\* *  @param  location  - the previously queried location *  @param  v0,v1,v2,v3  - float values *  @param  count  - the number of elements in the array *  @param  v  - an array of floats */ void glUniform1f(GLint location, GLfloat v0);   void glUniform2f(GLint location, GLfloat v0, GLfloat v1);   void glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);   void glUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3); GLint glUniform{1, 2, 3, 4}fv(GLint location, GLsizei count, GLfloat \*v); 对 integer 类型也有一组类似的函数，不过要用 i 替换函数中的 f。对 bool 类型没有专门的函数，但可以使用整数的 0 和 1 来表示真假。一旦你使用了一致变量数组，那么就必须使用向量版本的函数。 对 sampler 变量，使用函数 glUniform1i 和 glUniform1iv。 矩阵也是一种 GLSL 的数据类型，所以也有一组针对矩阵的函数：/\*\* *  @param  location  - the previously queried location *  @param  count   - the number of matrices. 1 if a single matrix is being set, or n for an array of n matrices. *  @param  transpose  - wheter to transpose the matrix values. A value of 1 indicates that the matrix values are specified in row major order, zero is column major order   *  @param  v  – an array of floats.   */GLint glUniformMatrix{2,3,4}fv(GLint location, GLsizei count, GLboolean transpose, GLfloat *v);   还有一点要注意的是：使用这些函数之后，变量的值将保持到程序再次连接之时。一旦进行重新连接，所有变量的值将被重置为 0。 最后是一些示例代码。假设一个 shader 中使用了如下变量：
+
+1.   uniform float specIntensity;
+2.   uniform vec4 specColor;
+3.   uniform float t\[2\];
+4.   uniform vec4 colors\[3\];
+
+在 OpenGL 程序中可以使用下面的代码设置这些变量：
+
+1.   GLint loc1, loc2, loc3, loc4;
+2.   float specIntensity = 0.98;
+3.   float sc\[4\] = {0.8, 0.8, 0.8, 1.0};
+4.   float threshold\[2\] = {0.5, 0.25};
+5.   float colors\[12\] = { 0.4, 0.4, 0.8, 1.0,
+6.                        0.2, 0.2, 0.4, 1.0,
+7.                        0.1, 0.1, 0.1, 1.0 };
+
+9.   loc1 = glGetUniformLocation( p, "specIntensity" );
+10.   glUniform1f(loc1, specIntensity);
+11.   loc2 = glGetUniformLocation( p, "specColor" );
+12.   glUniform4fv(loc2, 1, sc);
+13.   loc3 = glGetUniformLocation(p, "t");
+14.   glUniform1fv(loc3, 2, threshold);
+15.   loc4 = glGetUniformLocation(p, "colors");
+16.   glUniform4fv(loc4, 3, colors);
+
+例子代码的下载地址：[http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl2_2.0.zip](http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl2_2.0.zip) 注意：设置一个数组(例子中的 t)与设置四元向量(例子中的 colors 和 specColor)的区别。中间的count 参数指在 shader 中声明的数组元素数量，而不是在 OpenGL 程序中声明的。所以虽然specColor 包含 4 个值，但 glUniform4fv 函数中的参数是 1，因为它只是一个向量。 另一种设置 specColor 的方法：
+
+1.   loc2 = glGetUniformLocation(p, "specColor");
+2.   glUniform4f(loc2, sc\[0\], sc\[1\], sc\[2\], sc\[3\]);
+
+GLSL 中还可以获取数组中某个变量的地址。比如，可以获得 t\[1\] 的地址。下面的代码片段展示了设置 t 数组元素的另一种方法：
+
+1.   loct0 = glGetUniformLocation(p, "t\[0\]");
+2.   glUniform1f(loct0, threshold\[0\]);
+3.   loct1 = glGetUniformLocation(p, "t\[1\]");
+4.   glUniform1f(loct1, threshold\[1\]);
+
+注意在 glGetUniformLocation 中使用方括号指示的变量。**4、属性变量（Attribute Variables）**在前一节提到，一致变量只能针对一个图元全体，就是说不能在 glBegin 和 glEnd 之间改变。 如果要针对每个顶点设置变量，那就需要属性变量了。事实上属性变量可以在任何时刻更新。在顶点 shader 中属性变量是只读的。因为它包含的是顶点数据，所以在片断 shader 中不能直接应用。 与一致变量相似，首先你需要获得变量在内存中的位置，这个信息只有在连接程序之后才可获得。注意，对某些驱动程序，在获得存储位置前还必须使用程序。
+
+1.  /**
+2.   *  @param  program  – the handle to the program
+3.   *  @param  name     – the name of the variable
+4.   */
+5.   GLint glGetAttribLocation(GLuint program, char *name);
+
+上述函数调用的返回变量在存储器中的地址。下面就可以为它指定一个值，类似一致变量，每种数据类型都有对应的函数。
+
+1.  /**
+2.   *  @param  location  – the previously queried location.
+3.   *  @param  v0, v1, v2, v3  – float values.
+4.   *  @param  v  – an array of floats.
+5.   */
+6.   void glVertexAttrib1f(GLint location, GLfloat v0);
+7.   void glVertexAttrib2f(GLint location, GLfloat v0, GLfloat v1);
+8.   void glVertexAttrib3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
+9.   void glVertexAttrib4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+10.    或者
+11.   GLint glVertexAttrib{1, 2, 3, 4}fv(GLint location, GLfloat *v);
+
+对于 integer 类型，也有一组类似的函数。与一致变量不同，这里向量版的函数并不支持对向量数组的赋值，所以函数参数用向量或是分别指定的效果没有太大区别，就好像 OpenGL 中 glColor3f 和 glColor3fv 的关系。下面是一个简单的例子，假定顶点 shader 中声明了一个名为 height 的浮点属性变量，在程序连接之后可以进行如下操作：
+
+1.    loc = glGetAttribLocation(p, "height");
+
+  在执行渲染的代码中间可以为 shader 中的变量赋值：
+
+1.   glBegin(GL\_TRIANGLE\_STRIP);
+2.   glVertexAttrib1f(loc, 2.0);
+3.   glVertex2f(-1,  1);
+4.   glVertexAttrib1f(loc, 2.0);
+5.   glVertex2f( 1,  1);
+6.   glVertexAttrib1f(loc, -2.0);
+7.   glVertex2f(-1, -1);
+8.   glVertexAttrib1f(loc, -2.0);
+9.   glVertex2f( 1, -1);
+10.   glEnd();
+
+例子代码的下载地址：[http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl3_2.0.zip](http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl3_2.0.zip)、 顶点数组和属性变量也可以一起使用。首先需要使能数组，使用如下函数：
+
+1.  /**
+2.   *  @param  loc  - the location of the variable.
+3.   */
+4.   void glEnableVertexAttribArray(GLint loc);
+
+接下来使用函数提交包含数据的数组指针：
+
+1.  /**
+2.   *  @param  loc   – the location of the variable
+3.   *  @param  size  – the number of components per element, for instance: 1 for float; 2 for vec2; 3 for vec3, and so on
+4.   *  @param  type  – The data type associated: GL_FLOAT is an example
+5.   *  @param  normalized  – if set to 1 then the array values will be normalized, converted to a range from -1 to 1 for signed data, or 0 to 1 for unsigned data
+6.   *  @param  stride  – the spacing between elements. Exactly the same as in OpenGL
+7.   *  @param  pointer – pointer to the array containing the data
+8.   */
+9.   void glVertexAttribPointer(GLint loc, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
+
+下面是示例代码，首先执行初始化，定义了顶点数组和属性数组。
+
+1.   float vertices\[8\] = { -1, 1, 1, 1, -1, -1, 1, -1 };
+2.   float heights\[4\]  = { 2, 2, -2, -2 };
+3.   ...
+4.   loc = glGetAttribLocation(p, "height");
+
+6.   glEnableClientState(GL\_VERTEX\_ARRAY);
+7.   glEnableVertexAttribArray(loc);
+8.   glVertexPointer(2, GL_FLOAT, 0, vertices);
+9.   glVertexAttribPointer(loc, 1, GL_FLOAT, 0, 0, heights);
+
+接下来的渲染步骤与 OpenGL 中的通常做法一致，比如调用 glDrawArrays。示例源代码下载地址：[http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl4_2.0.zip](http://lighthouse3d.com/wptest/wp-content/uploads/2011/03/glutglsl4_2.0.zip) **5、易变变量（Varying Variables）**前 面说过，shader 包括两种类型：顶点 shader 和片断 shader。为了计算片断的值，往往需要访问顶点的插值数据。例如，当使用逐片断光照时，我 们需要知道当前片断的法线，但是在 OpenGL 中只为每个顶点指定了法线。顶点 shader 可以访问这些法线，而片断 shader 不能，因为法线是 OpenGL 程序作为属性变量指定的。 顶点变换后的数据移动到流水线的下一个阶段，在这个阶段通过使用连接信息，生成了所有图元并完成片断化。对每个片断，有一组变量会被自动进行插值并提供给片断 shader，这些都是固定功能。片断的颜色就是这么处理的，到达片断 shader 的颜色就是组成图元的顶点颜色插值的结果。 像片断 shader 接收到的这种插值产生的变量，就是"易变变量"类型。GLSL 包含一些预先定义的易变变量，例如前面提到的颜色。用户也可以自己定义易变变量，它们必须同时在顶点 shader 和片断 shader中声明：
+
+1.   varying float intensity;
+
+一个易变变量必须先在顶点 shader 中声明，然后计算每个顶点的变量值。在片断 shader 中，接收这个变量通过插值得到的结果，注意此时这个变量是只读的。 **6、语句和函数**①、**控制流语句** 与 C 语言类似，GLSL 中有类似 if-else 的条件语句，for、while、do-while等循环语句。
+
+1.   if (bool expression)
+2.       ...
+3.   else
+4.       ...
+
+6.   for (initialization; bool expression; loop expression)
+7.       ...
+
+9.   while (bool expression)
+10.       ...
+
+12.   do
+13.       ...
+14.   while (bool expression)
+
+GLSL 也有跳转语句：·   continue – available in loops, causes a jump to thenext iteration of the loop·   break    – available in loops, causes an exit of theloop·   discard最后的 discard 关键字只能在片断 shader 中使用，它将在不写入帧缓存或者深度缓存的情况下，终止当前片断的 shader 程序。 ②、**函数** 与 C 语言类似，shader 也是由函数组成的结构化程序。至少每类 shader 都必须包含一个如下方式声明的主函数：
+
+1.   void main()
+
+此外用户还可以自定义函数。这些函数像 C 函数一样，一般都会有返回值，返回值的类型没有限制，但不能是数组。 函数参数可以有如下修饰符：·   in    – for input parameters·   out   – for outputs of the function. The returnstatement is also an option for sending the result of a function.·   inout – for parameters that are both input andoutput of a function 如果没有指定修饰符，默认情况下为 in 类型。 最后还有两点要注意：·   允许函数重载，只要参数不同。·   在标准中没有定义递归行为。 结束本节之前来看一个函数的例子：
+
+1.  1.   vec4 toonify(in float intensity)
+    2.   {
+    3.       vec4 color;
+    
+    5.       if (intensity > 0.98)
+    6.          color = vec4(0.8, 0.8, 0.8, 1.0);
+    7.       else if (intensity > 0.5)
+    8.          color = vec4(0.4, 0.4, 0.8, 1.0);
+    9.       else if (intensity > 0.25)
+    10.          color = vec4(0.2, 0.2, 0.4, 1.0);
+    11.       else
+    12.          color = vec4(0.1, 0.1, 0.1, 1.0);
+    
+    14.       return(color);
+    15.   }
