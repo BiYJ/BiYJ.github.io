@@ -1,0 +1,397 @@
+---
+title: iOS点击事件和手势
+categories: iOS原理
+---
+
+
+## 一、场景再现
+
+工程 IM 界面使用 UITableView 作为展示视图，不同的 cell 展示不同的业务类型数据，有的 cell 可以点击跳转，有的则是纯文本。
+
+<center>
+![](http://dzliving.com/GestureAction_1.png?imageView2/0/w/500)
+</center>
+
+图中蓝色是 cell，红色是 UIControl 点击区域。
+
+为了实现点击界面空白区域收起键盘等操作，给 controller.view 添加 UITapGestureRecognizer 手势，响应后处理底部的视图位置。
+
+问题出在<font color=#cc0000>添加手势之后，UIControl 的点击事件失效了</font>，tableView 的 didSelectRowAtIndexPath 也没有反应。
+
+## 二、iOS 中的事件分发
+
+苹果文档：
+
+<center>
+![](http://dzliving.com/GestureAction_2.png?imageView2/0/w/500)
+</center>
+
+上图解释了 UIResponder 事件处理链的关系，而其事件分发过程，可以参看[官方文档](https://developer.apple.com/documentation/uikit/touches_presses_and_gestures/understanding_event_handling_responders_and_the_responder_chain)中的 “Determining Which Responder Contained a Touch Event” 部分。
+
+> 简单的说，当点击事件发生时，系统从顶层 View 开始（通常是应用的顶层 UIWindow），通过判断点击坐标是否落在视图的 frame 之中来决定是否将该点击事件交由该视图处理，而这个过程将会从顶层视图递归向下找到最内部的子视图，这个过程/方法也就是 hitTest 的过程。找到最底层视图之后，则会尝试让其处理这个事件（UIControl 的各种事件、UIGestureRecognizer 等），若其无法处理，则沿着图中的响应链一步步再向上寻找。
+
+从上可知，只要子视图有处理事件的能力，那么自然会覆盖掉父视图的处理逻辑。
+
+但如果真是这样，怎么会有子视图点击事件不响应的问题呢?
+
+## 三、手势识别
+
+stack overflow 上的一篇回答，看到之后我其实是崩溃的，意思是我想写个通用的基于UITableView的组件，还得在每个有UIGestureRecognizer的视图中加入delegate来规避手势冲突😨。
+
+尽管千百个不愿意，但正是这个在ParentView上的tap手势，导致了我的tableView手势识别的异常，所以只好通过实现
+
+func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool
+来解决这个冲突。
+
+随后，我又在官方文档中找到了如下内容：
+(文档直接贴上来有点长，大致意义如下)
+
+苹果官方又把文档给删了
+
+在 UIGestureRecognizer 的文档中，有这么一段话：
+
+A window delivers touch events to a gesture recognizer before it delivers them to the hit-tested view attached to the gesture recognizer.(Blah..Blah..Blah..) If a gesture recognizer recognizes its gesture, the remaining touches for the view are cancelled.
+
+也就是说：
+
+默认情况下，识别一个触摸事件的时候，手势识别将优先于UIResponder响应链式机制，而具体体现为：
+1.手势识别开始、变化的过程，gestureRecognizer与touchesBegan,touchesMoved同时处理响应事件。
+
+2.但是，只有在gestureRecognizer判定失败的时候(譬如一个tapGestureRegcognizer遇到了一个swipe手势)，系统才会触发UIResponder响应链中的touchesEnded，否则，会触发touchesCancelled。
+
+也就是说，一个手势是否能完整地从UIResponder响应链中传递完成，主要取决于gestrueRecognizer是否”愿意”这么做。
+
+也就是说，手势识别器拥有更高的优先级，只有自己玩剩下的才传给UIResponder响应链处理，当然，也可以通过设置cancelsTouchesInView来强制使触摸流程执行响应链流程，但这仍改变不了手势识别器拥有更高优先级的事实。
+
+接下来验证一下通过文档总结出的结论，看看这个Demo:
+
+
+其中青蓝色的背景是ParentView，我为它添加了一个UITapGestureRecognizer，而TableView是它的子视图，我重写了touchesBegan/touchesMoved等共四个相应的触摸响应函数用来做控制台输出。
+
+接下来我对着TableView进行如下三个操作：
+
+1.单击，就如同我打算正常的选中某一行一样，对应控制台输出：
+
+EventHandlingTest[5386:361029] Background Tap
+2.短按，即按住一小会儿后松开：
+
+EventHandlingTest[5386:361029] touches began
+EventHandlingTest[5386:361029] Background Tap
+EventHandlingTest[5386:361029] touches cancelled
+3.长按再松开：
+
+EventHandlingTest[5386:361029] touches began 
+EventHandlingTest[5386:361029] touches ended
+UIControl的魔力
+经过上面的“研究”，我们已经明白，UIGestureRecognizer并不按套路出牌，View的父子关系不影响其事件处理，但为什么我的UIButton就可以正常工作呢？
+
+以上表述仅适用于子视图没有相同的手势识别器的情况，若ParentView和Subview同时有一个相同的UIGestureRecognizer子类，则Subview响应事件会覆盖ParentView
+
+我又在官方文档找到了如下内容：
+
+When a control-specific event occurs, the control calls any associated action methods right away. Action methods are dispatched through the current UIApplication object, which finds an appropriate object to handle the message, following the responder chain if needed.
+
+也就是说，一个UIControl子类(UIButton/UISwitch)方法，其响应事件的方式不同于普通的UIView，它们的事件处理由UIApplication单例直接控制！尽管文档中提到其事件处理部分仍可能使用UIResponder响应链逻辑，但其事件分发与普通的UIView完全不同。
+
+我们再看一个Demo:
+
+
+
+和前面的Demo类似，不过此处加入了一个橙色的UIButton,此处TableView和Button是同层级的，均为青蓝色ParentView的子视图，同样，我重写了Button的touchesBegan等一系列方法。
+
+与前一个TableView Demo不同，我单击Button后，便立刻来到了touchesBegan中(而不是短按)，此时，对比一下进入touchesBegan的时候的Button和TableView的调用栈：
+
+Button:
+
+
+
+TableView:
+
+
+
+可以清楚地看到，Button的事件直接就由UIApplication传递过来了，而TableView走的是正常的响应链，经过了数次的消息转发。注意TableView调用栈红框底部外的第一条调用:_UIGestureEnvironmentSortAndSendDelayedTouches ()，从命名上我们可以看出，TableView的点击事件是被延迟发送的。
+
+理清头绪
+经过上面的探索，我们了解到，对于一个普通的UIView来说，想处理一个触摸事件还真是难呀！接下来，我对着Demo又进行了一番折腾，不负责任的有了以下的总结：
+
+1.当触摸事件开始后，系统会先尝试分发事件，对整个 Window递归调用 hitTest
+
+2.系统判别返回的 UIView是不是 UIControl的子类，如果是的话，直接将整个触摸事件交付 UIControl实例完成
+
+3.如果返回的是普通 UIView,且此时有相应的 UIGestureRecognizer，将事件交由该 recognizer处理，并同步走 touchesBegan以及 touchesMovde流程，最终由相应的 recognizer决定调用 touchesEnded还是 touchesCancelled
+
+4.尽管在 UIGestureRecognizer中有 .delaysTouchesBegan这一变量，且默认设置为 false，但在我的Demo中( UITableView与 Tap的冲突)，点击事件必须是轻按才会触发 UITableView的 touchesBegan，而点击并不会触发，并且 touchesBegan和 hitTest调用的间隔明显较长，而Demo中的 UIButton则可以在点击后立刻进入 touchesBegan，且其调用与 hitTest时间间隔明显短一些，结合前文TableView的调用栈，感觉这与文档中所提到的 touchesBegan/ touchesMoved与 gestureRecognizer状态更新同步略有出入
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+解决链接：didSelectRowAtIndexPath失效
+
+以上两个场景问题。都已经有解决方案了。但是，底层到底是为什么会有点击事件的响应冲突呢？
+
+这一切的原因都是因为：对于UITapGestureRecognizer认识不够深刻。
+
+先写下几个结论，后面慢慢解释：（此处只讨论单击tap事件）
+
+1、手势响应是大哥，点击事件响应链是小弟。单击手势优先于UIView的事件响应。大部分冲突，都是因为优先级没有搞清楚。
+
+2、单击事件优先传递给手势响应大哥，如果大哥识别成功，就会直接取消事件的响应链传递。
+
+识别成功时候，手势响应大哥拥有垄断权力。（在斗地主里面叫做：吃肉淘汤。）
+
+如果大哥识别失败了，触摸事件会继续走传递链，传递给响应链小弟处理。
+
+3、手势识别是需要时间的。
+
+手势识别有一个状态机的变化。在possible状态的时候，单击事件也可能已经传递给响应链小弟了。
+
+
+
+## 2、关于事件的几个概念
+在具体讲解上面三个结论之前。先简要的介绍一下 iOS 里面与事件相关的几个概念 。为了方便理解，我用了比喻的方法。
+
+1、 UITouch —— 一指禅
+当你用一根手指触摸屏幕时, 会创建一个与之关联的UITouch对象,
+
+一个手指第一次点击屏幕，就会生成一个UITouch对象，到手指离开时销毁。
+
+**一个UITouch对象对应一根手指. **。所以可以直接，想象成是神功——一指禅。
+
+2、UIEvent —— 如来神掌 （多个手指）
+一个UIEvent 事件定义为:第一个手指开始触摸屏幕到最后一个手指离开屏幕。
+
+一个UIEvent对象实际上对应多个UITouch对象。所以，一个UIEvent事件，可以简单的想象成是神功：如来神掌。（只是形象表示多个手指而已，不必要5个UITouch事件组合。）
+
+3、 UIResponder — 响应对象
+在iOS中不是任何对象都能处理事件, 只有继承了UIResponder的对象才能接收并处理事件,我们称为响应者对象。
+
+UIApplication,UIViewController,UIView都继承自UIResponder,因此他们都是响应者对象, 都能够接收并处理事件。
+
+也就是说iOS中 所有的UIView一旦成为响应者对象，都是可以响应单击的触摸事件的。
+
+本文不详细介绍响应链传递及响应的知识了。
+
+重点放在——单击事件，手势识别和响应链之间的纠缠。
+
+4、手势识别 UIGestureRecognizer
+手势是Apple提供的更高级的事件处理技术，可以完成更多更复杂的触摸事件，比如旋转、滑动、长按等。基类是UIGestureRecognizer。
+
+UIGestureRecognizer同UIResponder一样也有四个方法
+
+//UIGestureRecognizer
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent: (nullable UIEvent *)event;
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event;
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event;
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(nullable UIEvent *)event;
+需要注意的是UIGestureRecognizer，是有状态的变化的。同一个手势是有具有多个状态的变化的，会形成一个有限状态机。
+
+如下图：
+
+手势状态机.png
+左侧是非连续手势(比如单击)的状态机，右侧是连续手势(比如滑动)的状态机。
+
+所有的手势的开始状态都是UIGestureRecognizerStatePossible。
+
+非连续的手势要么识别成功(UIGestureRecognizerStateRecognized)，要么识别失败(UIGestureRecognizerStateFailed)。
+
+连续的手势识别到第一个手势时，变成UIGestureRecognizerStateBegan，然后变成UIGestureRecognizerStateChanged，并且不断地在这个状态下循环，当用户最后一个手指离开view时，变成UIGestureRecognizerStateEnded，
+
+当然如果手势不再符合它的模式的时候，状态也可能变成UIGestureRecognizerStateCancelled。
+
+3、手势识别与事件响应混用
+重点来了。
+
+iOS处理触屏事件，分为两种方式：
+
+高级事件处理：利用UIKit提供的各种用户控件或者手势识别器来处理事件。
+
+低级事件处理：在UIView的子类中重写触屏回调方法，直接处理触屏事件。
+
+这两种方式会在，单击触摸事件的时候得到使用。
+
+触摸事件可以通过响应链来传递与处理，也可以被绑定在view上的手势识别和处理。那么这两个一起用会出现什么问题？
+
+如果回答了这个问题，就可以说清楚，开篇的两个问题了。
+
+此处的DEMO例子参考。iOS点击事件和手势冲突
+
+下面开始例子的讲解。Demo链接：testTap
+图片：
+
+demo.png
+图中baseView 有两个subView，分别是testView和testBtn。我们在baseView和testView都重载touchsBegan:withEvent、touchsEnded:withEvent、
+touchsMoved:withEvent、touchsCancelled:withEvent方法，并且在baseView上添加单击手势，action名为tapAction，给testBtn绑定action名为testBtnClicked。
+主要代码如下：
+
+//baseView
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapAction)];
+    [self.view addGestureRecognizer:tap];
+    ...
+    [_testBtn addTarget:self action:@selector(testBtnClicked) forControlEvents:UIControlEventTouchUpInside];
+｝
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    NSLog(@"=========> base view touchs Began");
+}
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+     NSLog(@"=========> base view touchs Moved");
+}
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+     NSLog(@"=========> base view touchs Ended");
+}
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+     NSLog(@"=========> base view touchs Cancelled");
+}
+- (void)tapAction {
+     NSLog(@"=========> single Tapped");
+}
+- (void)testBtnClicked {
+     NSLog(@"=========> click testbtn");
+}
+//test view
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    NSLog(@"=========> test view touchs Began");
+}
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    NSLog(@"=========> test view touchs Moved");
+}
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    NSLog(@"=========> test view touchs Ended");
+}
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    NSLog(@"=========> test view touchs Cancelled");
+}
+情景A ：单击baseView，输出结果为：
+
+=========> base view touchs Began
+=========> single Tapped
+=========> base view touchs Cancelled
+情景B ：单击testView，输出结果为：
+
+=========> test view touchs Began
+=========> single Tapped
+=========> test view touchs Cancelled
+情景C ：单击testBtn, 输出结果为：
+
+=========> click testbtn
+情景D ：按住testView，过5秒后或更久释放，输出结果为：
+
+=========> test view touchs Began
+=========> test view touchs Ended
+1、情景A和B
+情景A和B，都是在单击之后，既响应了手势的tap 事件，也让响应链方法执行了。为什么两个响应都执行了呢？
+
+看看开发文档，就应该可以理解了。
+
+Gesture Recognizers Get the First Opportunity to Recognize a Touch.
+
+A window delays the delivery of touch objects to the view so that the gesture recognizer can analyze the touch first. During the delay, if the gesture recognizer recognizes a touch gesture, then the window never delivers the touch object to the view, and also cancels any touch objects it previously sent to the view that were part of that recognized sequence.
+
+Google翻译：
+
+手势识别器获得识别触摸的第一个机会。
+
+一个窗口延迟将触摸对象传递到视图，使得手势识别器可以首先分析触摸。 在延迟期间，如果手势识别器识别出触摸手势，则窗口不会将触摸对象传递到视图，并且还将先前发送到作为识别的序列的一部分的视图的任何触摸对象取消。
+
+图片：
+
+
+手势图片.png
+触摸事件首先传递到手势上，如果手势识别成功，就会取消事件的继续传递，否则，事件还是会被响应链处理。具体地，系统维持了与响应链关联的所有手势，事件首先发给这些手势，然后再发给响应链。
+
+这样可以解释情景A和B了。
+
+首先，我们的单击事件，是有有手势识别这个大哥来优先获取。只不过，手势识别是需要一点时间的。在手势还是Possible 状态的时候，事件传递给了响应链的第一个响应对象（baseView 或者 testView）。
+
+这样自然就去调用了，响应链UIResponder的touchsBegan:withEvent方法，之后手势识别成功了，就会去cancel之前传递到的所有响应对象，于是就会调用它们的touchsCancelled:withEvent:方法。
+
+2、情境C
+好了，情景A和B都可以解释明白了。但是，请注意，按这样的解释为什么情景C没有触发响应链的方法呢？
+
+这里可以说是事件响应的一个特例。
+
+iOS 开发文档里这样说：
+
+In iOS 6.0 and later, default control actions prevent overlapping gesture recognizer behavior. For example, the default action for a button is a single tap. If you have a single tap gesture recognizer attached to a button’s parent view, and the user taps the button, then the button’s action method receives the touch event instead of the gesture recognizer. This applies only to gesture recognition that overlaps the default action for a control, which includes:
+
+A single finger single tap on a UIButton, UISwitch, UISegmentedControl, UIStepper,and UIPageControl.A single finger swipe on the knob of a UISlider, in a direction parallel to the slider.A single finger pan gesture on the knob of a UISwitch, in a direction parallel to the switch.
+
+Google 翻译为：
+
+在iOS 6.0及更高版本中，默认控制操作可防止重叠的手势识别器行为。 例如，按钮的默认操作是单击。 如果您有一个单击手势识别器附加到按钮的父视图，并且用户点击按钮，则按钮的动作方法接收触摸事件而不是手势识别器。 这仅适用于与控件的默认操作重叠的手势识别，其中包括：
+
+单个手指单击UIButton，UISwitch，UISegmentedControl，UIStepper和UIPageControl.
+
+单个手指在UISlider的旋钮上滑动，在平行于滑块的方向上。在UISwitch的旋钮上的单个手指平移手势 与开关平行的方向。
+
+所以呢，在情境C，里面testBtn的 默认action，获取了事件响应，不会把事件传递给父视图baseView，自然就不会触发，baseView的tap 事件了。
+
+3、情境D
+在情景D中，由于长按住testView不释放，tap手势就会识别失败，因为长按就已经不是单击事件了。手势识别失败之后，就可以继续正常传递给testView处理。
+
+所以，只有响应链的方法触发了。
+
+4、实际开发遇到的问题解决
+基本的开发目标，不让父视图的手势识别干扰子视图UIView的点击事件响应或者说响应链的正常传递。
+
+一般都会是重写UIGestureRecognizerDelegate中的- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch方法。
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch  
+{  
+     // 若为UITableViewCellContentView（即点击了tableViewCell），
+    if ([NSStringFromClass([touch.view class]) isEqualToString:@"UITableViewCellContentView"]) {  
+    // cell 不需要响应 父视图的手势，保证didselect 可以正常
+        return NO;  
+    }  
+    //默认都需要响应
+    return  YES;  
+}
+1、iOS开发中让子视图不响应父视图的手势识别器
+
+2、iOS单击响应，UIControl
+
+3、didSelectRowAtIndexPath失效
+
+4、以上例子的Demo链接：testTap;
+
+小结
+复习一下结论：
+
+（此处只讨论单击tap事件）
+
+1、手势响应是大哥，点击事件响应链是小弟。单击手势优先于UIView的事件响应。大部分冲突，都是因为优先级没有搞清楚。
+
+2、单击事件优先传递给手势响应大哥，如果大哥识别成功，就会直接取消事件的响应链传递。
+
+识别成功时候，手势响应大哥拥有垄断权力。（在斗地主里面叫做：吃肉淘汤。）
+
+如果大哥识别失败了，触摸事件会继续走传递链，传递给响应链小弟处理。
+
+3、手势识别是需要时间的。
+手势识别有一个状态机的变化。在possible状态的时候，单击事件也可能已经传递给响应链小弟了。
+
+
+
+
+
+##  待处理
+
+
+https://www.jianshu.com/p/68889f14be4b
+https://www.jianshu.com/p/33a28bb14749
+https://help.apple.com/xcode/mac/current/#/dev7ccaf4d3c
+https://blog.gocy.tech/2016/11/19/iOS-touch-handling/
+https://www.jianshu.com/p/53e03e558cbd
+https://blog.csdn.net/u012218309/article/details/81669227

@@ -3,6 +3,10 @@ title: iOS 项目发布
 category: iOS原理
 ---
 
+<center>
+![](http://dzliving.com/AppStore_1.png)
+</center>
+
 ## 一、Apple开发者账号
 
 #### 1.1 开发者账号类型
