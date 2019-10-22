@@ -14,7 +14,7 @@ App Slicing 在节省应用所需资源中发挥着最重要的作用。
 比如用户使用的是 iPhone 5c，它运行的是 32 位 CPU 和 GPU，并不支持 Metal API。但如果用户下载的是一款最新的通用游戏应用，它的二进制中含有 64 位代码，iPad 和"@3x"iPhone 6 Plus 资源以及 Metal API 代码，这些都是你的设备用不上的。它只需要 32 位代码，"@2x"iPhone 尺寸资源以及 OpenGL 图形代码。
 
 <center>
-![](https://upload-images.jianshu.io/upload_images/5294842-2c4819d0348f492f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/640)
+![](http://dzliving.com/AppThinning_1.png)
 </center>
 
 **Note : Sliced apps are supported on devices running 9.0 and later;**
@@ -29,6 +29,12 @@ Slicing 的主要的工作流程如下：
 6.  在 iTunes Connect 中，发布一个预览版给合格的测试者进行测试；
 7.  测试者通过 TestFlight 下载预览版。TestFlight 会自动根据测试者的设备下载合适的"简化版 app"。
 
+最终苹果下载资源的效果如下：
+
+<center>
+![](http://dzliving.com/AppThinning_2.png)
+</center>
+
 ## 二、Bitcode (iOS, watchOS)
 
 Bitcode 是一个编译好的程序的中间表示形式。上传到 iTunes Connect 中的包含 Bitcode 的 app 将会在 App Store 中进行链接和编译。苹果会对包含 Bitcode 的二进制 app 进行二次优化，而不需要提交一个新的 app 版本到 App Store 中。
@@ -38,7 +44,7 @@ Bitcode 是一个编译好的程序的中间表示形式。上传到 iTunes Conn
 ODR（on-demand resources 随需应变资源)是 iOS 减少应用资源消耗的另外一种方法。比如多级游戏，用户需要的通常都是他们当前的级数以及下一级。ODR 意味着用户可以下载他们需要的几级游戏。随着你的级数不断增加，应用再下载其他级数，并将用户成功过关的级数删掉。
 
 <center>
-![](https://upload-images.jianshu.io/upload_images/5294842-3691bd525660ea81.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/640)
+![](http://dzliving.com/AppThinning_3.png)
 </center>
 
 当用户点击应用内容的时候，就会动态从 App Store 上进行下载，也就是说用户只会在需要的时候占用存储空间。这项功能有趣之处还在于当将这些内容在后台进行下载之后，当存储空间紧张的时候会自动进行删除。
@@ -171,3 +177,4 @@ On-Demand Resources 可以是除了可执行代码外的任意类型。
 [What is app thinning? (iOS, tvOS, watchOS)](https://help.apple.com/xcode/mac/current/#/devbbdc5ce4f)
 [On-Demand Resources Essentials](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/On_Demand_Resources_Guide/index.html#//apple_ref/doc/uid/TP40015083)
 [https://www.jianshu.com/p/789df0adaac2](https://www.jianshu.com/p/789df0adaac2)
+[App Thinning](https://www.cnblogs.com/jvan/p/5473312.html)

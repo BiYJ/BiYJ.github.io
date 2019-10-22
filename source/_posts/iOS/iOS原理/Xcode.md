@@ -251,3 +251,20 @@ Architectures in the fat file: libBloodTester.a are: armv7 i386 x86_64 arm64
 很久前 xcode 支持的指令集是 armv7/armv7s，后来改成只支持 armv7 后，比原来小了 10MB 左右。目前 AppStore 上的一些知名应用，比如百度地图、腾讯地图通过反汇编工具查看后，也都只支持 armv7 指令集。<font color=#cc0000>（待验证）</font>
 
 根据向下兼容原则，armv7 指令集的应用是可以正常在支持 armv7s/arm64 指令集的机器上运行的。
+
+
+## 五、Build Settings
+
+1. Generate Debug Symbols 
+	
+	no - 不会在断点处停下。
+	
+2. Dead Code Stripping 
+
+	yes - 确定 dead code（代码被定义但从未被调用）被剥离，去掉冗余的代码。
+	
+3. Optimization Level
+
+	编译器优化级别
+	
+4. Strip Debug Symbols During Copy 和 Symbols Hidden by Default 在release版本应该设为yes，可以去除不必要的调试符号。Symbols Hidden by Default会把所有符号都定义成”private extern”，设了后会减小体积。
