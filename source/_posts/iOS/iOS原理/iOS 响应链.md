@@ -103,7 +103,9 @@ UIKit 使用基于视图的 hit-testing 来确定 Touch 事件在哪里产生。
 
 当 touch 第一次产生时 UIKit 创建 UITouch 对象，在 touch 结束时释放这个 UITouch对象。当 touch 位置或者其他参数改变时，UIKit 更新 UITouch 对象新的信息。
 
-![](https://upload-images.jianshu.io/upload_images/5294842-bff8ab2f91a231b2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+<center>
+![](http://dzliving.com/GestureAction_3.png?imageView2/0/w/500)
+</center>
 
 把父视图的 userInteractionEnabled 设置为 NO，按钮 1 和按钮 2 都不会响应了。
 
@@ -143,8 +145,9 @@ UIKit 使用基于视图的 hit-testing 来确定 Touch 事件在哪里产生。
     
 *   <font color=#cc0000>从后往前遍历</font>子控件，图中按钮 2 在按钮 1 视图层级之上，所以按钮 2 是最合适的 view，还没有轮到按钮 1。
     
-
-![](https://upload-images.jianshu.io/upload_images/5294842-f9515b7b8aab8425.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+<center>
+![](http://dzliving.com/GestureAction_4.png?imageView2/0/w/600)
+</center>
 
 视图层级从后往前依次是 C->D->A、E->F->B->父视图，父视图的 subviews = @[ B, A ]。当点击界面发生触摸事件时，遍历父视图的子视图，倒序遍历，先遍历的 A 视图。
 
@@ -170,7 +173,9 @@ UIKit 使用基于视图的 hit-testing 来确定 Touch 事件在哪里产生。
 
 如果现在要扩大按钮 2 的点击范围怎么办？如果要让按钮 1 只点击左右区域 40 像素有效，其他地方都不响应呢?
 
+<center>
 ![](https://upload-images.jianshu.io/upload_images/5294842-df8b1e917c015d2c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+</center>
 
 *   扩大响应范围。
     
