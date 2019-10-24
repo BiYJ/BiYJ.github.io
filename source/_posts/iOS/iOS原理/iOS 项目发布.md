@@ -140,19 +140,20 @@ Apple 使用该公钥来制作证书。证书或多或少是一种发布公钥�
 生成 CSR 文件步骤：
 
 <center>
-	![](http://dzliving.com/KeyAccess.png)
-	![](http://dzliving.com/CSR.png)
-	![](http://dzliving.com/CSR2.png)
+![](http://dzliving.com/KeyAccess.png?imageView2/0/w/100)
+![](http://dzliving.com/CSR.png?imageView2/0/w/500)
+![](http://dzliving.com/CSR2.png)
 </center>
 
 1. 用户电子邮件地址随便填写，并不一定非要填写邮件格式，无实际作用
 2. 常用名字使用默认的就可以，也可以修改
 3. 选择存储到磁盘。
-4. 选择继续，保存到指定位置即可。最终得到一个 ``CertificateSigningRequest.certSigningRequest`` 文件，也就是 CSR 文件。该文件后缀名不要更改，文件名可自由指定。
+4. 选择继续，保存到指定位置即可。最终得到一个 `CertificateSigningRequest.certSigningRequest` 文件，也就是 CSR 文件。该文件后缀名不要更改，文件名可自由指定。
 
 CSR文件尽量每个证书都制作一次，将常用名称区分开来，因为该常用名称是证书中的密钥的名字。
 
 <center>![](http://dzliving.com/P12CSR.png)</center>
+
 
 #### 2.4 .cer
 
@@ -193,6 +194,101 @@ CSR文件尽量每个证书都制作一次，将常用名称区分开来，因�
 
 > 邓氏编码（D-U-N-S® Number，是 Data Universal Numbering System的缩写）。它是一个独一无二的 9 位数字全球编码系统，相当于企业的身份识别码，被广泛应用于企业识别、商业信息的组织及整理。可以帮助识别和迅速定位全球 2.4 亿家企业的信息。
 
+#### 2.8 crt
+
+crt 文件，是用于从证书颁发机构签过名的文件。https 就需要这个文件，放在自己服务器上用于别人接收。是一个 base64 格式的。
+
+```
+$ openssl x509 -req -days 3650 -in rsacert.csr -signkey private.pem -out rsacert.crt
+```
+
+* -days 3650 代表有效期10年
+* -in rsacert.csr 传递一个文件
+* -signkey private.pem 代表用私钥 private.pem 文件进行签名
+
+
+#### 2.9 der
+
+```
+$ openssl x509 -outform der -in rsacert.crt -out rsacert.der
+```
+
+der 文件主要包括就是公钥和一些信息。
+
+#### 2.10 生成文件
+
+```
+# 生成原始 RSA 私钥文件
+$ openssl genrsa -out private.pem
+Generating RSA private key, 2048 bit long modulus
+.......................................................+++
+..................................+++
+e is 65537 (0x10001)
+
+$ openssl genrsa -out private.pem 1024
+Generating RSA private key, 1024 bit long modulus
+............................++++++
+.....++++++
+e is 65537 (0x10001)
+
+# 将原始 RSA 私钥转换为 pkcs8 格式
+$ openssl pkcs8 -topk8 -inform PEM -in private.pem -outform PEM -nocrypt -out rsa_private.pem	
+
+# 提取公钥 public.pem
+$ openssl rsa -in private.pem -pubout -out public.pem
+
+# 查看公钥文件，base64 编码
+$ cat public.pem
+-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDAXb5xgXWKdGizJ6lFp61U8Mk6
+TdBP0HgP38ZeiwEysgNfnPS1T8Lf0+OXbkWRdTdLAxCEG6IXp/gwBfqA2yab1GNb
+tsJSch/KxCqmHlxqbNB54dZH6TvibZLIXVbGysIc/keqkBW0Q+BZ2/bqgsRqDHBy
+Vtb5wE8o7AEbv+OD7QIDAQAB
+-----END PUBLIC KEY-----
+
+# 把 private.pem 转成明文
+$ openssl rsa -in private.pem -text -out private.txt
+writing RSA key
+	
+# 提取 .csr 文件
+$ openssl req -new -key private.pem -out rsa_cert.csr
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) []:CN   #国家名称
+State or Province Name (full name) []:BeiJing  #省名
+Locality Name (eg, city) []:BeiJing	 #城市名
+Organization Name (eg, company) []:CYKJ  #公司名称
+Organizational Unit Name (eg, section) []:CYKJ.com  #公司单元名称              
+Common Name (eg, fully qualified host name) []:www.cykj.cn  #主机名
+Email Address []:dubinbin@ciyun.cn   #邮箱
+	
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:123321   #密码
+
+# 签名，提取 .crt 文件
+$ openssl x509 -req -days 3650 -in rsa_cert.csr -signkey private.pem -out rsa_cert.crt
+Signature ok
+subject=/C=CN/ST=BeiJing/L=BeiJing/O=CYKJ/OU=CYK.com/CN=www.cykj.cn/emailAddress=dubinbin@ciyun.cn
+Getting Private key
+	
+# 生成 .der 文件
+$ openssl x509 -outform der -in rsa_cert.crt -out rsa_cert.der
+	
+# 生成 .p12 文件
+$ openssl pkcs12 -export -out p.p12 -inkey private.pem -in rsa_cert.crt
+Enter Export Password:123321
+Verifying - Enter Export Password:123321
+```
+
+<center>
+![](http://dzliving.com/openSSL_operate.png)
+</center>
 
 ## 三、打包上传
 
