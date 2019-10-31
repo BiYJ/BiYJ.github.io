@@ -204,59 +204,49 @@ Cell 内实现的内容来自 web，使用异步加载，缓存请求结果。
 
 ## 九、渲染
 
-1、减少 subviews 的个数和层级
+1. 减少 subviews 的个数和层级
 
-      子控件的层级越深，渲染到屏幕上所需要的计算量就越大；如多用 drawRect 绘制元素，替代用 view 显示。
+	子控件的层级越深，渲染到屏幕上所需要的计算量就越大；如多用 drawRect 绘制元素，替代用 view 显示。
+	
+2. 少用 subviews 的透明图层
 
-2、少用 subviews 的透明图层
+	渲染最耗时的操作之一就是混合(blending)了。对于不透明的 View，设置 opaque = YES，这样在绘制该 View 时，避免 GPU 对 View 覆盖的其他内容也进行绘制。
+	
+3. 背景色不要使用 clearColor
 
-      渲染最耗时的操作之一就是混合(blending)了。对于不透明的 View，设置 opaque = YES，这样在绘制该 View 时，避免 GPU 对 View 覆盖的其他内容也进行绘制。
+4. 避免 CALayer 特效（shadowPath）
 
-3、背景色不要使用 clearColor
+	给 Cell 中 View 加阴影会引起性能问题，如下面代码会导致滚动时有明显的卡顿：
+	
+	```objc
+	view.layer.shadowColor   = color.CGColor;
+	view.layer.shadowOffset  = offset;
+	view.layer.shadowOpacity = 1;
+	view.layer.shadowRadius  = radius;
+	```
 
-4、避免 CALayer 特效（shadowPath）
-
-      给 Cell 中 View 加阴影会引起性能问题，如下面代码会导致滚动时有明显的卡顿：
-
-```objc
-view.layer.shadowColor   = color.CGColor;
-view.layer.shadowOffset  = offset;
-view.layer.shadowOpacity = 1;
-view.layer.shadowRadius  = radius;
-```
-
-5、当有图像时，预渲染图像，在 bitmap context 先将其画一遍，导出成 UIImage 对象，然后再绘制到屏幕，这会大大提高渲染速度。具体内容可以自行查找“利用预渲染加速显示 iOS 图像”相关资料。
+5. 当有图像时，预渲染图像，在 bitmap context 先将其画一遍，导出成 UIImage 对象，然后再绘制到屏幕，这会大大提高渲染速度。具体内容可以自行查找“利用预渲染加速显示 iOS 图像”相关资料。
 
 
 ## 十、总结
 
 UITableView 的优化主要从四个方面入手：
 
-1、提前计算并缓存好高度（布局），因为 tableView:heightForRowAtIndexPath: 是调用最频繁的方法；
-
-2、滑动时按需加载，防止卡顿。这个在大量图片展示，网络加载的时候很管用，配合 SDWebImage；
-
-3、异步绘制，遇到复杂界面，遇到性能瓶颈时，可能就是突破口；
-
-4、缓存一切可以缓存的，这个在开发的时候，往往是性能优化最多的方向。
+1. 提前计算并缓存好高度（布局），因为 tableView:heightForRowAtIndexPath: 是调用最频繁的方法；
+2. 滑动时按需加载，防止卡顿。这个在大量图片展示，网络加载的时候很管用，配合 SDWebImage；
+3. 异步绘制，遇到复杂界面，遇到性能瓶颈时，可能就是突破口；
+4. 缓存一切可以缓存的，这个在开发的时候，往往是性能优化最多的方向。
 
 大概需要关注的：
 
-1、cell 复用
-
-2、cell 高度的计算
-
-3、渲染（混合问题）
-
-4、减少视图的数目（重写 drawRect:）
-
-5、减少多余的绘制操作
-
-6、不要给 cell 动态添加 subView
-
-7、异步化 UI，不要阻塞主线程
-
-8、滑动时按需加载对应的内容
+1. cell 复用
+2. cell 高度的计算
+3. 渲染（混合问题）
+4. 减少视图的数目（重写 drawRect:）
+5. 减少多余的绘制操作
+6. 不要给 cell 动态添加 subView
+7. 异步化 UI，不要阻塞主线程
+8. 滑动时按需加载对应的内容
 
 
 ## 十一、资料
@@ -266,3 +256,6 @@ UITableView 的优化主要从四个方面入手：
 文章：[提升 UITableView 性能-复杂页面的优化](http://tutuge.me/2015/02/19/%E6%8F%90%E5%8D%87UITableView%E6%80%A7%E8%83%BD-%E5%A4%8D%E6%9D%82%E9%A1%B5%E9%9D%A2%E7%9A%84%E4%BC%98%E5%8C%96/)
 
 代码：[VVeboTableViewDemo](https://github.com/johnil/VVeboTableViewDemo)
+
+[优化UITableViewCell高度计算的那些事](http://blog.sunnyxx.com/2015/05/17/cell-height-calculation/)
+[UITableView+FDTemplateLayoutCell](https://github.com/forkingdog/UITableView-FDTemplateLayoutCell)

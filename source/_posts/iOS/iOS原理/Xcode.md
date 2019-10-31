@@ -392,12 +392,49 @@ yes - 确定 dead code（代码被定义但从未被调用）被剥离，去掉�
 	
 #### 5.8 Optimization Level
 
-	编译器优化级别
+编译器优化级别。
+
+比较早期的时候，硬件资源是比较缺乏的。为了提高性能，开发编译器的大师们，都会对编译器(从c到汇编的编译过程)加上一定的优化策略。优化后的代码效率比较高，但是可读性比较差，且编译时间更长。
+
+优化是指编译器一级的措施，与机器指令比较接近，所以很可能会导致硬件不兼容，进而产生了你目前遇到的软件装不上的问题。 
+
+* None：不优化。[-O0] 与此设置，编译器的目标是降低成本的编译和调试产生预期的结果。语句是独立的：如果你停止程序语句之间有一个断点,然后您可以指定一个新值的任何变量或任何其他声明改变程序计数器的功能和得到你期望的结果从源代码。
+* Fast：优化编译需要更多的时间，和更多的内存大的功能。[-O,O1] 与此设置，编译器试图减少代码大小和执行时间，没有执行任何优化,需要大量的编译时间。在苹果的编译器,严格的混叠,阻挡重新排序,并内嵌调度优化时默认是禁用的。
+* Faster：编译器执行几乎所有支持优化，不涉及 space-speed 权衡。[-O2]与此设置,编译器不执行循环展开或内联函数,或寄存器重命名。相比“快速”的设置,该设置增加编译时间和生成的代码的性能。
+* Fastest:打开“更快”指定的优化设置,也取决于函数内联和寄存器重命名选项。此设置可能会导致一个更大的二进制。
+* Fastest [-O3],最小的优化尺寸。这个设置允许所有“更快”的优化通常不增加代码大小。它还旨在减少代码的大小进行进一步的优化。
+
 	
 #### 5.9 Symbols Hidden by Default 
 
 会把所有符号都定义成”private extern”，设了后会减小体积。
 
 
+#### 5.10 Other C Flags
+
+1. -fembed-bitcode
+
+	让 framework 支持 bitcode。如果不进行以上操作。别人在集成你的 framework 时可以编译，亦可以真机测试。唯独在打包时会发出警告并打包失败：警告为 framework 不支持 bitcode！
+
+#### 5.11 Other Warning Flags
+
+忽略整个工程中的指定类型的警告。例如填入 "-Wno-deprecated-declarations"
+	
+![](https://img-blog.csdn.net/20160214130836151?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQv/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center)
+
+
+## 六、忽略警告
+
+```
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored"-Wdeprecated-declarations"
+
+// 写在这个中间的代码，都不会被编译器提示 -Wdeprecated-declarations 类型的警告
+dispatch_queue_t currentQueue = dispatch_get_current_queue();
+
+#pragma clang diagnostic pop
+```
+
 
 [Xcode缩小ipa包大小及symbols设置等](https://blog.csdn.net/u013030990/article/details/72621380)
+
