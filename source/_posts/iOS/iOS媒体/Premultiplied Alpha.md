@@ -1,6 +1,6 @@
 ---
 title: Premultiplied Alpha
-categories: iOS音视频
+categories: iOS媒体
 ---
 
 Xcode 的工程选项里有一项 Compress PNG Files，会对 PNG 进行 Premultiplied Alpha。游戏开发中会更加关注这个格式，省一些运行时计算。
@@ -91,6 +91,6 @@ typedef CF_ENUM(uint32_t, CGImageAlphaInfo){
 > 
 > It is a superset of both conventional and additive blending. If you set alpha to zero while RGB is non zero, you get an additive blend. This can be handy for particle systems that want to smoothly transition from additive glowing sparks to dark pieces of soot as the particles age.
 > 
-> It plays nice with [DXT compression](https://link.jianshu.com?t=http://blogs.msdn.com/shawnhar/archive/2008/10/28/texture-compression.aspx), which only supports transparent pixels with an RGB of zero.
+> It plays nice with [DXT compression](http://blogs.msdn.com/shawnhar/archive/2008/10/28/texture-compression.aspx), which only supports transparent pixels with an RGB of zero.
 > 
-> 摘自：[Premultiplied alpha](https://link.jianshu.com?t=https://blogs.msdn.microsoft.com/shawnhar/2009/11/06/premultiplied-alpha/)
+> 摘自：[Premultiplied alpha](https://blogs.msdn.microsoft.com/shawnhar/2009/11/06/premultiplied-alpha/)

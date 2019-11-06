@@ -438,3 +438,17 @@ dispatch_queue_t currentQueue = dispatch_get_current_queue();
 
 [Xcode缩小ipa包大小及symbols设置等](https://blog.csdn.net/u013030990/article/details/72621380)
 
+
+## 七、@available、#available
+
+Swift 2.0 中,引入了可用性的概念。对于函数、类、协议等，可以使用 @available 声明这些类型的生命周期依赖于特定的平台和操作系统版本。而 #available 用在判断语句中(if, guard, while等)，在不同的平台上做不同的逻辑。
+
+```
+@available(iOS 9, *) func myMethod() { 
+    
+  // do something 
+}      
+```
+
+[iOS @available 和 #available 的用法](https://www.jianshu.com/p/fe59934a0152)
+[Xcode 9.0中新增的API版本检查@available](https://www.jianshu.com/p/b877be6d6570)

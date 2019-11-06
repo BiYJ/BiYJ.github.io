@@ -224,7 +224,7 @@ Cocoa/Cocoa Touch 开发框架本身提供了大量的 Framework，比如 Founda
 
 * Headers
     
-	表示暴露的头文件，一般都会有一个和 Framework 同名的 .h 文件，在创建 Framework 的时候文件夹里也会默认生成这样一个文件。有这个和 Framework 同名的 .h 文件 <font color=#cc0000>@import</font> 导入库的时候编译器才能找到这个库（@import 导入头文件可参考 [iOS里的导入头文件](https://link.jianshu.com?t=https://www.zybuluo.com/qidiandasheng/note/602118)）。
+	表示暴露的头文件，一般都会有一个和 Framework 同名的 .h 文件，在创建 Framework 的时候文件夹里也会默认生成这样一个文件。有这个和 Framework 同名的 .h 文件 <font color=#cc0000>@import</font> 导入库的时候编译器才能找到这个库（@import 导入头文件可参考 [iOS里的导入头文件](https://www.zybuluo.com/qidiandasheng/note/602118)）。
 
 * info.plist
     
@@ -282,7 +282,7 @@ CocoaPods 如何生成 Framework 的资源文件？
 
 你可以用 NSBundle \* bundle = \[\[NSBundle mainBundle\] bundlePath\]; 得到 .app 目录，如果是动态库你能在 Framework 目录下看到这个动态库以及动态库里面资源文件。然后你只要用 NSBundle \* bundle = \[NSBundle <font color=#cc0000>bundleForClass:<#ClassFromFramework#></font>\]; 得到这个动态库的路径就能读取到里面的资源了。但是如果是静态库的话，因为编译进了可执行文件里面，你也就没办法读到这个静态库了，你能看到 .app 下的 Framework 目录为空。
 
-[在 Framework 或子工程中使用 xib](https://link.jianshu.com?t=https://blog.cnbluebox.com/blog/2014/12/08/xib-in-frameworks/)
+[在 Framework 或子工程中使用 xib](https://blog.cnbluebox.com/blog/2014/12/08/xib-in-frameworks/)
 
 
 ## 十、问题
@@ -301,7 +301,7 @@ CocoaPods 如何生成 Framework 的资源文件？
 
 	如果创建的 Framework 类中使用了 .dylib 或者 .tbd，首先需要在实际项目中导入 .dylib 或者 .tbd 动态库，然后需要设置 Allow Non-modular Includes In Framework Modules = YES
 
-* 有时候我们会发现在使用的时候加载不了动态 Framework 里的资源文件，其实是加载方式不对，比如用 pod 的时候使用的是 use_frameworks!，那么资源是在 Framework 里面的，需要使用以下代码加载（具体可参考[给pod添加资源文件](https://link.jianshu.com?t=https://www.zybuluo.com/qidiandasheng/note/392639#%E7%BB%99pod%E6%B7%BB%E5%8A%A0%E8%B5%84%E6%BA%90%E6%96%87%E4%BB%B6)）：
+* 有时候我们会发现在使用的时候加载不了动态 Framework 里的资源文件，其实是加载方式不对，比如用 pod 的时候使用的是 use_frameworks!，那么资源是在 Framework 里面的，需要使用以下代码加载（具体可参考[给pod添加资源文件](https://www.zybuluo.com/qidiandasheng/note/392639#%E7%BB%99pod%E6%B7%BB%E5%8A%A0%E8%B5%84%E6%BA%90%E6%96%87%E4%BB%B6)）：
     
 	```
 	NSBundle * bundle = [NSBundle bundleForClass:<#ClassFromFramework#>];
@@ -355,12 +355,12 @@ CocoaPods 如何生成 Framework 的资源文件？
 
 ## 十四、参考
 
-[创建一个 iOS Framework 项目](https://link.jianshu.com?t=http://www.samirchen.com/create-a-framework/)
-[Xcode7创建静态库和Framework](https://link.jianshu.com?t=https://www.gitbook.com/book/xianjun/xcode7_framework_and_static_lib/details)
+[创建一个 iOS Framework 项目](http://www.samirchen.com/create-a-framework/)
+[Xcode7创建静态库和Framework](https://www.gitbook.com/book/xianjun/xcode7_framework_and_static_lib/details)
 [iOS 静态库开发](https://www.jianshu.com/p/8f5b9855efb8)
-[静态库与动态库的使用](https://link.jianshu.com?t=https://www.gitbook.com/book/leon_lizi/-framework-/details)
-[iOS 静态库，动态库与 Framework](https://link.jianshu.com?t=https://skyline75489.github.io/post/2015-8-14_ios_static_dynamic_framework_learning.html)
-[签名](https://link.jianshu.com?t=http://nixwang.com/2015/11/09/ios-dynamic-update/)
+[静态库与动态库的使用](https://www.gitbook.com/book/leon_lizi/-framework-/details)
+[iOS 静态库，动态库与 Framework](https://skyline75489.github.io/post/2015-8-14_ios_static_dynamic_framework_learning.html)
+[签名](http://nixwang.com/2015/11/09/ios-dynamic-update/)
 [iOS打包静态库（完整篇）](https://www.cnblogs.com/weiming4219/p/7827197.html)
 [iOS armv7、armv7s、 arm64](https://blog.csdn.net/u011545443/article/details/42294883)
 [iOS 创建 .a 和 .framework 静态库，以及 Bundle 资源文件的使用](https://blog.csdn.net/pangshishan1/article/details/72179898)

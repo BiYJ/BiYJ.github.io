@@ -211,7 +211,7 @@ CG_EXTERN void CGContextAddArcToPoint(CGContextRef cg_nullable c,
 
 ①、有提到还有一种 mask 方法。 
 
-这种方法比第一种方法其实更卡顿。一次 mask 发生了两次离屏渲染和一次主屏渲染。 具体可以参考[小心别让圆角成了你列表的帧数杀手](https://link.jianshu.com/?t=http://www.cocoachina.com/ios/20150803/12873.html)。
+这种方法比第一种方法其实更卡顿。一次 mask 发生了两次离屏渲染和一次主屏渲染。 具体可以参考[小心别让圆角成了你列表的帧数杀手](http://www.cocoachina.com/ios/20150803/12873.html)。
 
 ②、第四种比第一种更卡。
 
@@ -242,6 +242,6 @@ CG_EXTERN void CGContextAddArcToPoint(CGContextRef cg_nullable c,
 
 ## 四、参考文章
 
-*   [内存恶鬼drawRect - 谈画图功能的内存优化](https://link.jianshu.com/?t=http://mp.weixin.qq.com/s?__biz=MjM5NTIyNTUyMQ==&mid=447105405&idx=1&sn=054dc54289a98e8a39f2b9386f4f620e&scene=0#wechat_redirect)
+*   [内存恶鬼drawRect - 谈画图功能的内存优化](http://mp.weixin.qq.com/s?__biz=MjM5NTIyNTUyMQ==&mid=447105405&idx=1&sn=054dc54289a98e8a39f2b9386f4f620e&scene=0#wechat_redirect)
     
-*   github 绘制圆角源码参考 [NZCircularImageView](https://link.jianshu.com/?t=https://github.com/NZN/NZCircularImageView)、[HJCornerRadius](https://github.com/panghaijiao/HJCornerRadius)
+*   github 绘制圆角源码参考 [NZCircularImageView](https://github.com/NZN/NZCircularImageView)、[HJCornerRadius](https://github.com/panghaijiao/HJCornerRadius)

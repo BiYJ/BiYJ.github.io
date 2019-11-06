@@ -541,9 +541,9 @@ UNTextInputNotificationAction 的样式如下：
 
 #### 5.9 关于调试
 
-很多人在开发 iOS extension 时遇到了调试的问题，可以看这里的[解决方法](https://link.jianshu.com/?t=https://github.com/liuyanhongwl/ios_common/blob/master/files/App-Extension-Tips.md)，如果还不能有效解决您的问题，欢迎评论留言。
+很多人在开发 iOS extension 时遇到了调试的问题，可以看这里的[解决方法](https://github.com/liuyanhongwl/ios_common/blob/master/files/App-Extension-Tips.md)，如果还不能有效解决您的问题，欢迎评论留言。
 
-[Demo](https://link.jianshu.com/?t=https://github.com/liuyanhongwl/UserNotification)
+[Demo](https://github.com/liuyanhongwl/UserNotification)
 [【WWDC2016 Session】iOS 10 推送Notification新特性](http://www.cocoachina.com/articles/16833)
 [iOS- 实现APP前台、后台、甚至杀死进程下收到通知后进行语音播报（金额）。](https://www.jianshu.com/p/601426a247e6)
 
@@ -551,12 +551,12 @@ UNTextInputNotificationAction 的样式如下：
 ## 文章
 
 官方文档：[Local and Remote Notification Programming Guide](https://developer.apple.com/library/archive/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/APNSOverview.html#//apple_ref/doc/uid/TP40008194-CH8-SW1)
-[iOS中使用本地通知为你的APP添加提示用户功能](https://link.jianshu.com/?t=https%3A%2F%2Fmy.oschina.net%2Fu%2F2340880%2Fblog%2F405491)
+[iOS中使用本地通知为你的APP添加提示用户功能](https%3A%2F%2Fmy.oschina.net%2Fu%2F2340880%2Fblog%2F405491)
 [iOS远程推送之(一)：APNs原理和基本配置](https://www.jianshu.com/p/9e98af89cecc)
 [iOS远程推送之(二)：角标applicationIconNumber设置](https://www.jianshu.com/p/59878fd8053c)
 [iOS远程推送之(三)：点击通知横幅启动应用](https://www.jianshu.com/p/d7372b166a0b)
 [iOS 远程消息推送 APNS推送原理和一步一步开发详解篇](https://www.jianshu.com/p/032bfc949917)
-[SmartPush](https://link.jianshu.com/?t=https%3A%2F%2Fgithub.com%2Fshaojiankui%2FSmartPush)
+[SmartPush](https%3A%2F%2Fgithub.com%2Fshaojiankui%2FSmartPush)
 [iOS远程推送原理及实现过程](https://blog.csdn.net/weixin_36162680/article/details/83863718)
 [iOS 推送通知及通知扩展](https://www.jianshu.com/p/4ffb56716a5c)
 [iOS10 推送通知 UserNotifications](https://www.jianshu.com/p/bb89d636f989)

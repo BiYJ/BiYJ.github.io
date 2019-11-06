@@ -88,7 +88,12 @@ dispatch_async(queue, ^{
 
 用 UIImage 或者 CGImageSource 的方法创建图片时，图片数据并不会立刻解码。图片设置到 UIImageView 或者 CALayer.contents 中，并且 CALayer 被提到 GPU 前，CGImage 中的数据才会得到解码。
 
+解码过程是一个相当复杂的任务，需要消耗非常长的时间。解码后的图片将同样使用相当大的内存。
+
 该步是发生在主线程，并且不可避免。如果想绕开这个机制，常见的方法是<font color=#cc0000>在后台线程先把图片绘制到 CGBitmapContext 中</font>，然后从 Bitmap 直接创建图片。目前常见的网络图片库都自带这个功能。
+
+用于加载的 CPU 时间相对于解码来说根据图片格式而不同。对于 PNG 图片来说，加载会比 JPEG 更长，因为文件可能更大，但是解码会相对较快，而且 Xcode 会把 PNG 图片进行解码优化之后引入工程。JPEG 图片更小，加载更快，但是解压的步骤要消耗更长的时间，因为 JPEG 解压算法比基于 zip 的 PNG 算法更加复杂。
+
 
 #### 3.9 图像的绘制
 

@@ -20,7 +20,7 @@ Runtime 又叫运行时，是一个用 C 和汇编编写的动态库，平时编
 
 	②、类层次体系查找（isa + objc\_method\_list）+ 消息转发（动态解析 => 备用接收者 => 签名+打包+完整转发）
 
-> 动态加载：[NSBundle](https://link.jianshu.com/?t=https://developer.apple.com/library/ios/documentation/Cocoa/Reference/Foundation/Classes/NSBundle_Class/index.html#//apple_ref/occ/cl/NSBundle)类提供了许多面向对象的便捷接口用于动态加载；比如 Retina 设备自动加载 @2x 的图片。
+> 动态加载：[NSBundle](https://developer.apple.com/library/ios/documentation/Cocoa/Reference/Foundation/Classes/NSBundle_Class/index.html#//apple_ref/occ/cl/NSBundle)类提供了许多面向对象的便捷接口用于动态加载；比如 Retina 设备自动加载 @2x 的图片。
 
 ```objc
 [receiver message];  

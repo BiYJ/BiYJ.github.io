@@ -77,7 +77,7 @@ Objc 在三种层面上与 Runtime 系统进行交互：
 
 ## 二、NSObject 起源
 
-与 Runtime 交互有 3 种方式，前两种方式都与 NSObject 有关，那我们就从 NSObject 基类开始说起。以下源码分析均来自[objc4-680](https://link.jianshu.com?t=http://opensource.apple.com//source/objc4/)
+与 Runtime 交互有 3 种方式，前两种方式都与 NSObject 有关，那我们就从 NSObject 基类开始说起。以下源码分析均来自[objc4-680](http://opensource.apple.com//source/objc4/)
 
 NSObject 的定义如下：
 
@@ -114,7 +114,7 @@ struct objc_class {
 
 动态修改 *methodLists 的值来添加成员方法，这也是 Category 实现的原理，同样解释了 Category 不能添加属性的原因。
 
-关于 Category，推荐 2 篇文章可以仔细研读：[深入理解Objective-C：Category](https://link.jianshu.com?t=http://tech.meituan.com/DiveIntoCategory.html)、[结合 Category 工作原理分析 OC2.0 中的 runtime](https://link.jianshu.com?t=https://bestswifter.com/jie-he-category-gong-zuo-yuan-li-fen-xi-oc2-0-zhong-de-runtime/)
+关于 Category，推荐 2 篇文章可以仔细研读：[深入理解Objective-C：Category](http://tech.meituan.com/DiveIntoCategory.html)、[结合 Category 工作原理分析 OC2.0 中的 runtime](https://bestswifter.com/jie-he-category-gong-zuo-yuan-li-fen-xi-oc2-0-zhong-de-runtime/)
 
 然后在 2006 年苹果发布 Objc 2.0 之后，objc\_class 的定义就变成下面这个样子了，源码 [objc_private](https://opensource.apple.com//source/objc4/objc4-680/runtime/objc-private.h.auto.html)。
 
@@ -210,7 +210,7 @@ union isa_t 
 
 当一个对象的实例方法被调用的时候，会通过 isa 找到相应的类，然后在该类的 class\_data\_bits\_t 中去查找方法。class\_data\_bits\_t 是指向了类对象的数据区域，在该数据区域内查找相应方法的对应实现。
 
-但是在我们调用类方法的时候，类对象的 isa 里面是什么呢？这里为了和对象查找方法的机制一致，遂引入了元类（meta-class）的概念。关于元类，更多具体可以研究这篇文章 [What is a meta-class in Objective-C?](https://link.jianshu.com?t=http://www.cocoawithlove.com/2010/01/what-is-meta-class-in-objective-c.html)
+但是在我们调用类方法的时候，类对象的 isa 里面是什么呢？这里为了和对象查找方法的机制一致，遂引入了元类（meta-class）的概念。关于元类，更多具体可以研究这篇文章 [What is a meta-class in Objective-C?](http://www.cocoawithlove.com/2010/01/what-is-meta-class-in-objective-c.html)
 
 在引入元类之后，类对象和对象查找方法的机制就完全统一了。
 
@@ -235,7 +235,7 @@ meta-class 之所以重要，是因为它存储着一个类的所有类方法。
 4.  每个 Meta class 的 isa 指针都指向 Root class（meta）。
     
 
-我们其实应该明白，类对象和元类对象是唯一的，对象是可以在运行时创建无数个的。而在 main 方法执行之前，从 dyld 到 runtime 这期间，类对象和元类对象在这期间被创建。具体可看 sunnyxx 这篇 [iOS 程序 main 函数之前发生了什么](https://link.jianshu.com?t=http://blog.sunnyxx.com/2014/08/30/objc-pre-main/)
+我们其实应该明白，类对象和元类对象是唯一的，对象是可以在运行时创建无数个的。而在 main 方法执行之前，从 dyld 到 runtime 这期间，类对象和元类对象在这期间被创建。具体可看 sunnyxx 这篇 [iOS 程序 main 函数之前发生了什么](http://blog.sunnyxx.com/2014/08/30/objc-pre-main/)
 
 
 ###### 2.1.1 isa\_t 结构体的具体实现
@@ -362,7 +362,7 @@ ISA\_MAGIC\_VALUE = 0x000001a000000001ULL 转换成二进制是 1101000000000000
 
 源码中 isa.shiftcls = (uintptr\_t)cls >> 3;
 
-将当前地址右移三位的主要原因是用于<font color=#cc0000>将 Class 指针中无用的后三位清除减小内存的消耗</font>，因为类的指针要按照字节（8 bits）对齐内存，其指针后三位都是没有意义的 0。具体可以看[从 NSObject 的初始化了解 isa](https://link.jianshu.com?t=https://github.com/Draveness/iOS-Source-Code-Analyze/blob/master/contents/objc/%E4%BB%8E%20NSObject%20%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96%E4%BA%86%E8%A7%A3%20isa.md#shiftcls)这篇文章里面的 shiftcls 分析。
+将当前地址右移三位的主要原因是用于<font color=#cc0000>将 Class 指针中无用的后三位清除减小内存的消耗</font>，因为类的指针要按照字节（8 bits）对齐内存，其指针后三位都是没有意义的 0。具体可以看[从 NSObject 的初始化了解 isa](https://github.com/Draveness/iOS-Source-Code-Analyze/blob/master/contents/objc/%E4%BB%8E%20NSObject%20%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96%E4%BA%86%E8%A7%A3%20isa.md#shiftcls)这篇文章里面的 shiftcls 分析。
 
 * magic
 
@@ -395,7 +395,7 @@ objc_object::ISA()
 }
 ```
 
-关于 x86\_64 的架构，具体可以看[从 NSObject 的初始化了解 isa](https://link.jianshu.com?t=https://github.com/Draveness/iOS-Source-Code-Analyze/blob/master/contents/objc/%E4%BB%8E%20NSObject%20%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96%E4%BA%86%E8%A7%A3%20isa.md)文章里面的详细分析。
+关于 x86\_64 的架构，具体可以看[从 NSObject 的初始化了解 isa](https://github.com/Draveness/iOS-Source-Code-Analyze/blob/master/contents/objc/%E4%BB%8E%20NSObject%20%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96%E4%BA%86%E8%A7%A3%20isa.md)文章里面的详细分析。
 
 
 #### 2.2 cache\_t 的具体实现
@@ -533,7 +533,7 @@ struct method_t {
 };
 ```
 
-方法 method 的定义如上。里面包含 3 个成员变量。Type Encoding 类型编码可参考 [Type Encoding](https://link.jianshu.com?t=https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html)。
+方法 method 的定义如上。里面包含 3 个成员变量。Type Encoding 类型编码可参考 [Type Encoding](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html)。
 
 IMP 是一个函数指针，指向的是函数的具体实现。在 runtime 中消息传递和转发的目的就是为了找到 IMP，并执行函数。
 
@@ -541,7 +541,7 @@ IMP 是一个函数指针，指向的是函数的具体实现。在 runtime 中�
 
 ![](https://upload-images.jianshu.io/upload_images/5294842-06da58b9bbe05c6f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-更加详细的分析，请看[@Draveness](https://link.jianshu.com?t=https://github.com/Draveness) 的这篇文章[深入解析 ObjC 中方法的结构](https://link.jianshu.com?t=https://github.com/Draveness/iOS-Source-Code-Analyze/blob/master/contents/objc/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%20ObjC%20%E4%B8%AD%E6%96%B9%E6%B3%95%E7%9A%84%E7%BB%93%E6%9E%84.md#%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90-objc-%E4%B8%AD%E6%96%B9%E6%B3%95%E7%9A%84%E7%BB%93%E6%9E%84)
+更加详细的分析，请看[@Draveness](https://github.com/Draveness) 的这篇文章[深入解析 ObjC 中方法的结构](https://github.com/Draveness/iOS-Source-Code-Analyze/blob/master/contents/objc/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%20ObjC%20%E4%B8%AD%E6%96%B9%E6%B3%95%E7%9A%84%E7%BB%93%E6%9E%84.md#%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90-objc-%E4%B8%AD%E6%96%B9%E6%B3%95%E7%9A%84%E7%BB%93%E6%9E%84)
 
 到此，总结 objc\_class 1.0 和 2.0 的差别。
 

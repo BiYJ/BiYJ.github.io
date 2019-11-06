@@ -253,7 +253,7 @@ git revert 用一个新提交来消除一个历史提交所做的任何修改。
 	</center>
 	
 	- git revert 是用一次新的 commit 来回滚之前的 commit，git reset 是直接删除指定的commit。
-	- 在回滚这一操作上看，效果差不多。但是在日后继续 merge 以前的老版本时有区别。因为 git revert 是用一次逆向的 commit“中和”之前的提交，因此日后合并老的 branch 时，导致这部分改变不会再次出现，减少冲突。但是 git reset 是之间把某些 commit 在某个 branch 上删除，因而和老的branch 再次 merge 时，这些被回滚的 commit 应该还会被引入，产生很多冲突。关于这一点，不太理解的可以看[这篇文章](https://link.jianshu.com/?t=http://yijiebuyi.com/blog/8f985d539566d0bf3b804df6be4e0c90.html)。
+	- 在回滚这一操作上看，效果差不多。但是在日后继续 merge 以前的老版本时有区别。因为 git revert 是用一次逆向的 commit“中和”之前的提交，因此日后合并老的 branch 时，导致这部分改变不会再次出现，减少冲突。但是 git reset 是之间把某些 commit 在某个 branch 上删除，因而和老的branch 再次 merge 时，这些被回滚的 commit 应该还会被引入，产生很多冲突。关于这一点，不太理解的可以看[这篇文章](http://yijiebuyi.com/blog/8f985d539566d0bf3b804df6be4e0c90.html)。
 	- git reset 是把 HEAD 向后移动了一下，而 git revert 是 HEAD 继续前进，只是新的commit 的内容和要 revert 的内容正好相反，能够抵消要被 revert 的内容。
 
 

@@ -1,6 +1,6 @@
 ---
 title: 重构 AppDelegate
-categories: iOS优化
+categories: iOS架构
 ---
 
 ## 一、Massive AppDelegate
