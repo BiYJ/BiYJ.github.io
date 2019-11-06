@@ -1,0 +1,939 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>Block | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">Block</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">Block</h1><div class="post-meta"><a href="/2019/10/24/iOS/iOS原理/block/#comments" class="comment-count"></a><p><span class="date">Oct 24, 2019</span><span><a href="/categories/iOS原理/" class="category">iOS原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、什么是闭包"><a href="#一、什么是闭包" class="headerlink" title="一、什么是闭包"></a>一、什么是闭包</h2><p>在 wikipedia 上，闭包的定义是:</p>
+<blockquote>
+<p>In programming languages, a closure is a function or reference to a function together with a referencing environment—a table storing a reference to each of the non-local variables (also called free variables or upvalues) of that function.</p>
+</blockquote>
+<p>翻译过来，闭包是一个函数（或指向函数的指针），再加上该函数执行的外部的上下文变量（有时候也称作自由变量）。</p>
+<p>block 实际上就是 Objective-C 语言对于闭包的实现。 block 配合上 dispatch_queue，可以方便地实现简单的多线程编程和异步编程，<a href="http://blog.devtang.com/blog/2012/02/22/use-gcd/" target="_blank" rel="noopener">《使用GCD》</a>。</p>
+<p>本文主要介绍 Objective-C 语言的 block 在编译器中的实现方式。主要包括：</p>
+<ol>
+<li>block 的内部实现数据结构介绍</li>
+<li>block 的三种类型及其相关的内存管理方式</li>
+<li>block 如何通过 capture 变量来达到访问函数外的变量</li>
+</ol>
+<h2 id="二、实现方式"><a href="#二、实现方式" class="headerlink" title="二、实现方式"></a>二、实现方式</h2><ol>
+<li>block 本身也是一个 OC 对象，它里面也有 isa 指针</li>
+<li>block 是封装了函数调用（存储函数调用地址，函数访问变量）和函数调用环境的 OC 对象</li>
+</ol>
+<p>在 main.m 中写入一个 block：  </p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> main(<span class="keyword">int</span> argc, <span class="keyword">char</span> * argv[]) &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">int</span> a = <span class="number">15</span>;</span><br><span class="line">        <span class="keyword">void</span> (^ block)(<span class="keyword">int</span>, <span class="keyword">int</span>) = ^ (<span class="keyword">int</span> b, <span class="keyword">int</span> c) &#123;</span><br><span class="line">            <span class="built_in">NSLog</span>(<span class="string">@"%d"</span>, a);</span><br><span class="line">        &#125;;</span><br><span class="line">        block(<span class="number">10</span>, <span class="number">10</span>);</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">UIApplicationMain</span>(argc, argv, <span class="literal">nil</span>, <span class="built_in">NSStringFromClass</span>([AppDelegate <span class="keyword">class</span>]));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>终端进到项目 main.m 的目录下通过反编译成 c++ 文件：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">xcrun</span> <span class="selector-tag">-sdk</span> <span class="selector-tag">iphoneos</span> <span class="selector-tag">clang</span> <span class="selector-tag">-arch</span> <span class="selector-tag">arm64</span> <span class="selector-tag">-rewrite-objc</span> <span class="selector-tag">main</span><span class="selector-class">.m</span> <span class="selector-tag">-o</span> <span class="selector-tag">mian</span><span class="selector-class">.cpp</span></span><br></pre></td></tr></table></figure>
+<p> 得到 main.cpp，找到这个 block 对象的底层结构：</p>
+<figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">int main(int argc, char * argv[]) &#123;</span><br><span class="line">    <span class="comment">/* @autoreleasepool */</span> &#123; __AtAutoreleasePool __autoreleasepool; </span><br><span class="line">        int a = <span class="number">15</span>;</span><br><span class="line">        <span class="literal">void</span> (* block)(int, int) = ((<span class="literal">void</span> (*)(int, int))&amp;__main_block_impl_0((<span class="literal">void</span> *)__main_block_func_0, &amp;__main_block_desc_0_DATA, a));</span><br><span class="line">        <span class="function"><span class="params">((<span class="literal">void</span> (*)(__block_impl *, int, int))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block, <span class="number">10</span>, <span class="number">10</span>)</span>;</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">        <span class="title">return</span> <span class="title">UIApplicationMain</span><span class="params">(argc, argv, __null, NSStringFromClass(((Class (*)(id, SEL))(<span class="literal">void</span> *)objc_msgSend)((id)objc_getClass(<span class="string">"AppDelegate"</span>), sel_registerName(<span class="string">"class"</span>))))</span>;</span></span><br><span class="line"><span class="function">    &#125;</span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure>
+<p>实际上 block 在底层对应的就是 __main_block_impl_0：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">__main_block_impl_0</span></span> &#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">__block_impl</span></span> <span class="keyword">impl</span>;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">__main_block_desc_0</span></span>* Desc;</span><br><span class="line">  int a;</span><br><span class="line">  __main_block_impl_0(void *fp, <span class="class"><span class="keyword">struct</span> <span class="title">__main_block_desc_0</span></span> *desc, int _a, int flags=<span class="number">0</span>) : a(_a) &#123;</span><br><span class="line">    <span class="keyword">impl</span>.isa = &amp;_NSConcreteStackBlock;</span><br><span class="line">    <span class="keyword">impl</span>.Flags = flags;</span><br><span class="line">    <span class="keyword">impl</span>.FuncPtr = fp;</span><br><span class="line">    Desc = desc;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>里面存储着 __block_impl 的结构体 impl，以及 __main_block_desc_0 的结构体指针 Desc. 搜索对象的内容我们可以找到:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">block_impl</span> &#123;</span></span><br><span class="line">  <span class="keyword">void</span> *isa;</span><br><span class="line">  <span class="keyword">int</span> Flags;</span><br><span class="line">  <span class="keyword">int</span> Reserved;</span><br><span class="line">  <span class="keyword">void</span> *FuncPtr;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> __<span class="title">main_block_desc_0</span> &#123;</span></span><br><span class="line">  <span class="keyword">size_t</span> reserved;</span><br><span class="line">  <span class="keyword">size_t</span> Block_size;</span><br><span class="line">&#125; __main_block_desc_0_DATA = &#123; <span class="number">0</span>, <span class="keyword">sizeof</span>(struct __main_block_impl_0)&#125;;</span><br></pre></td></tr></table></figure>
+<p>这里可以看到 __block_impl 包含着 isa 指针，以及 FuncPtr。FuncPtr 就是 block 的调用地址，是在声明 block 的时候初始化传递进来的。以及 __main_block_desc_0 包含着的 Block_size 为 block 的内存大小。还有 int a 也封装到了Block 内部，我们知道 OC 对象的特征就是 isa 指针，所以，block 就是封装了函数调用、以及函数调用环境的 OC 对象。</p>
+<center><br><img src="http://www.dzliving.com/wp-content/uploads/2018/12/BlockStructImage.jpg" alt><br></center>
+
+<p>反编译成 C 文件：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">xcrun</span> <span class="selector-tag">-sdk</span> <span class="selector-tag">iphoneos</span> <span class="selector-tag">clang</span> <span class="selector-tag">-arch</span> <span class="selector-tag">arm64</span> <span class="selector-tag">-rewrite-objc</span> <span class="selector-tag">main</span><span class="selector-class">.m</span> <span class="selector-tag">-o</span> <span class="selector-tag">main</span><span class="selector-class">.c</span></span><br></pre></td></tr></table></figure>
+<p>block 的数据结构定义如下：</p>
+<center><br><img src="http://www.dzliving.com/wp-content/uploads/2018/12/BlockStruct.jpg" alt><br></center>
+
+<p>对应的结构体定义如下： </p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Block_descriptor</span> &#123;</span> </span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">int</span> reserved; </span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">int</span> size; </span><br><span class="line">    <span class="keyword">void</span> (*copy)(<span class="keyword">void</span> *dst, <span class="keyword">void</span> *src);</span><br><span class="line">    <span class="keyword">void</span> (*dispose)(<span class="keyword">void</span> *); </span><br><span class="line">&#125;; </span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Block_layout</span> &#123;</span></span><br><span class="line">    <span class="keyword">void</span> *isa;</span><br><span class="line">    <span class="keyword">int</span> flags;</span><br><span class="line">    <span class="keyword">int</span> reserved; </span><br><span class="line">    <span class="keyword">void</span> (*invoke)(<span class="keyword">void</span> *, …);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Block_descriptor</span> *<span class="title">descriptor</span>;</span> </span><br><span class="line">    <span class="comment">/* Imported variables. */</span> </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>通过该图，我们可以知道，一个 block 实例实际上由 6 部分构成：</p>
+<ol>
+<li>isa 指针，所有对象都有该指针，用于实现对象相关的功能。</li>
+<li>flags，用于按 bit 位表示一些 block 的附加信息，本文后面介绍 block copy 的实现代码可以看到对该变量的使用。</li>
+<li>reserved，保留变量。</li>
+<li>invoke，函数指针，指向具体的 block 实现的函数调用地址。</li>
+<li>descriptor， 表示该 block 的附加描述信息，主要是 size 大小，以及 copy 和 dispose 函数的指针。</li>
+<li>variables，capture 过来的变量，block 能够访问它外部的局部变量，就是因为将这些变量（或变量的地址）复制到了结构体中。</li>
+</ol>
+<h2 id="三、Capture-捕获"><a href="#三、Capture-捕获" class="headerlink" title="三、Capture (捕获)"></a>三、Capture (捕获)</h2><p>对于局部变量：值传递，Block 只是把局部变量的值捕获存储在了 block 的结构体内存储。</p>
+<figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> a = <span class="number">10</span>;</span><br><span class="line"><span class="built_in">void</span> (^<span class="keyword">block</span>)(<span class="built_in">void</span>) = ^&#123;</span><br><span class="line">    <span class="type">NSLog</span>(@<span class="string">"%d"</span>, a);</span><br><span class="line">&#125;;</span><br><span class="line">a = <span class="number">20</span>;</span><br><span class="line"><span class="keyword">block</span>(); // 输出 <span class="number">10</span></span><br></pre></td></tr></table></figure>
+<p>对于 Static：指针传递，Block 把 static 的变量的指针存储在 block 的结构体内，所以取值的话就是取对应最后的赋值。</p>
+<figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="built_in">int</span> a = <span class="number">10</span>;</span><br><span class="line"><span class="built_in">void</span> (^<span class="keyword">block</span>)(<span class="built_in">void</span>) = ^&#123;</span><br><span class="line">    <span class="type">NSLog</span>(@<span class="string">"%d"</span>, a);</span><br><span class="line">&#125;;</span><br><span class="line">a = <span class="number">20</span>;</span><br><span class="line"><span class="keyword">block</span>();  // 输出 <span class="number">20</span></span><br></pre></td></tr></table></figure>
+<p>全局变量：直接访问</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> a = <span class="number">20</span>;</span><br><span class="line"><span class="keyword">int</span> b = <span class="number">15</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> main(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> * argv\[\]) &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">void</span> (^block)(<span class="keyword">void</span>) = ^&#123;</span><br><span class="line">            <span class="built_in">NSLog</span>(<span class="string">@"%d"</span>, a);</span><br><span class="line">            <span class="built_in">NSLog</span>(<span class="string">@"%d"</span>, b);</span><br><span class="line">        &#125;;</span><br><span class="line">        a = <span class="number">25</span>;</span><br><span class="line">        b = <span class="number">10</span>;</span><br><span class="line">        block();  <span class="comment">// 输出 25 10</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="四、block-的类型"><a href="#四、block-的类型" class="headerlink" title="四、block 的类型"></a>四、block 的类型</h2><p>block 分为 3 种类型，但是最终都是继承自 NSObject。</p>
+<ul>
+<li>_NSConcreteGlobalBlock   全局的静态 block，内部没有访问 auto 变量，不会访问任何外部变量。</li>
+<li>_NSConcreteStackBlock     保存在栈中的 block，内部访问了 auto 变量，当函数返回时会被销毁。</li>
+<li>_NSConcreteMallocBlock   保存在堆中的 block，当引用计数为 0 时会被销毁。</li>
+</ul>
+<blockquote>
+<p>stack block 存放在栈内存，如果 block 存放在函数内，一旦函数作用域结束，则 block 内容则会被清除，如果存放在堆内存（调用 copy），就会变成 malloc block，则不会自动清除，这也是为什么 block 需要用 copy 修饰的原因。</p>
+</blockquote>
+<center><br><img src="http://www.dzliving.com/wp-content/uploads/2018/12/BlockTypes.jpg" alt><br></center>
+
+<h3 id="4-1-NSConcreteGlobalBlock"><a href="#4-1-NSConcreteGlobalBlock" class="headerlink" title="4.1 NSConcreteGlobalBlock"></a>4.1 NSConcreteGlobalBlock</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">    ^&#123; <span class="built_in">printf</span>(<span class="string">"Hello, World!\\n"</span>); &#125; (); </span><br><span class="line">   </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在终端命令行中输入 </p>
+<figure class="highlight coq"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ clang -<span class="built_in">rewrite</span>-objc block.cpp(文件名)</span><br></pre></td></tr></table></figure>
+<p>即可在目录中看到 clang 输出了一个名为 block.cpp 的文件。该文件就是 block 在 c 语言实现，将 block.cpp 中一些无关的代码去掉，将关键代码引用如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">block_impl</span> &#123;</span> </span><br><span class="line">    <span class="keyword">void</span> *isa; </span><br><span class="line">    <span class="keyword">int</span> Flags; </span><br><span class="line">    <span class="keyword">int</span> Reserved; </span><br><span class="line">    <span class="keyword">void</span> *FuncPtr; </span><br><span class="line">&#125;; </span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">main_block_impl_0</span> &#123;</span> </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> __<span class="title">block_impl</span> <span class="title">impl</span>;</span> </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> __<span class="title">main_block_desc_0</span>* <span class="title">Desc</span>;</span> </span><br><span class="line">    __main_block_impl_0(<span class="keyword">void</span> *fp, struct __main_block_desc_0 *desc, <span class="keyword">int</span> flags=<span class="number">0</span>) &#123; </span><br><span class="line">        impl.isa = &amp;_NSConcreteStackBlock; </span><br><span class="line">        impl.Flags = flags; </span><br><span class="line">        impl.FuncPtr = fp; </span><br><span class="line">        Desc = desc; </span><br><span class="line">    &#125; </span><br><span class="line">&#125;; </span><br><span class="line">    </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __main_block_func_0(struct __main_block_impl_0 *__cself) &#123; </span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"Hello, World!\n"</span>); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> __<span class="title">main_block_desc_0</span> &#123;</span> </span><br><span class="line">    <span class="keyword">size_t</span> reserved; </span><br><span class="line">    <span class="keyword">size_t</span> Block_size; </span><br><span class="line">&#125;__main_block_desc_0_DATA = &#123; <span class="number">0</span>, <span class="keyword">sizeof</span>(struct __main_block_impl_0) &#125;; </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">    (<span class="keyword">void</span> (*)())&amp;__main_block_impl_0((<span class="keyword">void</span> *)__main_block_func_0, &amp;__main_block_desc_0_DATA) (); </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>具体看一下是如何实现的。__main_block_impl_0 就是该 block 的实现，从中可以看出：</p>
+<ol>
+<li>一个 block 实际是一个对象，它主要由一个 isa 和一个 impl 和一个 descriptor 组成。</li>
+<li>在本例中，isa 指向 _NSConcreteGlobalBlock，主要是为了实现对象的所有特性，在此我们就不展开讨论了。</li>
+<li>impl 是实际的函数指针，本例中，它指向 __main_block_func_0。这里的 impl 相当于之前提到的 invoke 变量，只是clang 编译器对变量的命名不一样而已。</li>
+<li>descriptor 是用于描述当前这个 block 的附加信息的，包括结构体的大小，需要 capture 和 dispose 的变量列表等。结构体大小需要保存是因为，每个 block 因为会 capture 一些变量，这些变量会加到 __main_block_impl_0 这个结构体中，使其体积变大。在该例子中我们还看不到相关 capture 的代码，后面将会看到。</li>
+</ol>
+<h4 id="4-2-NSConcreteStackBlock"><a href="#4-2-NSConcreteStackBlock" class="headerlink" title="4.2 NSConcreteStackBlock"></a>4.2 NSConcreteStackBlock</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt; </span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">    <span class="keyword">int</span> a = <span class="number">100</span>; </span><br><span class="line">    <span class="keyword">void</span> (^block)(<span class="keyword">void</span>) = ^&#123; </span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"%d\n"</span>, a); </span><br><span class="line">    &#125;; </span><br><span class="line">    block(); </span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>反编译之后：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">main_block_impl_0</span> &#123;</span> </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> __<span class="title">block_impl</span> <span class="title">impl</span>;</span> </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> __<span class="title">main_block_desc_0</span>* <span class="title">Desc</span>;</span> </span><br><span class="line">    <span class="keyword">int</span> a; </span><br><span class="line">    __main_block_impl_0(<span class="keyword">void</span> *fp, struct __main_block_desc_0 *desc, <span class="keyword">int</span> _a, <span class="keyword">int</span> flags=<span class="number">0</span>) : a(_a) &#123; </span><br><span class="line">        impl.isa = &amp;_NSConcreteStackBlock; </span><br><span class="line">        impl.Flags = flags; </span><br><span class="line">        impl.FuncPtr = fp; </span><br><span class="line">        Desc = desc; </span><br><span class="line">    &#125; </span><br><span class="line">&#125;; </span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __main_block_func_0(struct __main_block_impl_0 *__cself) &#123; </span><br><span class="line">    <span class="keyword">int</span> a = __cself-&gt;a; <span class="comment">// bound by copy </span></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"%d\n"</span>, a); </span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> __<span class="title">main_block_desc_0</span> &#123;</span> </span><br><span class="line">    <span class="keyword">size_t</span> reserved; </span><br><span class="line">    <span class="keyword">size_t</span> Block_size; </span><br><span class="line">&#125; __main_block_desc_0_DATA = &#123; <span class="number">0</span>, <span class="keyword">sizeof</span>(struct __main_block_impl_0)&#125;; </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">    <span class="keyword">int</span> a = <span class="number">100</span>; </span><br><span class="line">    <span class="keyword">void</span> (*block)(<span class="keyword">void</span>) = (<span class="keyword">void</span> (*)())&amp;__main_block_impl_0((<span class="keyword">void</span> *)__main_block_func_0, &amp;__main_block_desc_0_DATA, a); </span><br><span class="line">    ((<span class="keyword">void</span> (*)(__block_impl *))((__block_impl *)block)-&gt;FuncPtr)((__block_impl *)block); </span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在本例中，我们可以看到：</p>
+<ol>
+<li>本例中，isa 指向 _NSConcreteStackBlock，说明这是一个分配在栈上的实例。</li>
+<li>main_block_impl_0 中增加了一个变量 a，在 block 中引用的变量 a 实际是在申明 block 时，被复制到 main_block_impl_0 结构体中的那个变量 a。因为这样，我们就能理解，在 block 内部修改变量 a 的内容，不会影响外部的实际变量 a。</li>
+<li>main_block_impl_0 中由于增加了一个变量 a，所以结构体的大小变大了，该结构体大小被写在了 main_block_desc_0 中。</li>
+</ol>
+<h4 id="4-3-NSConcreteMallocBlock"><a href="#4-3-NSConcreteMallocBlock" class="headerlink" title="4.3 NSConcreteMallocBlock"></a>4.3 NSConcreteMallocBlock</h4><p>NSConcreteMallocBlock 类型的 block 通常不会在源码中直接出现，因为默认它是当一个 block 被 copy 的时候，才会将这个 block 复制到堆中。以下是一个 block 被 copy 时的示例代码（来自<a href="http://www.galloway.me.uk/2013/05/a-look-inside-blocks-episode-3-block-copy/" target="_blank" rel="noopener">这里</a>），可以看到，在第 8 步，目标的 block 类型被修改为 _NSConcreteMallocBlock。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> void *_Block_copy_internal(<span class="keyword">const</span> void *arg, <span class="keyword">const</span> int flags) &#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Block_layout</span></span> *aBlock;</span><br><span class="line">    <span class="keyword">const</span> <span class="built_in">bool</span> wantsOne = (WANTS_ONE &amp; flags) == WANTS_ONE;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1</span></span><br><span class="line">    <span class="keyword">if</span> (!arg) <span class="keyword">return</span> NULL;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2</span></span><br><span class="line">    aBlock = (<span class="class"><span class="keyword">struct</span> <span class="title">Block_layout</span></span> *)arg;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3</span></span><br><span class="line">    <span class="keyword">if</span> (aBlock-&gt;flags &amp; BLOCK_NEEDS_FREE) &#123;</span><br><span class="line">        <span class="comment">// latches on high</span></span><br><span class="line">        latching_incr_int(&amp;aBlock-&gt;flags);</span><br><span class="line">        <span class="keyword">return</span> aBlock;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4</span></span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (aBlock-&gt;flags &amp; BLOCK_IS_GLOBAL) &#123;</span><br><span class="line">        <span class="keyword">return</span> aBlock;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 5</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Block_layout</span></span> *result = malloc(aBlock-&gt;descriptor-&gt;size);</span><br><span class="line">    <span class="keyword">if</span> (!result) <span class="keyword">return</span> (void *)<span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 6</span></span><br><span class="line">    memmove(result, aBlock, aBlock-&gt;descriptor-&gt;size); <span class="comment">// bitcopy first</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 7</span></span><br><span class="line">    result-&gt;flags &amp;= ~(BLOCK_REFCOUNT_MASK);    <span class="comment">// XXX not needed</span></span><br><span class="line">    result-&gt;flags |= BLOCK_NEEDS_FREE | <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 8</span></span><br><span class="line">    result-&gt;isa = _NSConcreteMallocBlock;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 9</span></span><br><span class="line">    <span class="keyword">if</span> (result-&gt;flags &amp; BLOCK_HAS_COPY_DISPOSE) &#123;</span><br><span class="line">        (*aBlock-&gt;descriptor-&gt;copy)(result, aBlock); <span class="comment">// do fixup</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="五、变量的复制"><a href="#五、变量的复制" class="headerlink" title="五、变量的复制"></a>五、变量的复制</h2><p>block 内部默认是无法修改 auto 变量的，因为在 block 底部的话执行 block、声明局部变量 a（main 函数）的地方分别是两个不同的函数，并没有办法从一个函数去修改另一个函数的局部变量，而如果使用 static 或者使用全局变量是可以的，因为block 在底层存储 static 变量是存储它的指针地址，全局变量就全部都可以访问。</p>
+<p>如果要修改 auto 变量的话，则需要使用 __block。</p>
+<p>对于 block 外的变量引用，block 默认是将其复制到其数据结构中来实现访问的：</p>
+<center><br><img src="http://www.dzliving.com/wp-content/uploads/2018/12/2Q.jpg" alt><br></center>
+
+<p>对于用 __block 修饰的外部变量引用，block 是复制其引用地址来实现访问的：</p>
+<center><br><img src="http://www.dzliving.com/wp-content/uploads/2018/12/9k.jpg" alt><br></center>
+
+<p>修改上面的源码，在变量前面增加 __block 关键字：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt; </span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">    __block <span class="keyword">int</span> i = <span class="number">1024</span>; </span><br><span class="line">    <span class="keyword">void</span> (^block)(<span class="keyword">void</span>) = ^&#123; </span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"%d\n"</span>, i); </span><br><span class="line">        i = <span class="number">1023</span>; </span><br><span class="line">    &#125;; </span><br><span class="line">    block(); </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>生成的关键代码如下，可以看到，差异相当大：</p>
+<figure class="highlight sqf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">struct <span class="variable">__Block_byref_a_0</span> &#123;</span><br><span class="line">  void *<span class="variable">__isa</span>;</span><br><span class="line"><span class="variable">__Block_byref_a_0</span> *<span class="variable">__forwarding</span>;</span><br><span class="line"> int <span class="variable">__flags</span>;</span><br><span class="line"> int <span class="variable">__size</span>;</span><br><span class="line"> int a;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">struct <span class="variable">__main_block_impl_0</span> &#123;</span><br><span class="line">  struct <span class="variable">__block_impl</span> impl;</span><br><span class="line">  struct <span class="variable">__main_block_desc_0</span>* Desc;</span><br><span class="line">  <span class="variable">__Block_byref_a_0</span> *a; <span class="comment">// by ref</span></span><br><span class="line">  <span class="variable">__main_block_impl_0</span>(void *fp, struct <span class="variable">__main_block_desc_0</span> *desc, <span class="variable">__Block_byref_a_0</span> *<span class="variable">_a</span>, int flags=<span class="number">0</span>) : a(<span class="variable">_a</span>-&gt;<span class="variable">__forwarding</span>) &#123;</span><br><span class="line">    impl.isa = &amp;<span class="variable">_NSConcreteStackBlock</span>;</span><br><span class="line">    impl.Flags = flags;</span><br><span class="line">    impl.FuncPtr = fp;</span><br><span class="line">    Desc = desc;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line">static void <span class="variable">__main_block_func_0</span>(struct <span class="variable">__main_block_impl_0</span> *<span class="variable">__cself</span>) &#123;</span><br><span class="line">  <span class="variable">__Block_byref_a_0</span> *a = <span class="variable">__cself</span>-&gt;a; <span class="comment">// bound by ref</span></span><br><span class="line"></span><br><span class="line">            printf(<span class="string">"%dn"</span>, (a-&gt;<span class="variable">__forwarding</span>-&gt;a));</span><br><span class="line">            (a-&gt;<span class="variable">__forwarding</span>-&gt;a) = <span class="number">1023</span>;</span><br><span class="line">        &#125;</span><br><span class="line">static void <span class="variable">__main_block_copy_0</span>(struct <span class="variable">__main_block_impl_0</span>*dst, struct <span class="variable">__main_block_impl_0</span>*src) &#123;<span class="variable">_Block_object_assign</span>((void*)&amp;dst-&gt;a, (void*)src-&gt;a, <span class="number">8</span><span class="comment">/*BLOCK_FIELD_IS_BYREF*/</span>);&#125;</span><br><span class="line"></span><br><span class="line">static void <span class="variable">__main_block_dispose_0</span>(struct <span class="variable">__main_block_impl_0</span>*src) &#123;<span class="variable">_Block_object_dispose</span>((void*)src-&gt;a, <span class="number">8</span><span class="comment">/*BLOCK_FIELD_IS_BYREF*/</span>);&#125;</span><br><span class="line"></span><br><span class="line">static struct <span class="variable">__main_block_desc_0</span> &#123;</span><br><span class="line">  size_t reserved;</span><br><span class="line">  size_t Block_size;</span><br><span class="line">  void (*copy)(struct <span class="variable">__main_block_impl_0</span>*, struct <span class="variable">__main_block_impl_0</span>*);</span><br><span class="line">  void (*dispose)(struct <span class="variable">__main_block_impl_0</span>*);</span><br><span class="line">&#125; <span class="variable">__main_block_desc_0_DATA</span> = &#123; <span class="number">0</span>, <span class="built_in">sizeof</span>(struct <span class="variable">__main_block_impl_0</span>), <span class="variable">__main_block_copy_0</span>, <span class="variable">__main_block_dispose_0</span>&#125;;</span><br><span class="line"></span><br><span class="line">int main(int argc, char * argv[]) &#123;</span><br><span class="line">    <span class="comment">/* @autoreleasepool */</span> &#123; <span class="variable">__AtAutoreleasePool</span> <span class="variable">__autoreleasepool</span>; </span><br><span class="line">        <span class="variable">__attribute__</span>((<span class="variable">__blocks__</span>(byref))) <span class="variable">__Block_byref_a_0</span> a = &#123;(void*)<span class="number">0</span>,(<span class="variable">__Block_byref_a_0</span> *)&amp;a, <span class="number">0</span>, <span class="built_in">sizeof</span>(<span class="variable">__Block_byref_a_0</span>), <span class="number">1024</span>&#125;;</span><br><span class="line">        void (*block)(void) = ((void (*)())&amp;<span class="variable">__main_block_impl_0</span>((void *)<span class="variable">__main_block_func_0</span>, &amp;<span class="variable">__main_block_desc_0_DATA</span>, (<span class="variable">__Block_byref_a_0</span> *)&amp;a, <span class="number">570425344</span>));</span><br><span class="line">        ((void (*)(<span class="variable">__block_impl</span> *))((<span class="variable">__block_impl</span> *)block)-&gt;FuncPtr)((<span class="variable">__block_impl</span> *)block);</span><br><span class="line"></span><br><span class="line">        return UIApplicationMain(argc, argv, <span class="variable">__null</span>, NSStringFromClass(((Class (*)(id, SEL))(void *)objc_msgSend)((id)objc_getClass(<span class="string">"AppDelegate"</span>), sel_registerName(<span class="string">"class"</span>))));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从代码中可以看到：</p>
+<ol>
+<li>源码中增加一个名为 __Block_byref_i_0 的结构体，用来保存我们要 capture 并且修改的变量 a。</li>
+<li>main_block_impl_0 中引用的是 Block_byref_i_0 的结构体指针，这样就可以达到修改外部变量的作用。</li>
+<li>__Block_byref_i_0 结构体中带有 isa、a以及 __forwarding（指向自己的指针）等其他信息，它也是一个对象。</li>
+<li>我们需要负责 Block_byref_i_0 结构体相关的内存管理，所以 main_block_desc_0 中增加了 copy 和 dispose 函数指针，对于在调用前后修改相应变量的引用计数。</li>
+</ol>
+<figure class="highlight gcode"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">__attribute__<span class="comment">((__blocks__(byref)</span>)) __Block_byref_a_<span class="number">0</span> a = &#123;<span class="comment">(void*)</span><span class="number">0</span>,<span class="comment">(__Block_byref_a_0 *)</span>&amp;a, <span class="number">0</span>, sizeof<span class="comment">(__Block_byref_a_0)</span>, <span class="number">1024</span>&#125;;</span><br><span class="line">void <span class="comment">(*block)</span><span class="comment">(void)</span> = <span class="comment">((void (*)</span><span class="comment">()</span>)&amp;__mai<span class="symbol">n_block_impl_0</span><span class="comment">((void *)</span>__mai<span class="symbol">n_block_func_0</span>, &amp;__mai<span class="symbol">n_block_desc_0</span>_DATA, <span class="comment">(__Block_byref_a_0 *)</span>&amp;a, <span class="number">570425344</span>));</span><br></pre></td></tr></table></figure>
+<p>这里声明了一个 __Block_byref_a_0 的对象，并把 &amp;a 传递给了 __forwarding，10 传递给了 a。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> void __main_block_func_0(<span class="class"><span class="keyword">struct</span> <span class="title">__main_block_impl_0</span></span> *__cself) &#123;</span><br><span class="line">  __Block_byref_a_0 *a = __cself-&gt;a; <span class="comment">// bound by ref</span></span><br><span class="line"></span><br><span class="line">            printf(<span class="string">"%dn"</span>, (a-&gt;__forwarding-&gt;a));</span><br><span class="line">            (a-&gt;__forwarding-&gt;a) = <span class="number">1023</span>;</span><br><span class="line">        &#125;</span><br><span class="line"><span class="keyword">static</span> void __main_block_copy_0(<span class="class"><span class="keyword">struct</span> <span class="title">__main_block_impl_0</span></span>*dst, <span class="class"><span class="keyword">struct</span> <span class="title">__main_block_impl_0</span></span>*src) &#123;_Block_object_assign((void*)&amp;dst-&gt;a, (void*)src-&gt;a, <span class="number">8</span><span class="comment">/*BLOCK_FIELD_IS_BYREF*/</span>);&#125;</span><br></pre></td></tr></table></figure>
+<p>这里执行 block 时，取出了 __Block_byref_a_0 所存储的 &amp;a（__forwarding：__Block_byref_a_0 的指针地址），再取出 a，最后进行修改/使用。</p>
+<h2 id="六、ARC-对-block-类型的影响"><a href="#六、ARC-对-block-类型的影响" class="headerlink" title="六、ARC 对 block 类型的影响"></a>六、ARC 对 block 类型的影响</h2><p>在 ARC 开启的情况下，将只会有 NSConcreteGlobalBlock 和 NSConcreteMallocBlock 类型的 block。</p>
+<p>原本的 NSConcreteStackBlock 的 block 会被 NSConcreteMallocBlock 类型的 block 替代。在苹果的<a href="http://developer.apple.com/library/ios/#releasenotes/ObjectiveC/RN-TransitioningToARC/Introduction/Introduction.html" target="_blank" rel="noopener">官方文档</a>中也提到，当把栈中的 block 返回时，不需要调用 copy 方法了。</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> main(<span class="keyword">int</span> argc, <span class="keyword">char</span> * argv[]) &#123;</span><br><span class="line">    <span class="keyword">@autoreleasepool</span> &#123;</span><br><span class="line">        <span class="keyword">int</span> i = <span class="number">1024</span>;</span><br><span class="line">        <span class="keyword">void</span> (^block)(<span class="keyword">void</span>) = ^&#123;</span><br><span class="line">            printf(<span class="string">"%d\n"</span>, i);</span><br><span class="line">        &#125;;</span><br><span class="line">        block();</span><br><span class="line">        <span class="built_in">NSLog</span>(<span class="string">@"%@"</span>, block);</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">UIApplicationMain</span>(argc, argv, <span class="literal">nil</span>, <span class="built_in">NSStringFromClass</span>([AppDelegate <span class="keyword">class</span>]));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>个人认为这么做的原因是，由于 ARC 已经能很好地处理对象的生命周期的管理，这样所有对象都放到堆上管理，对于编译器实现来说，会比较方便。</p>
+<h2 id="七、Block-循环引用问题"><a href="#七、Block-循环引用问题" class="headerlink" title="七、Block 循环引用问题"></a>七、Block 循环引用问题</h2><h4 id="7-1-RetainCircle-的由来"><a href="#7-1-RetainCircle-的由来" class="headerlink" title="7.1 RetainCircle 的由来"></a>7.1 RetainCircle 的由来</h4><p>当 A 对象里面强引用了 B 对象，B 对象又强引用了 A 对象，这样两者的 retainCount 值一直都无法为 0，于是内存始终无法释放，导致内存泄露。所谓的内存泄露就是本应该释放的对象，在其生命周期结束之后依旧存在。</p>
+<center><br><img src="http://www.dzliving.com/wp-content/uploads/2018/02/BlockObject.jpeg" alt><br></center>
+
+<p>这是 2 个对象之间的，相应的，这种循环还能存在于 3、4 … n 个对象之间，只要<font color="#cc0000">相互形成环</font>，就会导致 Retain Cicle 的问题。</p>
+<p>当然也存在自身引用自身的。当一个对象内部的一个 obj，强引用的自身，也会导致循环引用的问题出现。常见的就是 block 里面引用的问题。</p>
+<center><br><img src="http://www.dzliving.com/wp-content/uploads/2018/02/BlockRelate.jpeg" alt><br></center>
+
+<h4 id="7-2-weak、-strong-的实现原理"><a href="#7-2-weak、-strong-的实现原理" class="headerlink" title="7.2 __weak、__strong 的实现原理"></a>7.2 __weak、__strong 的实现原理</h4><p>在 ARC 环境下，id 类型和对象类型、C 语言其他类型不同，类型前必须加上所有权的修饰符。</p>
+<p>所有权修饰符总共有 4 种：</p>
+<ol>
+<li>__strong 修饰符  </li>
+<li>__weak 修饰符  </li>
+<li>__unsafe_unretained 修饰符  </li>
+<li>__autoreleasing 修饰符</li>
+</ol>
+<p>一般我们如果不写，默认的修饰符是 __strong。</p>
+<p>要想弄清楚 __strong、__weak 的实现原理，我们就需要研究研究 clang(LLVM编译器)和 objc4 Objective-C runtime 库了。</p>
+<p>关于 clang 有一份<a href="http://clang.llvm.org/docs/AutomaticReferenceCounting.html" target="_blank" rel="noopener">关于ARC详细的文档</a>，有兴趣的可以仔细研究一下文档里面的说明和例子，很有帮助。</p>
+<p>以下的讲解，也会来自于上述文档中的函数说明。</p>
+<center><br><img src="http://www.dzliving.com/wp-content/uploads/2018/02/Block1.jpg" alt><br></center>
+
+<ol>
+<li><p>__strong 的实现原理</p>
+<blockquote>
+<p>①、对象持有自己</p>
+</blockquote>
+<p> 首先我们先来看看生成的对象持有自己的情况，利用 alloc/new/copy/mutableCopy 生成对象。</p>
+<p> 当我们声明了一个 __strong 对象</p>
+ <figure class="highlight clojure"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;  </span><br><span class="line">	id __strong obj = [[NSObject alloc] init]<span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>LLVM 编译器会把上述代码转换成下面的样子
+
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id __attribute__((<span class="name">objc_ownership</span>(<span class="name">strong</span>))) obj = ((<span class="name">NSObject</span> *(*)(<span class="name">id</span>, SEL))(<span class="name">void</span> *)objc_msgSend)((id)((NSObject *(<span class="name">*</span>)(<span class="name">id</span>, SEL))(<span class="name">void</span> *)objc_msgSend)((id)objc_getClass("NSObject"), sel_registerName("alloc")), sel_registerName("init"));</span><br></pre></td></tr></table></figure>
+
+
+相应的会调用
+
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">id obj = objc_msgSend(<span class="name">NSObject</span>, @selector(<span class="name">alloc</span>))<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">objc_msgSend(<span class="name">obj</span>,selector(<span class="name">init</span>))<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">objc_release(<span class="name">obj</span>)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+
+
+上述这些方法都好理解。在 ARC 有效的时候就会自动插入 release 代码，在作用域结束的时候自动释放。
+
+&gt; ②、对象不持有自己
+
+生成对象的时候不用 alloc/new/copy/mutableCopy 等方法。
+
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;  </span><br><span class="line">	<span class="keyword">id</span> __<span class="keyword">strong</span> obj = [<span class="built_in">NSMutableArray</span> array];  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+LLVM 编译器会把上述代码转换成下面的样子
+
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id __attribute__((<span class="name">objc_ownership</span>(<span class="name">strong</span>))) array = ((<span class="name">NSMutableArray</span> *(*)(<span class="name">id</span>, SEL))(<span class="name">void</span> *)objc_msgSend)((id)objc_getClass("NSMutableArray"), sel_registerName("array"));</span><br></pre></td></tr></table></figure>
+
+
+查看 LLVM 文档，其实是下述的过程，相应的会调用
+
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">id obj = objc_msgSend(<span class="name">NSMutableArray</span>, @selector(<span class="name">array</span>))<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">objc_retainAutoreleasedReturnValue(<span class="name">obj</span>)<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">objc_release(<span class="name">obj</span>)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+
+
+与之前对象会持有自己的情况不同，这里多了一个 objc\_retainAutoreleasedReturnValue 函数。
+
+这里有 3 个函数需要说明：
+
+1、[id objc_retainAutoreleaseReturnValue(id value);](http://clang.llvm.org/docs/AutomaticReferenceCounting.html#id69)
+
+
+&gt;\_Precondition:\_ value is null or a pointer to a valid object.
+&gt;
+&gt;If value is null, this call has no effect. Otherwise, it performs a retain operation followed by the operation described in [objc_autoreleaseReturnValue](http://clang.llvm.org/docs/AutomaticReferenceCounting.html#arc-runtime-objc-autoreleasereturnvalue).
+&gt;
+&gt;Equivalent to the following code:
+&gt;
+&gt;id objc\_retainAutoreleaseReturnValue(id value) {
+&gt;
+&gt;return objc\_autoreleaseReturnValue(objc\_retain(value));
+&gt;
+&gt;}
+&gt;
+&gt;Always returns value
+<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">	</span><br><span class="line">	<span class="number">2</span>、[id objc_retainAutoreleasedReturnValue(id <span class="built_in">value</span>);](<span class="keyword">http</span>://clang.llvm.org/docs/AutomaticReferenceCounting.html<span class="comment">#id70)</span></span><br><span class="line">	</span><br><span class="line">	&gt;\_Precondition:\_ <span class="built_in">value</span> is <span class="literal">null</span> <span class="keyword">or</span> <span class="keyword">a</span> pointer <span class="built_in">to</span> <span class="keyword">a</span> valid object.</span><br><span class="line">	&gt;</span><br><span class="line">	&gt;If <span class="built_in">value</span> is <span class="literal">null</span>, this call has no effect. Otherwise, <span class="keyword">it</span> attempts <span class="built_in">to</span> accept <span class="keyword">a</span> hand off <span class="keyword">of</span> <span class="keyword">a</span> retain count <span class="built_in">from</span> <span class="keyword">a</span> call <span class="built_in">to</span> [objc_autoreleaseReturnValue](<span class="keyword">http</span>://clang.llvm.org/docs/AutomaticReferenceCounting.html<span class="comment">#arc-runtime-objc-autoreleasereturnvalue) on value in a recently-called function or something it calls. If that fails, it performs a retain operation exactly like [objc_retain](http://clang.llvm.org/docs/AutomaticReferenceCounting.html#arc-runtime-objc-retain).</span></span><br><span class="line">	&gt;</span><br><span class="line">	&gt;Always returns <span class="built_in">value</span></span><br><span class="line">	</span><br><span class="line">	<span class="number">3</span>、[id objc_autoreleaseReturnValue(id <span class="built_in">value</span>);](<span class="keyword">http</span>://clang.llvm.org/docs/AutomaticReferenceCounting.html<span class="comment">#id59)</span></span><br><span class="line">	</span><br><span class="line">	&gt;\_Precondition:\_ <span class="built_in">value</span> is <span class="literal">null</span> <span class="keyword">or</span> <span class="keyword">a</span> pointer <span class="built_in">to</span> <span class="keyword">a</span> valid object.</span><br><span class="line">	&gt;</span><br><span class="line">	&gt;If <span class="built_in">value</span> is <span class="literal">null</span>, this call has no effect. Otherwise, <span class="keyword">it</span> makes <span class="keyword">a</span> best effort <span class="built_in">to</span> hand off ownership <span class="keyword">of</span> <span class="keyword">a</span> retain count <span class="keyword">on</span> <span class="title">the</span> <span class="title">object</span> <span class="title">to</span> <span class="title">a</span> <span class="title">call</span> <span class="title">to</span>[<span class="title">objc_retainAutoreleasedReturnValue</span>](<span class="title">http</span>://<span class="title">clang</span>.<span class="title">llvm</span>.<span class="title">org</span>/<span class="title">docs</span>/<span class="title">AutomaticReferenceCounting</span>.<span class="title">html</span>#<span class="title">arc-runtime-objc-retainautoreleasedreturnvalue</span>) <span class="title">for</span> <span class="title">the</span> <span class="title">same</span> <span class="title">object</span> <span class="title">in</span> <span class="title">an</span> <span class="title">enclosing</span> <span class="title">call</span> <span class="title">frame</span>. <span class="title">If</span> <span class="title">this</span> <span class="title">is</span> <span class="title">not</span> <span class="title">possible</span>, <span class="title">the</span> <span class="title">object</span> <span class="title">is</span> <span class="title">autoreleased</span> <span class="title">as</span> <span class="title">above</span>.</span><br><span class="line">	&gt;</span><br><span class="line">	&gt;Always returns <span class="built_in">value</span></span><br><span class="line">	</span><br><span class="line">	这 <span class="number">3</span> 个函数其实都是在描述一件事情：<span class="keyword">it</span> makes <span class="keyword">a</span> best effort <span class="built_in">to</span> hand off ownership <span class="keyword">of</span> <span class="keyword">a</span> retain count <span class="keyword">on</span> <span class="title">the</span> <span class="title">object</span> <span class="title">to</span> <span class="title">a</span> <span class="title">call</span> <span class="title">to</span> <span class="title">objc_retainAutoreleasedReturnValue</span> <span class="title">for</span> <span class="title">the</span> <span class="title">same</span> <span class="title">object</span> <span class="title">in</span> <span class="title">an</span> <span class="title">enclosing</span> <span class="title">call</span> <span class="title">frame</span>。</span><br><span class="line">	</span><br><span class="line">	这属于 LLVM 编译器的一个优化。objc\<span class="title">_retain</span>AutoreleasedReturnValue 函数是用于自己持有(retain)对象的函数，它持有的对象应为返回注册在 autoreleasepool 中对象的方法或者是函数的返回值。</span><br><span class="line">	</span><br><span class="line">	在 ARC 中原本对象生成之后是要注册到 autoreleasepool 中，但是调用了objc\<span class="title">_autoreleased</span>ReturnValue 之后，紧接着调用了 objc\<span class="title">_retain</span>AutoreleasedReturnValue，objc\<span class="title">_autoreleased</span>ReturnValue 函数会去检查该函数方法或者函数调用方的执行命令列表，如果里面有objc\<span class="title">_retain</span>AutoreleasedReturnValue() 方法，那么该对象就直接返回给方法或者函数的调用方。达到了即使对象不注册到 autoreleasepool 中，也可以返回拿到相应的对象。</span><br><span class="line"></span><br><span class="line"><span class="number">2.</span> \_\<span class="title">_weak</span> 的实现原理</span><br><span class="line"></span><br><span class="line">	声明一个 \_\<span class="title">_weak</span> 对象</span><br></pre></td></tr></table></figure>
+
+{  
+    id __weak obj = strongObj; // 假设这里的 strongObj 是一个已经声明好了的对象。
+}
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">LLVM </span>转换成对应的代码</span><br></pre></td></tr></table></figure>
+
+id __attribute__((objc_ownership(none))) obj1 = strongObj;
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">相应的会调用</span><br></pre></td></tr></table></figure>
+
+id obj ;
+
+objc_initWeak(&amp;obj,strongObj);
+
+objc_destoryWeak(&amp;obj);
+<figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">看看文档描述</span><br><span class="line"></span><br><span class="line">&gt;[id objc\_initWeak(id *<span class="keyword">object</span>, id value);](http:<span class="comment">//clang.llvm.org/docs/AutomaticReferenceCounting.html#id62)</span></span><br><span class="line">&gt;</span><br><span class="line">&gt;\_Precondition:\_ <span class="keyword">object</span> <span class="keyword">is</span> a valid pointer which has <span class="keyword">not</span> been registered <span class="keyword">as</span> a \_\_weak <span class="keyword">object</span>. value <span class="keyword">is</span> null <span class="keyword">or</span> a pointer <span class="keyword">to</span> a valid <span class="keyword">object</span>. <span class="keyword">If</span> value <span class="keyword">is</span> a null pointer <span class="keyword">or</span> the <span class="keyword">object</span> <span class="keyword">to</span> which it points has begun deallocation, <span class="keyword">object</span> <span class="keyword">is</span> zero-initialized. <span class="keyword">Otherwise</span>, <span class="keyword">object</span> <span class="keyword">is</span> registered <span class="keyword">as</span> a \_\_weak <span class="keyword">object</span> pointing <span class="keyword">to</span> value</span><br><span class="line">&gt;</span><br><span class="line">&gt;Equivalent <span class="keyword">to</span> the following code:</span><br><span class="line">&gt;</span><br><span class="line">&gt;id objc\_initWeak(id \_object, id value) <span class="comment">&#123; \_</span></span><br><span class="line"><span class="comment">&gt;</span></span><br><span class="line"><span class="comment">&gt;object = nil;</span></span><br><span class="line"><span class="comment">&gt;</span></span><br><span class="line"><span class="comment">&gt;return objc_storeWeak(object, value);</span></span><br><span class="line"><span class="comment">&gt;</span></span><br><span class="line"><span class="comment">&gt;&#125;</span></span><br><span class="line">&gt;</span><br><span class="line">&gt;Returns the value <span class="keyword">of</span> <span class="keyword">object</span> after the call.Does <span class="keyword">not</span> need <span class="keyword">to</span> be atomic <span class="keyword">with</span> respect <span class="keyword">to</span> calls <span class="keyword">to</span> objc\_storeWeak <span class="keyword">on</span> <span class="keyword">object</span></span><br><span class="line"></span><br><span class="line">objc_initWeak 的实现其实是这样的：</span><br></pre></td></tr></table></figure>
+
+id objc_initWeak(id * object, id value) {
+
+    *object = nil;
+
+    return objc_storeWeak(object, value);
+}
+<figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">会把传入的 <span class="keyword">object</span> 变成 <span class="number">0</span> 或者 <span class="keyword">nil</span>，然后执行 objc\_storeWeak 函数。</span><br><span class="line"></span><br><span class="line">那么 objc\_destoryWeak 函数是干什么的呢？</span><br><span class="line"></span><br><span class="line">&gt;[void objc_destroyWeak(id *<span class="keyword">object</span>);](http:<span class="comment">//clang.llvm.org/docs/AutomaticReferenceCounting.html#id61)</span></span><br><span class="line">&gt;</span><br><span class="line">&gt;\_Precondition:\_ <span class="keyword">object</span> <span class="keyword">is</span> a valid pointer which either contains a null pointer <span class="keyword">or</span> has been registered <span class="keyword">as</span> a \_\_weak <span class="keyword">object</span>. <span class="keyword">object</span> <span class="keyword">is</span> unregistered <span class="keyword">as</span> a weak <span class="keyword">object</span>, <span class="keyword">if</span> it ever was. The current value <span class="keyword">of</span> <span class="keyword">object</span> <span class="keyword">is</span> left unspecified; <span class="keyword">otherwise</span>, equivalent <span class="keyword">to</span> the following code:</span><br><span class="line">&gt;</span><br><span class="line">&gt;void objc\_destroyWeak(id * <span class="keyword">object</span>) <span class="comment">&#123;</span></span><br><span class="line"><span class="comment">&gt;</span></span><br><span class="line"><span class="comment">&gt;objc\_storeWeak(object, nil);</span></span><br><span class="line"><span class="comment">&gt;</span></span><br><span class="line"><span class="comment">&gt;&#125;</span></span><br><span class="line">&gt;</span><br><span class="line">&gt;Does <span class="keyword">not</span> need <span class="keyword">to</span> be atomic <span class="keyword">with</span> respect <span class="keyword">to</span> calls <span class="keyword">to</span> objc_storeWeak <span class="keyword">on</span> <span class="keyword">object</span></span><br><span class="line"></span><br><span class="line">objc\_destoryWeak 函数的实现：</span><br></pre></td></tr></table></figure>
+
+void objc_destroyWeak(id * object) {
+
+    objc_storeWeak(object, nil);
+
+}
+<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">	</span><br><span class="line">	也是会去调用 objc\<span class="title">_store</span>Weak 函数。objc\<span class="title">_init</span>Weak 和 objc\<span class="title">_destroy</span>Weak 函数都会去调用 objc\<span class="title">_store</span>Weak 函数，唯一不同的是调用的入参不同，一个是 <span class="built_in">value</span>，一个是 nil。</span><br><span class="line">	</span><br><span class="line">	那么重点就都落在 objc\<span class="title">_store</span>Weak 函数上了。</span><br><span class="line">	</span><br><span class="line">	&gt;[id objc_storeWeak(id *object, id <span class="built_in">value</span>);](<span class="keyword">http</span>://clang.llvm.org/docs/AutomaticReferenceCounting.html<span class="comment">#id73)</span></span><br><span class="line">	&gt;</span><br><span class="line">	&gt;\_Precondition:\_ object is <span class="keyword">a</span> valid pointer which either <span class="keyword">contains</span> <span class="keyword">a</span> <span class="literal">null</span> pointer <span class="keyword">or</span> has been registered <span class="keyword">as</span> <span class="keyword">a</span> \_\<span class="title">_weak</span> object. <span class="built_in">value</span> is <span class="literal">null</span> <span class="keyword">or</span> <span class="keyword">a</span> pointer <span class="built_in">to</span> <span class="keyword">a</span> valid object. If <span class="built_in">value</span> is <span class="keyword">a</span> <span class="literal">null</span> pointer <span class="keyword">or</span> <span class="keyword">the</span> object <span class="built_in">to</span> which <span class="keyword">it</span> points has begun deallocation, object is assigned <span class="literal">null</span> <span class="keyword">and</span> unregistered <span class="keyword">as</span> <span class="keyword">a</span> \_\<span class="title">_weak</span> object. Otherwise, object is registered <span class="keyword">as</span> <span class="keyword">a</span> \_\<span class="title">_weak</span> object <span class="keyword">or</span> has its registration updated <span class="built_in">to</span> point <span class="built_in">to</span> <span class="built_in">value</span></span><br><span class="line">	&gt;</span><br><span class="line">	&gt;Returns <span class="keyword">the</span> <span class="built_in">value</span> <span class="keyword">of</span> object <span class="keyword">after</span> <span class="keyword">the</span> call.</span><br><span class="line">	</span><br><span class="line">	objc\<span class="title">_store</span>Weak 函数的用途就很明显了。由于 weak 表也是用 Hash table 实现的，所以objc\<span class="title">_store</span>Weak 函数就把第一个入参的变量地址注册到 weak 表中，然后根据第二个入参来决定是否移除。如果第二个参数为 <span class="number">0</span>，那么就把 \_\<span class="title">_weak</span> 变量从 weak 表中删除记录，并从引用计数表中删除对应的键值记录。</span><br><span class="line">	</span><br><span class="line">	所以如果 \_\<span class="title">_weak</span> 引用的原对象如果被释放了，那么对应的 \_\<span class="title">_weak</span> 对象就会被指为 nil。原来就是通过 objc\<span class="title">_store</span>Weak 函数这些函数来实现的。</span><br><span class="line">	</span><br><span class="line">	以上就是 ARC 中 \_\<span class="title">_strong</span> 和 \_\<span class="title">_weak</span> 的简单的实现原理，更加详细的还请大家去看看这一章开头提到的那个 LLVM 文档，里面说明的很详细。</span><br><span class="line">	</span><br><span class="line">	&lt;center&gt;</span><br><span class="line">	![](<span class="keyword">http</span>://www.dzliving.com/wp-content/uploads/<span class="number">2018</span>/<span class="number">02</span>/Block2.png)</span><br><span class="line">	&lt;/center&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment">#### 7,3 weakSelf、strongSelf 的用途</span></span><br><span class="line"></span><br><span class="line">在提 weakSelf、strongSelf 之前，我们先引入一个 Retain Cicle 的例子。</span><br><span class="line"></span><br><span class="line">假设自定义的一个 student 类</span><br><span class="line"></span><br><span class="line">例子 <span class="number">1</span>：</span><br><span class="line"></span><br><span class="line">**Student.h 文件**</span><br></pre></td></tr></table></figure>
+</code></pre><p>#import &lt;Foundation/Foundation.h&gt;</p>
+<p>typedef void(^ Study)();</p>
+<p>@interface Student : NSObject</p>
+<p>@property (nonatomic, copy) NSString * name;<br>@property (nonatomic, copy) Study study;</p>
+<p>@end<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">**ViewController<span class="selector-class">.m</span> 文件**</span><br></pre></td></tr></table></figure></p>
+<p>#import “ViewController.h”</p>
+<p>#import “Student.h”</p>
+<p>@interface ViewController ()</p>
+<p>@end</p>
+<p>@implementation ViewController</p>
+<ul>
+<li><p>(void)viewDidLoad<br>{</p>
+<p>  [super viewDidLoad];</p>
+<p>  Student * student = [[Student alloc] init];</p>
+<p>  student.name = @”Hello World”;</p>
+<p>  student.study = ^{</p>
+<pre><code>NSLog(@&quot;my name is = %@&quot;, student.name);
+</code></pre><p>  };</p>
+</li>
+</ul>
+<p>}<br><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">到这里，大家应该看出来了，这里肯定出现了循环引用了。student 的 study 的 Block 里面强引用了 student 自身。根据[<span class="string">上篇文章</span>](<span class="link">http://www.jianshu.com/p/ee9756f3d5f6</span>)的分析，可以知道，\_NSConcreteMallocBlock 捕获了外部的对象，会在内部持有它。retainCount 值会加一。</span><br><span class="line"></span><br><span class="line">我们用 Instruments 来观察一下。添加 Leak 观察器。</span><br><span class="line"></span><br><span class="line">当程序运行起来之后，在 Leak Checks观察器里面应该可以看到红色的❌，点击它就会看到内存 leak 了。有 2 个泄露的对象。Block 和 Student 相互循环引用了。</span><br><span class="line"></span><br><span class="line"><span class="xml"><span class="tag">&lt;<span class="name">center</span>&gt;</span></span></span><br><span class="line">![](http://www.dzliving.com/wp-content/uploads/2018/02/Block3.jpeg)</span><br><span class="line"><span class="xml"><span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"></span><br><span class="line">打开 Cycles &amp; Roots 观察一下循环的环。</span><br><span class="line"></span><br><span class="line"><span class="xml"><span class="tag">&lt;<span class="name">center</span>&gt;</span></span></span><br><span class="line">![](http://www.dzliving.com/wp-content/uploads/2018/02/Block4.jpg)</span><br><span class="line"><span class="xml"><span class="tag">&lt;/<span class="name">center</span>&gt;</span></span></span><br><span class="line"></span><br><span class="line">这里形成环的原因 block 里面持有 student 本身，student 本身又持有 block。</span><br><span class="line"></span><br><span class="line">那再看一个例子 2：</span><br></pre></td></tr></table></figure></p>
+<p>#import “ViewController.h”</p>
+<p>#import “Student.h”</p>
+<p>@interface ViewController ()</p>
+<p>@end</p>
+<p>@implementation ViewController</p>
+<ul>
+<li><p>(void)viewDidLoad<br>{<br>  [super viewDidLoad];</p>
+<p>  Student * student = [[Student alloc] init];</p>
+<p>  student.name  = @”Hello World”;</p>
+<p>  student.study = ^(NSString * name){</p>
+<pre><code>NSLog(@&quot;my name is = %@&quot;,name);
+</code></pre><p>  };</p>
+<p>  student.study(student.name);</p>
+</li>
+</ul>
+<p>}<br><figure class="highlight maxima"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">我把 <span class="built_in">block</span> 新传入一个参数，传入的是 student.name。这个时候会引起循环引用么？</span><br><span class="line"></span><br><span class="line">答案肯定是不会。</span><br><span class="line"></span><br><span class="line">&lt;<span class="built_in">center</span>&gt;</span><br><span class="line">![](http://www.dzliving.com/wp-<span class="built_in">content</span>/uploads/<span class="number">2018</span>/<span class="number">02</span>/Block5.jpeg)</span><br><span class="line">&lt;/<span class="built_in">center</span>&gt;</span><br><span class="line"></span><br><span class="line">如上图，并不会出现内存泄露。原因是因为，student 是作为形参传递进 <span class="built_in">block</span> 的，<span class="built_in">block</span> 并不会捕获形参到 <span class="built_in">block</span> 内部进行持有。所以肯定不会造成循环引用。</span><br><span class="line"></span><br><span class="line">再改一下。看例子 <span class="number">3</span>：</span><br></pre></td></tr></table></figure></p>
+<p>#import “ViewController.h”</p>
+<p>#import “Student.h”</p>
+<p>@interface ViewController ()</p>
+<p>@property (nonatomic, copy) NSString <em> name;<br>@property (nonatomic, strong) Student </em> stu;</p>
+<p>@end</p>
+<p>@implementation ViewController</p>
+<ul>
+<li><p>(void)viewDidLoad<br>{<br>  [super viewDidLoad];</p>
+<p>  Student * student = [[Student alloc] init];</p>
+<p>  self.name = @”halfrost”;<br>  self.stu  = student;</p>
+<p>  student.study = ^{</p>
+<pre><code>NSLog(@&quot;my name is = %@&quot;, self.name);
+</code></pre><p>  };</p>
+<p>  student.study();<br>}</p>
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">这样会形成循环引用么？</span><br><span class="line"></span><br><span class="line">&lt;<span class="built_in">center</span>&gt;</span><br><span class="line">![](http://www.dzliving.com/wp-<span class="built_in">content</span>/uploads/<span class="number">2018</span>/<span class="number">02</span>/Block6.jpg)</span><br><span class="line">&lt;/<span class="built_in">center</span>&gt;</span><br><span class="line"></span><br><span class="line">答案也是会的(ARC 环境)。</span><br><span class="line"></span><br><span class="line">vc → student → <span class="built_in">block</span> → vc 已经成环。这里即使是 self.name 也是循环引用了，因为 <span class="built_in">block</span> 不可能说去单独的强持有某个实例的变量，这不符合内存管理规则(交叉管理了)，但是 instruments 检测不出来。</span><br><span class="line"></span><br><span class="line">(原文写着没有循环引用，我在 ARC 环境测试时，dealloc 不会被调用，说明还被引用着。可以自行验证)。</span><br><span class="line"></span><br><span class="line">那遇到循环引用我们改如何处理呢？？类比平时我们经常写的 delegate，可以知道，只要有一边是 \<span class="symbol">_</span>\_weak 就可以打破循环。</span><br><span class="line"></span><br><span class="line">先说一种做法，利用 __block 解决循环的做法。例子 <span class="number">4</span>：</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>#import “ViewController.h”</p>
+<p>#import “Student.h”</p>
+<p>@interface ViewController ()</p>
+<p>@end</p>
+<p>@implementation ViewController</p>
+<ul>
+<li><p>(void)viewDidLoad<br>{<br>  [super viewDidLoad];</p>
+<p>  Student * student = [[Student alloc] init];</p>
+<p>  __block Student * stu = student;</p>
+<p>  student.name = @”Hello World”;</p>
+<p>  student.study = ^{</p>
+<pre><code>NSLog(@&quot;my name is = %@&quot;, stu.name);
+stu = nil;
+</code></pre><p>  };<br>}</p>
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">这样写会循环么？看上去应该不会。但是实际上却是会的。</span><br><span class="line"></span><br><span class="line">&lt;<span class="built_in">center</span>&gt;</span><br><span class="line">![](http://www.dzliving.com/wp-<span class="built_in">content</span>/uploads/<span class="number">2018</span>/<span class="number">02</span>/Block7.jpg)</span><br><span class="line">&lt;/<span class="built_in">center</span>&gt;</span><br><span class="line"></span><br><span class="line">由于没有执行 study 这个 <span class="built_in">block</span>，现在 student 持有该 <span class="built_in">block</span>，<span class="built_in">block</span> 持有 \<span class="symbol">_</span>\_block 变量，\<span class="symbol">_</span>\_block 变量又持有 student 对象。<span class="number">3</span> 者形成了环，导致了循环引用了。</span><br><span class="line"></span><br><span class="line">想打破环就需要破坏掉其中一个引用。\<span class="symbol">_</span>\_block 不持有 student 即可。</span><br><span class="line"></span><br><span class="line">只需要执行一下 <span class="built_in">block</span> 即可。例子 <span class="number">5</span>：</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>student.study();<br><figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">这样就不会循环引用了。</span><br><span class="line"></span><br><span class="line">&lt;center&gt;</span><br><span class="line">![](<span class="keyword">http</span>://www.dzliving.com/wp-content/uploads/<span class="number">2018</span>/<span class="number">02</span>/Block8.png)</span><br><span class="line">&lt;/center&gt;</span><br><span class="line"></span><br><span class="line">使用 \_\<span class="title">_block</span> 解决循环引用虽然可以控制对象持有时间，在 block 中还能动态的控制 \_\<span class="title">_block</span> 变量的值，可以赋值 nil，也可以赋值其他的值，但是有一个唯一的缺点就是需要执行一次 block 才行。否则还是会造成循环引用。</span><br><span class="line"></span><br><span class="line">**值得注意的是，在 ARC 下 \_\<span class="title">_block</span>** **会导****致对象被 retain，有可能导致循环引用。而在 MRC 下，则不会 retain 这个对象，也不会导致循环引用。**</span><br><span class="line"></span><br><span class="line">接下来可以正式开始讲讲 weakSelf 和 strongSelf 的用法了。</span><br><span class="line"></span><br><span class="line"><span class="number">1.</span> weakSelf</span><br><span class="line"></span><br><span class="line">	说道 weakSelf，需要先来区分几种写法。</span><br><span class="line"></span><br><span class="line">	①、\_\<span class="title">_weak</span> \_\<span class="title">_typeof</span>(self)weakSelf = self;  <span class="comment"> // 这是 AFN 里面的写法。。</span></span><br><span class="line"></span><br><span class="line">	②、<span class="comment">#define WEAKSELF typeof(self) __weak weakSelf = self;</span></span><br><span class="line"></span><br><span class="line">	&gt; 先区分 __typeof() 和 typeof()</span><br><span class="line"></span><br><span class="line">	AFNetWorking 的库里面的代码都很整洁，里面各方面的代码都可以当做代码范本来阅读。遇到不懂疑惑的，都要深究，肯定会有收获。这里就是一处，平时我们的写法是不带 \_\_ 的，AFN 里面用这种写法有什么特殊的用途么？</span><br><span class="line"></span><br><span class="line">	在 SOF 上能找到相关的[答案](<span class="keyword">http</span>://stackoverflow.com/questions/<span class="number">14877415</span>/difference-between-typeof-typeof-<span class="keyword">and</span>-typeof-objective-c)：</span><br><span class="line"></span><br><span class="line">	&gt;\_\<span class="title">_typeof</span>\_\_() <span class="keyword">and</span> \_\<span class="title">_typeof</span>() are compiler-specific extensions <span class="built_in">to</span> <span class="keyword">the</span> C language, because standard C does <span class="keyword">not</span> <span class="built_in">include</span> such <span class="keyword">an</span> operator. Standard C requires compilers <span class="built_in">to</span> prefix language extensions <span class="keyword">with</span> <span class="keyword">a</span> double-underscore (which is also why you should never <span class="built_in">do</span> so <span class="keyword">for</span> your own functions, variables, etc.)  </span><br><span class="line">	&gt;typeof() is exactly <span class="keyword">the</span> same, but throws <span class="keyword">the</span> underscores out <span class="keyword">the</span> window <span class="keyword">with</span> <span class="keyword">the</span> understanding that every modern compiler supports <span class="keyword">it</span>. (Actually, now that I think about <span class="keyword">it</span>, Visual C++ might <span class="keyword">not</span>. It does support decltype() though, which generally provides <span class="keyword">the</span> same behaviour <span class="keyword">as</span> typeof().)  </span><br><span class="line">	&gt;All <span class="literal">three</span> mean <span class="keyword">the</span> same thing, but <span class="literal">none</span> are standard C so <span class="keyword">a</span> conforming compiler may choose <span class="built_in">to</span> make <span class="keyword">any</span> mean something different.</span><br><span class="line"></span><br><span class="line">	其实两者都是一样的东西，只不过是 C 里面不同的标准，兼容性不同罢了。更加详细的[官方说明](<span class="keyword">http</span>://gcc.gnu.org/onlinedocs/gcc/Alternate-Keywords.html<span class="comment">#Alternate-Keywords)</span></span><br><span class="line"></span><br><span class="line">	那么抽象出来就是这 <span class="number">2</span> 种写法。</span><br></pre></td></tr></table></figure></p>
+<pre><code>#define WEAKSELF __weak typeof(self)weakSelf  = self;  
+#define WEAKSELF typeof(self) __weak weakSelf = self;
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">这样子看就清楚了，两种写法就是完全一样的。</span><br><span class="line"></span><br><span class="line">我们可以用 WEAKSELF 来解决循环引用的问题。例子 <span class="number">6</span>：</span><br></pre></td></tr></table></figure>
+
+#import &quot;ViewController.h&quot;
+#import &quot;Student.h&quot;
+
+@interface ViewController ()
+@end
+
+@implementation ViewController
+
+- (void)viewDidLoad
+{
+
+    [super viewDidLoad];
+
+    Student * student = [[Student alloc]init];
+    student.name = @&quot;Hello World&quot;;
+
+    __weak typeof(student) weakSelf = student;
+    student.study = ^{
+        NSLog(@&quot;my name is = %@&quot;,weakSelf.name);
+    };
+
+    student.study();
+}
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">这样就解决了循环引用的问题了。</span><br><span class="line"></span><br><span class="line">解决循环应用的问题一定要分析清楚哪里出现了循环引用，只需要把其中一环加上 weakSelf 这类似的宏，就可以解决循环引用。如果分析不清楚，就只能无脑添加 weakSelf、strongSelf，这样的做法不可取。</span><br><span class="line"></span><br><span class="line">在上面的例子 3 中，就完全不存在循环引用，要是无脑加 weakSelf、strongSelf 是不对的。在例子 6 中，也只需要加一个 weakSelf 就可以了，也不需要加 strongSelf。</span><br><span class="line"></span><br><span class="line">曾经在 segmentfault 也看到过这样一个问题，问：[<span class="string">为什么 iOS 的 Masonry 中的 self 不会循环引用?</span>](<span class="link">https://segmentfault.com/q/1010000004343510</span>)</span><br></pre></td></tr></table></figure>
+
+UIButton * testButton = [[UIButton alloc] init];
+[self.view addSubview:testButton];
+testButton.backgroundColor = [UIColor redColor];
+
+[testButton mas_makeConstraints:^(MASConstraintMaker * make) {
+
+    make.width.equalTo(@100);
+    make.height.equalTo(@100);
+    make.left.equalTo(self.view.mas_left);
+    make.top.equalTo(self.view.mas_top);
+}];
+
+[testButton bk_addEventHandler:^(id sender) {
+    [self dismissViewControllerAnimated:YES completion:nil];
+} forControlEvents:UIControlEventTouchUpInside];
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">如果我用 <span class="keyword">blocksKit </span>的 <span class="keyword">bk\_addEventHandler方法，其中使用 </span><span class="keyword">strong </span><span class="keyword">self，该 </span>viewController 就无法 dealloc，我理解是因为 <span class="keyword">self </span>→ <span class="keyword">self.view </span>→ testButton → <span class="keyword">self。 </span>但是如果只用 Mansonry 的 mas\_makeConstraints方法，同样使用 <span class="keyword">strong </span><span class="keyword">self，该 </span>viewController 却能正常 dealloc，请问为什么 Masonry 没有导致循环引用？</span><br><span class="line"></span><br><span class="line">看到这里，读者应该就应该能回答这个问题了。</span><br></pre></td></tr></table></figure>
+
+- (NSArray *)mas_makeConstraints:(void(^)(MASConstraintMaker *))block
+{
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+
+    MASConstraintMaker * maker = [[MASConstraintMaker alloc] initWithView:self];
+
+    block(maker);
+
+    return [maker install];
+}
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">	关于 Masonry，它捕获了变量 <span class="keyword">self，然后对其执行了 </span>setTranslatesAutoresizingMaskIntoConstraints: 方法。但是，因为执行完毕后，<span class="keyword">block </span>会被销毁，没有形成环。所以，没有引起循环依赖。</span><br><span class="line"></span><br><span class="line"><span class="number">2</span>. <span class="keyword">strongSelf</span></span><br><span class="line"><span class="keyword"></span></span><br><span class="line"><span class="keyword">	</span>上面介绍完了 weakSelf，既然 weakSelf 能完美解决 Retain Circle 的问题了，那为何还需要<span class="keyword">strongSelf </span>呢？</span><br><span class="line">	</span><br><span class="line">	还是先从 AFN 经典说起，以下是 AFN 其中的一段代码：</span><br></pre></td></tr></table></figure>
+
+#pragma mark - NSOperation
+
+- (void)setCompletionBlock:(void (^)(void))block
+{
+    [self.lock lock];
+
+    if (!block) {    
+        [super setCompletionBlock:nil];
+    }
+    else {
+        __weak __typeof(self)weakSelf = self;
+
+        [super setCompletionBlock:^ {
+            __strong __typeof(weakSelf)strongSelf = weakSelf;
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored &quot;-Wgnu&quot;
+
+            dispatch_group_t group = strongSelf.completionGroup ?: url_request_operation_completion_group();
+            dispatch_queue_t queue = strongSelf.completionQueue ?: dispatch_get_main_queue();
+
+#pragma clang diagnostic pop
+
+            dispatch_group_async(group, queue, ^{
+                block();
+            });
+
+            dispatch_group_notify(group, url_request_operation_completion_queue(), ^{
+                [strongSelf setCompletionBlock:nil];
+            });
+        }];
+    }
+    [self.lock unlock];
+}
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">如果 block 里面不加 <span class="symbol">\_</span><span class="symbol">\_</span>strong <span class="symbol">\_</span><span class="symbol">\_</span>typeof(weakSelf)strongSelf = weakSelf 会如何呢？</span><br></pre></td></tr></table></figure>
+
+#import &quot;ViewController.h&quot;
+#import &quot;Student.h&quot;
+
+@interface ViewController ()
+@end
+
+@implementation ViewController
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+
+    Student * student = [[Student alloc]init];
+    student.name = @&quot;Hello World&quot;;
+
+    __weak typeof(student) weakSelf = student;
+    student.study = ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            NSLog(@&quot;my name is = %@&quot;,weakSelf.name); 
+        });
+    };
+
+    student.study();
+}
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">输出：</span><br></pre></td></tr></table></figure>
+
+my name is = (null)
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">为什么输出是这样的呢？</span><br><span class="line"></span><br><span class="line">重点就在 dispatch<span class="symbol">\_</span>after 这个函数里面。在 study() 的 block 结束之后，student 被自动释放了。又由于 dispatch_after 里面捕获的 <span class="symbol">\_</span><span class="symbol">\_</span>weak 的 student，根据第二章讲过的 <span class="symbol">\_</span><span class="symbol">\_</span>weak 的实现原理，在原对象释放之后 <span class="symbol">\_</span><span class="symbol">\_</span>weak 对象就会变成 null，防止野指针。所以就输出了 null了。</span><br><span class="line"></span><br><span class="line">那么我们怎么才能在 weakSelf 之后，block里面还能继续使用 weakSelf 之后的对象呢？</span><br><span class="line"></span><br><span class="line">究其根本原因就是 weakSelf 之后，无法控制什么时候会被释放，为了保证在 block 内不会被释放，需要添加 <span class="symbol">\_</span><span class="symbol">\_</span>strong。</span><br><span class="line"></span><br><span class="line">在 block 里面使用的 <span class="symbol">\_</span><span class="symbol">\_</span>strong 修饰的 weakSelf 是为了在函数生命周期中防止 self 提前释放。strongSelf 是一个自动变量当 block 执行完毕就会释放自动变量 strongSelf 不会对 self 进行一直进行强引用。</span><br></pre></td></tr></table></figure>
+
+#import &quot;ViewController.h&quot;
+#import &quot;Student.h&quot;
+
+@interface ViewController ()
+@end
+
+@implementation ViewController
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+
+    Student * student = [[Student alloc] init];
+    student.name = @&quot;Hello World&quot;;
+
+    __weak typeof(student) weakSelf = student;
+    student.study = ^{
+        __strong typeof(student) strongSelf = weakSelf;
+
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            NSLog(@&quot;my name is = %@&quot;,strongSelf.name);
+        });
+    };
+
+    student.study();
+}
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">输出</span><br></pre></td></tr></table></figure>
+
+my name is = Hello World
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">	</span><br><span class="line">至此，我们就明白了 weakSelf、<span class="keyword">strongSelf </span>的用途了。</span><br><span class="line">	</span><br><span class="line"><span class="symbol">weakSelf</span> 是为了 <span class="keyword">block </span>不持有 <span class="keyword">self，避免 </span>Retain Circle 循环引用。在 <span class="keyword">Block </span>内如果需要访问 <span class="keyword">self </span>的方法、变量，建议使用 weakSelf。</span><br><span class="line">	</span><br><span class="line"><span class="keyword">strongSelf </span>的目的是因为一旦进入 <span class="keyword">block </span>执行，假设不允许 <span class="keyword">self </span>在这个执行过程中释放，就需要加入 <span class="keyword">strongSelf。block </span>执行完后这个 <span class="keyword">strongSelf </span>会自动释放，没有不会存在循环引用问题。如果在 <span class="keyword">Block </span>内需要多次 访问 <span class="keyword">self，则需要使用 </span><span class="keyword">strongSelf。</span></span><br><span class="line"><span class="keyword">	</span></span><br><span class="line">关于 Retain Circle 最后总结一下，有 <span class="number">3</span> 种方式可以解决循环引用。</span><br><span class="line">	</span><br><span class="line">结合《Effective Objective-C <span class="number">2</span>.<span class="number">0</span>》(编写高质量 iOS 与 OS X 代码的 <span class="number">52</span> 个有效方法)这本书的例子，来总结一下。</span><br><span class="line"></span><br><span class="line">**EOCNetworkFetcher.h 文件**</span><br></pre></td></tr></table></figure>
+</code></pre><p>typedef void (^ EOCNetworkFetcherCompletionHandler)(NSData * data);</p>
+<p>@interface EOCNetworkFetcher : NSObject</p>
+<p>@property (nonatomic, strong, readonly) NSURL * url;</p>
+<ul>
+<li>(id)initWithURL:(NSURL *)url;</li>
+<li>(void)startWithCompletionHandler:(EOCNetworkFetcherCompletionHandler)completion;</li>
+</ul>
+<p>@end<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">**EOCNetworkFetcher<span class="selector-class">.m</span> 文件**</span><br></pre></td></tr></table></figure></p>
+<p>@interface EOCNetworkFetcher ()</p>
+<p>@property (nonatomic, strong, readwrite) NSURL <em> url;<br>@property (nonatomic, copy) EOCNetworkFetcherCompletionHandler completionHandler;<br>@property (nonatomic, strong) NSData </em> downloadData;</p>
+<p>@end</p>
+<p>@implementation EOCNetworkFetcher</p>
+<ul>
+<li><p>(id)initWithURL:(NSURL *)url<br>{<br>  if (self = [super init]) {</p>
+<pre><code>_url = url;
+</code></pre><p>  }<br>  return self;<br>}</p>
+</li>
+<li><p>(void)startWithCompletionHandler:(EOCNetworkFetcherCompletionHandler)completion<br>{<br>  self.completionHandler = completion;   // 开始网络请求</p>
+<p>  dispatch_async(dispatch_get_global_queue(0, 0), ^{</p>
+<pre><code>_downloadData = [[NSData alloc] initWithContentsOfURL:_url]; 
+
+dispatch_async(dispatch_get_main_queue(), ^{  // 网络请求完成
+    [self p_requestCompleted];
+});
+</code></pre><p>  });<br>}</p>
+</li>
+<li><p>(void)p_requestCompleted<br>{<br>  if(_completionHandler) {</p>
+<pre><code>_completionHandler(_downloadData);
+</code></pre><p>  }<br>}</p>
+</li>
+</ul>
+<p>@end<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">**EOCClass<span class="selector-class">.m</span> 文件**</span><br></pre></td></tr></table></figure></p>
+<p>@implementation EOCClass<br>{<br>    NSData <em> _fetchedData;<br>    EOCNetworkFetcher </em> _networkFetcher;<br>}</p>
+<ul>
+<li><p>(void)downloadData<br>{<br>  NSURL * url = [NSURL URLWithString:@”<a href="http://www.baidu.com&quot;]" target="_blank" rel="noopener">http://www.baidu.com&quot;]</a>;</p>
+<p>  _networkFetcher = [[EOCNetworkFetcher alloc] initWithURL:url];<br>  [_networkFetcher startWithCompletionHandler:^(NSData * data) {</p>
+<pre><code>_fetchedData = data;
+</code></pre><p>  }];<br>}</p>
+</li>
+</ul>
+<p>@end<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">在这个例子中，存在 3 者之间形成环</span><br><span class="line"></span><br><span class="line">①、completion <span class="keyword">handler</span> 的 <span class="keyword">block</span> 因为要设置 \_fetchedData 实例变量的值，所以它必须捕获 <span class="keyword">self</span> 变量，也就是说 <span class="keyword">handler</span> 块保留了 EOCClass 实例；</span><br><span class="line"></span><br><span class="line">②、EOCClass 实例通过 strong 实例变量保留了 EOCNetworkFetcher，最后EOCNetworkFetcher 实例对象也会保留了 <span class="keyword">handler</span> 的 <span class="keyword">block</span>。</span><br><span class="line"></span><br><span class="line">书上说的 <span class="number">3</span> 种方法来打破循环。</span><br><span class="line"></span><br><span class="line"><span class="number">1.</span> 手动释放 EOCNetworkFetcher 使用之后持有的 \_networkFetcher，这样可以打破循环引用</span><br></pre></td></tr></table></figure></p>
+<pre><code>- (void)downloadData
+{
+    NSURL * url = [NSURL URLWithString:@&quot;http://www.baidu.com&quot;];
+
+    _networkFetcher = [[EOCNetworkFetcher alloc] initWithURL:url];
+    [_networkFetcher startWithCompletionHandler:^(NSData * data) {
+        _fetchedData = data;
+        _networkFetcher = nil;   // 加上此行，打破循环引用
+    }];
+}
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="number">2</span>. 直接释放 <span class="keyword">block。因为在使用完对象之后需要人为手动释放，如果忘记释放就会造成循环引用了。如果使用完 </span>completion handler 之后直接释放 <span class="keyword">block </span>即可。打破循环引用</span><br></pre></td></tr></table></figure>
+
+- (void)p_requestCompleted
+{
+    if(_completionHandler) {
+        _completionHandler(_downloadData);
+    }
+    self.completionHandler = nil;  // 加上此行，打破循环引用
+}
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="bullet">3. </span>使用 weakSelf、strongSelf</span><br></pre></td></tr></table></figure>
+
+- (void)downloadData
+{
+    __weak __typeof(self) weakSelf = self;
+
+    NSURL * url = [NSURL URLWithString:@&quot;http://www.baidu.com&quot;];
+
+    _networkFetcher = [[EOCNetworkFetcher alloc] initWithURL:url];
+    [_networkFetcher startWithCompletionHandler:^(NSData * data) {
+        __typeof(&amp;*weakSelf) strongSelf = weakSelf;
+
+        if (strongSelf) {
+            strongSelf.fetchedData = data;
+        }
+    }];
+}
+<figure class="highlight d"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">&lt;center&gt;</span><br><span class="line">![](http:<span class="comment">//www.dzliving.com/wp-content/uploads/2018/11/1194012-59b08429238b088d.png)</span></span><br><span class="line">&lt;/center&gt;</span><br><span class="line"></span><br><span class="line">#### <span class="number">7.4</span> <span class="keyword">@weakify</span>、<span class="keyword">@strongify</span> 实现原理</span><br><span class="line"></span><br><span class="line">上面讲完了 weakSelf、strongSelf 之后，接下来再讲讲 <span class="keyword">@weakify</span>、<span class="keyword">@strongify</span>，这两个关键字是 RAC 中避免 Block 循环引用而开发的 <span class="number">2</span> 个宏，这 <span class="number">2</span> 个宏的实现过程很牛，值得我们学习。</span><br><span class="line"></span><br><span class="line"><span class="keyword">@weakify</span>、<span class="keyword">@strongify</span> 的作用和 weakSelf、strongSelf 对应的一样。这里我们具体看看大神是怎么实现这 <span class="number">2</span> 个宏的。</span><br><span class="line"></span><br><span class="line">直接从源码看起来。</span><br></pre></td></tr></table></figure>
+</code></pre><p>#define weakify(…) \<br>rac_keywordify \<br>metamacro_foreach_cxt(rac_weakify_,, <strong>weak, </strong>VA_ARGS__)</p>
+<p>#define strongify(…) \<br>rac_keywordify \<br>_Pragma(“clang diagnostic push”) \<br>_Pragma(“clang diagnostic ignored “-Wshadow””) \<br>metamacro_foreach(rac_strongify_,, <strong>VA_ARGS</strong>) \<br>_Pragma(“clang diagnostic pop”)<br><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">看到这种宏定义，咋一看什么都不知道。那就只能一层层的往下看。</span><br><span class="line"></span><br><span class="line"><span class="bullet">1. </span>weakify</span><br><span class="line"></span><br><span class="line"><span class="code">	先从 weakify(...) 开始。</span></span><br></pre></td></tr></table></figure></p>
+<pre><code>#if DEBUG
+#define rac_keywordify autoreleasepool {}
+#else
+#define rac_keywordify try {} @catch (...) {}
+#endif
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">这里在 debug 模式下使用 @<span class="keyword">autoreleasepool</span> 是为了维持编译器的分析能力，而使用 @<span class="keyword">try</span>/@catch 是为了防止插入一些不必要的 <span class="keyword">autoreleasepool</span>。rac\_keywordify 实际上就是<span class="keyword">autoreleasepool</span> <span class="comment">&#123;&#125;</span>的宏替换。因为有了 <span class="keyword">autoreleasepool</span> <span class="comment">&#123;&#125;</span>的宏替换，所以 weakify 要加上 @，形成 @<span class="keyword">autoreleasepool</span> <span class="comment">&#123;&#125;</span>。</span><br></pre></td></tr></table></figure>
+
+#define metamacro_foreach_cxt(MACRO, SEP, CONTEXT, ...) \
+
+metamacro_concat(metamacro_foreach_cxt, metamacro_argcount(__VA_ARGS__))(MACRO, SEP, CONTEXT, __VA_ARGS__)
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="symbol">\_</span><span class="symbol">\_</span>VA<span class="symbol">\_</span>ARGS<span class="symbol">\_</span><span class="symbol">\_</span>：总体来说就是将左边宏中 ... 的内容原样抄写在右边 <span class="symbol">\_</span><span class="symbol">\_</span>VA<span class="symbol">\_</span>ARGS<span class="symbol">\_</span><span class="symbol">\_</span> 所在的位置。它是一个可变参数的宏，是新的 C99 规范中新增的，目前似乎只有 gcc支持(VC 从 VC2005 开始支持)。</span><br><span class="line"></span><br><span class="line">那么我们使用 @weakify(self) 传入进去。<span class="symbol">\_</span><span class="symbol">\_</span>VA<span class="symbol">\_</span>ARGS<span class="symbol">\_</span><span class="symbol">\_</span> 相当于 self。此时我们可以把最新开始的 weakify 套下来。于是就变成了这样：</span><br></pre></td></tr></table></figure>
+
+rac_weakify_,, __weak, __VA_ARGS__ 整体替换 MACRO, SEP, CONTEXT, ...
+<figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">这里需要注意的是，源码中就是给的两个<span class="string">","</span>逗号是连着的，所以我们也要等效替换参数，相当于 SEP 是空值。</span><br><span class="line"></span><br><span class="line">替换完成之后就是下面这个样子：</span><br></pre></td></tr></table></figure>
+
+autoreleasepool {} metamacro_concat(metamacro_foreach_cxt, metamacro_argcount(self))(rac_weakify_, , __weak, self)
+<figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">现在我们需要弄懂的就是 metamacro<span class="string">\_concat</span> 和 metamacro<span class="string">\_argcount</span> 是干什么用的。</span><br><span class="line"></span><br><span class="line">继续看看 metamacro_concat 的实现</span><br></pre></td></tr></table></figure>
+
+#define metamacro_concat(A, B) \
+
+metamacro_concat_(A, B) #define metamacro_concat_(A, B) A ## B
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">\#\# 是宏连接符。举个例子：</span><br><span class="line"></span><br><span class="line">假设宏定义为 <span class="selector-id">#define</span> <span class="selector-tag">XNAME</span>(n) <span class="selector-tag">x</span>#<span class="selector-id">#n</span>，代码为：<span class="selector-tag">XNAME</span>(<span class="number">4</span>)，则在预编译时，宏发现<span class="selector-tag">XNAME</span>(<span class="number">4</span>) 与 <span class="selector-tag">XNAME</span>(n) 匹配，则令 <span class="selector-tag">n</span> 为 <span class="selector-tag">4</span>，然后将右边的 <span class="selector-tag">n</span> 的内容也变为 <span class="selector-tag">4</span>，然后将整个<span class="selector-tag">XNAME</span>(<span class="number">4</span>) 替换为 <span class="selector-tag">x</span>#<span class="selector-id">#n</span>，亦即 <span class="selector-tag">x4</span>，故最终结果为 <span class="selector-tag">XNAME</span>(<span class="number">4</span>) 变为 <span class="selector-tag">x4</span>。所以 <span class="selector-tag">A</span>#<span class="selector-id">#B</span> 就是 <span class="selector-tag">AB</span>。</span><br><span class="line"></span><br><span class="line">**<span class="selector-tag">metamacro_argcount</span> 的实现**</span><br></pre></td></tr></table></figure>
+
+#define metamacro_argcount(...) \
+
+metamacro_at(20, __VA_ARGS__, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1) #define metamacro_at(N, ...) \
+
+metamacro_concat(metamacro_at, N)(__VA_ARGS__)
+<figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">metamacro<span class="string">\_concat</span> 是上面讲过的连接符，那么 metamacro<span class="string">\_at，N</span> = metamacro<span class="string">\_atN，由于</span> N = <span class="number">20</span>，于是 metamacro<span class="string">\_atN</span> = metamacro<span class="string">\_at20。</span></span><br></pre></td></tr></table></figure>
+
+#define metamacro_at0(...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at1(_0, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at2(_0, _1, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at3(_0, _1, _2, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at4(_0, _1, _2, _3, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at5(_0, _1, _2, _3, _4, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at6(_0, _1, _2, _3, _4, _5, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at7(_0, _1, _2, _3, _4, _5, _6, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at8(_0, _1, _2, _3, _4, _5, _6, _7, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at9(_0, _1, _2, _3, _4, _5, _6, _7, _8, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at10(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at11(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at12(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at13(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at14(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at15(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at16(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at17(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at18(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at19(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, ...) metamacro_head(__VA_ARGS__)
+
+#define metamacro_at20(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, ...) metamacro_head(__VA_ARGS__)
+<figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">metamacro<span class="string">\_at20</span> 的作用就是截取前 <span class="number">20</span> 个参数，剩下的参数传入 metamacro<span class="string">\_head。</span></span><br></pre></td></tr></table></figure>
+
+#define metamacro_head(...) \
+
+metamacro_head_(__VA_ARGS__, 0)
+
+#define metamacro_head_(FIRST, ...) FIRST
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">metamacro\_head 的作用返回第一个参数。返回到上一级 metamacro\_at20，如果我们从最源头的 @weakify(self)，传递进来，那么 metamacro\_at20(self, <span class="number">20</span>, <span class="number">19</span>, <span class="number">18</span>, <span class="number">17</span>, <span class="number">16</span>, <span class="number">15</span>, <span class="number">14</span>, <span class="number">13</span>, <span class="number">12</span>, <span class="number">11</span>, <span class="number">10</span>, <span class="number">9</span>, <span class="number">8</span>, <span class="number">7</span>, <span class="number">6</span>, <span class="number">5</span>, <span class="number">4</span>, <span class="number">3</span>, <span class="number">2</span>, <span class="number">1</span>)，截取前 <span class="number">20</span> 个参数，最后一个留给metamacro\_head\_(<span class="number">1</span>)，那么就应该返回 <span class="number">1</span>。</span><br></pre></td></tr></table></figure>
+
+metamacro_concat(metamacro_foreach_cxt, metamacro_argcount(self)) = metamacro_concat(metamacro_foreach_cxt, 1)
+<figure class="highlight sqf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">最终可以替换成 metamacro\<span class="variable">_foreach</span>\<span class="variable">_cxt1</span>。</span><br><span class="line"></span><br><span class="line">在源码中继续搜寻。</span><br></pre></td></tr></table></figure>
+
+// metamacro_foreach_cxt expansions
+
+#define metamacro_foreach_cxt0(MACRO, SEP, CONTEXT)
+
+#define metamacro_foreach_cxt1(MACRO, SEP, CONTEXT, _0) MACRO(0, CONTEXT, _0)
+
+#define metamacro_foreach_cxt2(MACRO, SEP, CONTEXT, _0, _1) \
+
+metamacro_foreach_cxt1(MACRO, SEP, CONTEXT, _0) \
+
+SEP \
+
+MACRO(1, CONTEXT, _1)
+
+#define metamacro_foreach_cxt3(MACRO, SEP, CONTEXT, _0, _1, _2) \
+
+metamacro_foreach_cxt2(MACRO, SEP, CONTEXT, _0, _1) \
+
+SEP \
+
+MACRO(2, CONTEXT, _2)
+
+#define metamacro_foreach_cxt4(MACRO, SEP, CONTEXT, _0, _1, _2, _3) \
+
+metamacro_foreach_cxt3(MACRO, SEP, CONTEXT, _0, _1, _2) \
+
+SEP \
+
+MACRO(3, CONTEXT, _3)
+
+#define metamacro_foreach_cxt5(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4) \
+
+metamacro_foreach_cxt4(MACRO, SEP, CONTEXT, _0, _1, _2, _3) \
+
+SEP \
+
+MACRO(4, CONTEXT, _4)
+
+#define metamacro_foreach_cxt6(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5) \
+
+metamacro_foreach_cxt5(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4) \
+
+SEP \
+
+MACRO(5, CONTEXT, _5)
+
+#define metamacro_foreach_cxt7(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6) \
+
+metamacro_foreach_cxt6(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5) \
+
+SEP \
+
+MACRO(6, CONTEXT, _6)
+
+#define metamacro_foreach_cxt8(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7) \
+
+metamacro_foreach_cxt7(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6) \
+
+SEP \
+
+MACRO(7, CONTEXT, _7)
+
+#define metamacro_foreach_cxt9(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8) \
+
+metamacro_foreach_cxt8(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7) \
+
+SEP \
+
+MACRO(8, CONTEXT, _8)
+
+#define metamacro_foreach_cxt10(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9) \
+
+metamacro_foreach_cxt9(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8) \
+
+SEP \
+
+MACRO(9, CONTEXT, _9)
+
+#define metamacro_foreach_cxt11(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10) \
+
+metamacro_foreach_cxt10(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9) \
+
+SEP \
+
+MACRO(10, CONTEXT, _10)
+
+#define metamacro_foreach_cxt12(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11) \
+
+metamacro_foreach_cxt11(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10) \
+
+SEP \
+
+MACRO(11, CONTEXT, _11)
+
+#define metamacro_foreach_cxt13(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12) \
+
+metamacro_foreach_cxt12(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11) \
+
+SEP \
+
+MACRO(12, CONTEXT, _12)
+
+#define metamacro_foreach_cxt14(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13) \
+
+metamacro_foreach_cxt13(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12) \
+
+SEP \
+
+MACRO(13, CONTEXT, _13)
+
+#define metamacro_foreach_cxt15(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14) \
+
+metamacro_foreach_cxt14(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13) \
+
+SEP \
+
+MACRO(14, CONTEXT, _14)
+
+#define metamacro_foreach_cxt16(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15) \
+
+metamacro_foreach_cxt15(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14) \
+
+SEP \
+
+MACRO(15, CONTEXT, _15)
+
+#define metamacro_foreach_cxt17(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16) \
+
+metamacro_foreach_cxt16(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15) \
+
+SEP \
+
+MACRO(16, CONTEXT, _16)
+
+#define metamacro_foreach_cxt18(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17) \
+
+metamacro_foreach_cxt17(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16) \
+
+SEP \
+
+MACRO(17, CONTEXT, _17)
+
+#define metamacro_foreach_cxt19(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18) \
+
+metamacro_foreach_cxt18(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17) \
+
+SEP \
+
+MACRO(18, CONTEXT, _18)
+
+#define metamacro_foreach_cxt20(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19) \
+
+metamacro_foreach_cxt19(MACRO, SEP, CONTEXT, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18) \
+
+SEP \
+
+MACRO(19, CONTEXT, _19)
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">metamacro<span class="symbol">\_</span>foreach<span class="symbol">\_</span>cxt 这个宏定义有点像递归，这里可以看到 N 最大就是 20，于是metamacro<span class="symbol">\_</span>foreach<span class="symbol">\_</span>cxt19 就是最大，metamacro<span class="symbol">\_</span>foreach<span class="symbol">\_</span>cxt19 会生成rac<span class="symbol">\_</span>weakify<span class="symbol">\_</span>(0,<span class="symbol">\_</span><span class="symbol">\_</span>weak,<span class="symbol">\_</span>18)，然后再把前 18 个数传入 metamacro<span class="symbol">\_</span>foreach<span class="symbol">\_</span>cxt18，并生成rac<span class="symbol">\_</span>weakify<span class="symbol">\_</span>(0,<span class="symbol">\_</span><span class="symbol">\_</span>weak,<span class="symbol">\_</span>17)，依次类推，一直递推到 metamacro<span class="symbol">\_</span>foreach<span class="symbol">\_</span>cxt0。</span><br></pre></td></tr></table></figure>
+
+#define metamacro_foreach_cxt0(MACRO, SEP, CONTEXT)
+<figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">metamacro<span class="string">\_foreach\_cxt0</span> 就是终止条件，不做任何操作了。</span><br><span class="line"></span><br><span class="line">于是最初的 @weakify 就被替换成</span><br></pre></td></tr></table></figure>
+
+autoreleasepool {}
+
+metamacro_foreach_cxt1(rac_weakify_, , __weak, self)
+
+#define metamacro_foreach_cxt1(MACRO, SEP, CONTEXT, _0) MACRO(0, CONTEXT, _0)
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">代入参数</span><br></pre></td></tr></table></figure>
+
+autoreleasepool {} rac_weakify_（0,__weak,self）
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">最终需要解析的就是 rac<span class="symbol">\_</span>weakify<span class="symbol">\_</span></span><br></pre></td></tr></table></figure>
+
+#define rac_weakify_(INDEX, CONTEXT, VAR) \
+
+CONTEXT __typeof__(VAR) metamacro_concat(VAR, _weak_) = (VAR);
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">把 (<span class="number">0</span>,__weak,<span class="keyword">self</span>) 的参数替换进来 (<span class="keyword">INDEX</span>, CONTEXT, <span class="keyword">VAR</span>)。</span><br></pre></td></tr></table></figure>
+
+INDEX = 0， CONTEXT = __weak，VAR = self，
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">于是</span><br></pre></td></tr></table></figure>
+
+CONTEXT __typeof__(VAR) metamacro_concat(VAR, _weak_) = (VAR);
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">等效替换为</span><br></pre></td></tr></table></figure>
+
+__weak __typeof__(self) self_weak_ = self;
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">	</span><br><span class="line">	最终 @weakify(self) = <span class="symbol">\_</span><span class="symbol">\_</span>weak <span class="symbol">\_</span><span class="symbol">\_</span>typeof<span class="symbol">\_</span><span class="symbol">\_</span>(self) self<span class="symbol">\_</span>weak<span class="symbol">\_</span> = self; 这里的 self<span class="symbol">\_</span>weak<span class="symbol">\_</span> 就完全等价于我们之前写的 weakSelf。</span><br><span class="line"></span><br><span class="line">2. strongify</span><br><span class="line"></span><br><span class="line">	再继续分析 strongify(...)</span><br><span class="line">	</span><br><span class="line">	rac_keywordify 还是和 weakify 一样，是 autoreleasepool &#123;&#125;，只为了前面能加上 @</span><br></pre></td></tr></table></figure>
+
+_Pragma(&quot;clang diagnostic push&quot;) \
+
+_Pragma(&quot;clang diagnostic ignored &quot;-Wshadow&quot;&quot;) \
+
+_Pragma(&quot;clang diagnostic pop&quot;)
+<figure class="highlight sqf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">strongify 比 weakify 多了这些 <span class="variable">_Pragma</span> 语句。</span><br><span class="line"></span><br><span class="line">关键字 <span class="variable">_Pragma</span> 是 C99 里面引入的。<span class="variable">_Pragma</span> 比 <span class="meta">#<span class="meta-keyword">pragma</span>(在设计上)更加合理，因而功能也有所增强。</span></span><br><span class="line"></span><br><span class="line">上面的等效替换</span><br></pre></td></tr></table></figure>
+
+#pragma clang diagnostic push
+
+#pragma clang diagnostic ignored &quot;-Wshadow&quot;
+
+#pragma clang diagnostic pop
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">这里的 clang 语句的作用：忽略当一个局部变量或类型声明遮盖另一个变量的警告。</span><br><span class="line"></span><br><span class="line">最初的</span><br></pre></td></tr></table></figure>
+
+#define strongify(...) \
+
+rac_keywordify \
+
+_Pragma(&quot;clang diagnostic push&quot;) \
+
+_Pragma(&quot;clang diagnostic ignored &quot;-Wshadow&quot;&quot;) \
+
+metamacro_foreach(rac_strongify_,, __VA_ARGS__) \
+
+_Pragma(&quot;clang diagnostic pop&quot;)
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">strongify 里面需要弄清楚的就是 metamacro<span class="symbol">\_</span>foreach 和 rac<span class="symbol">\_</span>strongify<span class="symbol">\_</span>。</span><br></pre></td></tr></table></figure>
+
+#define metamacro_foreach(MACRO, SEP, ...) \
+
+metamacro_foreach_cxt(metamacro_foreach_iter, SEP, MACRO, __VA_ARGS__)
+
+#define rac_strongify_(INDEX, VAR) \
+
+__strong __typeof__(VAR) VAR = metamacro_concat(VAR, _weak_);
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">我们先替换一次，SEP = 空 ， MACRO = rac<span class="symbol">\_</span>strongify<span class="symbol">\_</span> ， <span class="symbol">\_</span><span class="symbol">\_</span>VA<span class="symbol">\_</span>ARGS<span class="symbol">\_</span><span class="symbol">\_</span> ,  于是替换成这样。</span><br></pre></td></tr></table></figure>
+
+metamacro_foreach_cxt(metamacro_foreach_iter,,rac_strongify_,self)
+<figure class="highlight leaf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">根据之前分析，metamacro\_foreach\_cxt 再次等效替换，metamacro\_foreach\_cxt<span class="function"><span class="keyword">##</span>1<span class="params">(<span class="variable">metamacro</span>\<span class="variable">_foreach</span>\<span class="variable">_iter</span>,,<span class="variable">rac</span>\<span class="variable">_strongify</span>\<span class="variable">_</span>,<span class="variable">self</span>)</span></span></span><br><span class="line"></span><br><span class="line">根据</span><br></pre></td></tr></table></figure>
+
+#define metamacro_foreach_cxt1(MACRO, SEP, CONTEXT, _0) MACRO(0, CONTEXT, _0)
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">再次替换成 metamacro<span class="symbol">\_</span>foreach<span class="symbol">\_</span>iter(0, rac<span class="symbol">\_</span>strongify<span class="symbol">\_</span>, self)</span><br><span class="line"></span><br><span class="line">继续看看 metamacro<span class="symbol">\_</span>foreach<span class="symbol">\_</span>iter 的实现</span><br></pre></td></tr></table></figure>
+
+#define metamacro_foreach_iter(INDEX, MACRO, ARG) MACRO(INDEX, ARG)
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">最终替换成 rac<span class="symbol">\_</span>strongify<span class="symbol">\_</span>(0,self)</span><br></pre></td></tr></table></figure>
+
+#define rac_strongify_(INDEX, VAR) \
+
+__strong __typeof__(VAR) VAR = metamacro_concat(VAR, _weak_);
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">INDEX</span> = <span class="number">0</span>, <span class="keyword">VAR</span> = <span class="keyword">self</span>, 于是 @strongify(<span class="keyword">self</span>) 就等价于</span><br></pre></td></tr></table></figure>
+
+__strong __typeof__(VAR) VAR = metamacro_concat(VAR, _weak_);
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">等价于</span><br></pre></td></tr></table></figure>
+
+__strong __typeof__(self) self = self_weak_;
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">注意 @strongify(<span class="keyword">self</span>) 只能使用在 block 中，如果用在 block 外面，会报错，因为这里会提示你 <span class="string">``</span>Redefinition of <span class="string">'self'</span><span class="string">``</span>。</span><br><span class="line"></span><br><span class="line">**实例**</span><br></pre></td></tr></table></figure>
+
+#ifndef weakify
+
+#if DEBUG   // 判断当前代码运行模式
+
+#if __has_feature(objc_arc)  // 判断 ARC 环境
+
+#define weakify(object) autoreleasepool{} __weak __typeof__(object) weak##_##object = object;     // ## 为连接符
+
+#else
+
+#define weakify(object) autoreleasepool{} __block __typeof__(object) block##_##object = object;
+
+#endif      // 结束 if _has_feature()
+
+#else
+
+#if __has_feature(objc_arc)
+
+#define weakify(object) try{} @finally{} {} __weak __typeof__(object) weak##_##object = object;
+
+#else
+
+#define weakify(object) try{} @finally{} {} __block __typeof__(object) block##_##object = object;
+
+#endif      // 结束 if _has_feature()
+
+#endif      // 结束 if DEBUG
+
+#endif      // 结束 ifndef weakify
+
+#ifndef strongify
+
+#if DEBUG
+
+#if __has_feature(objc_arc)
+
+#define strongify(object) autoreleasepool{} __typeof__(object) object = weak##_##object;
+
+#else
+
+#define strongify(object) autoreleasepool{} __typeof__(object) object = block##_##object;
+
+#endif
+
+#else
+
+#if __has_feature(objc_arc)
+
+#define strongify(object) try{} @finally{} __typeof__(object) object = weak##_##object;
+
+#else
+
+#define strongify(object) try{} @finally{} __typeof__(object) object = block##_##object;、#endif
+
+#endif
+
+#endif
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="bullet">3. </span>总结</span><br></pre></td></tr></table></figure>
+
+@weakify(self) = @autoreleasepool{} __weak __typeof__ (self) self_weak_ = self;
+
+@strongify(self) = @autoreleasepool{} __strong __typeof__(self) self = self_weak_;
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">	</span><br><span class="line">	经过分析以后，其实 <span class="variable">@weakify</span>(self) 和 <span class="variable">@strongify</span>(self) 就是比我们日常写的 weakSelf、strongSelf 多了一个 <span class="variable">@autoreleasepool</span>&#123;&#125; 而已，至于为何要用这些复杂的宏定义来做，目前我还没有理解。如果有大神指导其中的原因，还请多多指点。</span><br><span class="line"></span><br><span class="line">## 八、问题</span><br><span class="line"></span><br><span class="line"><span class="number">1</span>. block 原理是什么？本质是什么？</span><br><span class="line"></span><br><span class="line">	**封装了函数调用以及调用环境的 OC 对象。**</span><br><span class="line"></span><br><span class="line"><span class="number">2</span>. Block 属性的修饰词为什么是 copy？\_\_block 的作用是什么？有什么注意的点？</span><br><span class="line"></span><br><span class="line">	一旦没有进行 copy 操作，block 就不会在堆上。\_\_block 能够修改自动变量的值。注意循环引用。</span><br><span class="line"></span><br><span class="line"><span class="number">3</span>. block 修改 NSMutableArray 时，是否需要添加 \_\_block？</span><br></pre></td></tr></table></figure>
+
+{
+    NSMutableArray * mArr1 = [NSMutableArray arrayWithObjects:@&quot;a&quot;, @&quot;b&quot;, @&quot;abc&quot;, nil];
+    NSMutableArray * mArr2 = [NSMutableArray arrayWithCapacity:mArr1.count];
+
+    [mArr1 enumerateObjectsUsingBlock: ^(NSString * obj, NSUInteger idx, BOOL *stop){
+        [mArr2 addObject:@(obj.length)];
+    }];
+
+    NSLog(@&quot;%@&quot;, mArr2);
+}
+
+2018-12-03 00:24:41.754700+0800 Demo[13081:1899280] (
+    1,
+    1,
+    3
+)
+```
+
+这里确实没有修改 mArr2 这个局部变量。mArr2 是一个指针，指向一个可变长度的数组。在 block 里面，并没有修改这个指针，而是修改了这个指针指向的数组。换句话说，mArr2 保存的是一块内存区域的地址，在 block 里，并没有改变这个地址，而是读取出这个地址，然后去操作这块地址空间的内容。 因为声明 block 的时候实际上是把当时的临时变量又复制了一份，在 block 里即使修改了这些复制的变量，也不影响外面的原始变量。即所谓的闭包。 但是当变量是一个指针的时候，block 里只是复制了一份这个指针，两个指针指向同一个地址。所以，在 block 里面对指针指向内容做的修改，在 block 外面也一样生效。  
+</code></pre><h2 id="九、学习文章"><a href="#九、学习文章" class="headerlink" title="九、学习文章"></a>九、学习文章</h2><p><a href="https://www.jianshu.com/u/edda0ce4a193" target="_blank" rel="noopener">宁夏灼雪__</a> &amp; <a href="https://www.jianshu.com/p/460c9f43d20f" target="_blank" rel="noopener">iOS底层day6 - 探索block</a><br><a href="http://blog.csdn.net/qq_30513483/article/details/52587551" target="_blank" rel="noopener">http://blog.csdn.net/qq_30513483/article/details/52587551</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/10/24/iOS/iOS原理/block/">http://yoursite.com/2019/10/24/iOS/iOS原理/block/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/10/24/iOS/iOS原理/iOS 编译过程原理(2)/" class="pre">iOS 编译过程原理(2)</a><a href="/2019/10/24/iOS/iOS原理/Category/" class="next">Category</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、什么是闭包"><span class="toc-text">一、什么是闭包</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二、实现方式"><span class="toc-text">二、实现方式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三、Capture-捕获"><span class="toc-text">三、Capture (捕获)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、block-的类型"><span class="toc-text">四、block 的类型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-NSConcreteGlobalBlock"><span class="toc-text">4.1 NSConcreteGlobalBlock</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-NSConcreteStackBlock"><span class="toc-text">4.2 NSConcreteStackBlock</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-NSConcreteMallocBlock"><span class="toc-text">4.3 NSConcreteMallocBlock</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#五、变量的复制"><span class="toc-text">五、变量的复制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#六、ARC-对-block-类型的影响"><span class="toc-text">六、ARC 对 block 类型的影响</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#七、Block-循环引用问题"><span class="toc-text">七、Block 循环引用问题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#7-1-RetainCircle-的由来"><span class="toc-text">7.1 RetainCircle 的由来</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#7-2-weak、-strong-的实现原理"><span class="toc-text">7.2 __weak、__strong 的实现原理</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#九、学习文章"><span class="toc-text">九、学习文章</span></a></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

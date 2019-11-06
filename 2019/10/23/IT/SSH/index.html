@@ -1,0 +1,137 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>SSH | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">SSH</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">SSH</h1><div class="post-meta"><a href="/2019/10/23/IT/SSH/#comments" class="comment-count"></a><p><span class="date">Oct 23, 2019</span><span><a href="/categories/IT/" class="category">IT</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、SSH"><a href="#一、SSH" class="headerlink" title="一、SSH"></a>一、SSH</h2><blockquote>
+<p><a href="https://baike.baidu.com/item/ssh/10407?fr=aladdin" target="_blank" rel="noopener">SSH</a> 是一种协议标准，其目的是实现<font color="#cc0000">安全远程登录</font>以及其它<font color="#cc0000">安全网络服务</font>。</p>
+</blockquote>
+<p>传统的网络服务程序，如：ftp、pop 和 telnet 在本质上都是不安全的，因为它们在网络上用明文传送口令和数据。</p>
+<p>SSH 是目前较可靠，专为远程登录会话和其他网络服务提供安全性的协议。利用 SSH 协议可以有效防止远程管理过程中的信息泄露问题。既能防止中间人攻击，也能够防止 DNS 欺骗和 IP 欺骗。使用 SSH，还有一个额外的好处就是传输的数据是经过压缩的，所以可以加快传输的速度。</p>
+<p>SSH 是一个协议标准，其具体的实现有很多，既有开源实现的 OpenSSH，也有商业实现方案。使用范围最广泛的当然是开源实现 OpenSSH。</p>
+<p>SSH 主要由三部分组成：</p>
+<ol>
+<li><p>传输层协议 [SSH-TRANS]</p>
+<p> 提供了服务器认证，保密性及完整性。此外它有时还提供压缩功能。 SSH-TRANS 通常运行在 TCP/IP 连接上，也可能用于其它可靠数据流上。 SSH-TRANS 提供了强力的加密技术、密码主机认证及完整性保护。该协议中的认证基于主机，并且该协议不执行用户认证。更高层的用户认证协议可以设计为在此协议之上。</p>
+</li>
+<li><p>用户认证协议 [SSH-USERAUTH]</p>
+<p> 用于向服务器提供客户端用户鉴别功能。它运行在传输层协议 SSH-TRANS 上面。当 SSH-USERAUTH 开始后，它从低层协议那里接收会话标识符（从第一次密钥交换中的交换哈希 H）。会话标识符唯一标识此会话并且适用于标记以证明私钥的所有权。 SSH-USERAUTH 也需要知道低层协议是否提供保密性保护。</p>
+</li>
+<li><p>连接协议 [SSH-CONNECT]</p>
+<p> 将多个加密隧道分成逻辑通道。它运行在用户认证协议上。它提供了交互式登录话路、远程命令执行、转发 TCP/IP 连接和转发 X11 连接。</p>
+</li>
+</ol>
+<h2 id="二、SSH-工作原理"><a href="#二、SSH-工作原理" class="headerlink" title="二、SSH 工作原理"></a>二、SSH 工作原理</h2><p>在讨论 SSH 的原理和使用前，我们需要分析一个问题：<strong>为什么需要 SSH？</strong></p>
+<p>SSH 和 telnet、ftp 等协议主要的区别在于<font color="#cc0000">安全性</font>。这就引出下一个问题：</p>
+<blockquote>
+<p>如何实现数据的安全呢？</p>
+</blockquote>
+<p>首先想到的实现方案肯定是对数据进行加密。加密的方式主要有两种：</p>
+<ol>
+<li>对称加密（也称为秘钥加密）</li>
+<li>非对称加密（也称公钥加密）</li>
+</ol>
+<p>所谓对称加密，指加密解密使用同一套秘钥。如下图所示：</p>
+<center><br><img src="http://dzliving.com/SSH_0.png" alt="对称加密-Client端"><br><img src="http://dzliving.com/SSH_1.png" alt="对称加密-Server端"><br></center>
+
+<p>对称加密的加密强度高，很难破解。但是在实际应用过程中不得不面临一个棘手的问题：</p>
+<blockquote>
+<p>密钥本身存在安全因素，密钥本身存在泄密可能性。如何安全的保存密钥呢？</p>
+</blockquote>
+<p>尤其是考虑到数量庞大的 Client 端，很难保证密钥不被泄露。一旦一个 Client 端的密钥被窃据，那么整个系统的安全性也就不复存在。为了解决这个问题，非对称加密应运而生。非对称加密有两个密钥：“公钥”和“私钥”。</p>
+<blockquote>
+<p>两个密钥的特性：公钥加密后的密文，只能通过对应的私钥进行解密。而通过公钥推理出私钥的可能性微乎其微。</p>
+</blockquote>
+<p>下面看下使用非对称加密方案的登录流程：</p>
+<center><br><img src="http://dzliving.com/SSH_2.png" alt="非对称加密登录流程"><br></center>
+
+<ol>
+<li>远程 Server 收到 Client 端用户 TopGun 的登录请求，Server 把自己的公钥发给用户。</li>
+<li>Client 使用这个公钥，将密码进行加密。</li>
+<li>Client 将加密的密码发送给 Server 端。</li>
+<li>远程 Server 用自己的私钥，解密登录密码，然后验证其合法性。</li>
+<li>若验证结果，给 Client 相应的响应。</li>
+</ol>
+<p>私钥是 Server 端独有，这就保证了 Client 的登录信息即使在网络传输过程中被窃据，也没有私钥进行解密，保证了数据的安全性，这充分利用了非对称加密的特性。</p>
+<blockquote>
+<p>这样就一定安全了吗？</p>
+</blockquote>
+<p>上述流程会有一个问题：Client 端如何保证接受到的公钥就是目标 Server 端的？如果一个攻击者中途拦截 Client 的登录请求，向其发送自己的公钥，Client 端用攻击者的公钥进行数据加密。攻击者接收到加密信息后再用自己的私钥进行解密，不就窃取了 Client 的登录信息了吗？这就是所谓的中间人攻击。</p>
+<center><br><img src="http://dzliving.com/SSH_3.png" alt="中间人攻击"><br></center>
+
+<p>SSH中是如何解决这个问题的？</p>
+<h4 id="2-1-基于口令的认证"><a href="#2-1-基于口令的认证" class="headerlink" title="2.1 基于口令的认证"></a>2.1 基于口令的认证</h4><p>从上面的描述可以看出，问题就在于如何对 Server 的公钥进行认证？在 https 中可以通过 CA 来进行公证，可是 SSH 的 publish key 和 private key 都是自己生成的，没法公证。只能通过 Client 端自己对公钥进行确认。通常在第一次登录的时候，系统会出现下面提示信息：</p>
+<figure class="highlight vbnet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">The authenticity <span class="keyword">of</span> host <span class="comment">'ssh-server.example.com (12.18.429.21)' can't be established.</span></span><br><span class="line">RSA <span class="keyword">key</span> fingerprint <span class="keyword">is</span> <span class="number">98</span>:<span class="number">2</span>e:d7:e0:de:<span class="number">9</span>f:ac:<span class="number">67</span>:<span class="number">28</span>:c2:<span class="number">42</span>:<span class="number">2</span>d:<span class="number">37</span>:<span class="number">16</span>:<span class="number">58</span>:<span class="number">4</span>d.</span><br><span class="line">Are you sure you want <span class="keyword">to</span> <span class="keyword">continue</span> connecting (yes/no)?</span><br></pre></td></tr></table></figure>
+<p>上面的信息说的是：无法确认主机 ssh-server.example.com（12.18.429.21）的真实性，不过知道它的公钥指纹，是否继续连接？</p>
+<p>之所以用 <font color="#cc0000">fingerprint 代替 key</font>，主要是 key 过于长（RSA算法生成的公钥有 <font color="#cc0000">1024</font> 位），很难直接比较。所以，<font color="#cc0000">对公钥进行 hash 生成一个 128 位的指纹</font>，这样就方便比较了。</p>
+<p>如果输入 yes 后，会出现下面信息：</p>
+<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Warning: Permanently added <span class="string">'ssh-server.example.com,12.18.429.21'</span> (RSA) <span class="built_in">to</span> <span class="keyword">the</span> list <span class="keyword">of</span> known hosts. </span><br><span class="line">Password: (enter password)</span><br></pre></td></tr></table></figure>
+<p>该 host 已被确认，并被追加到文件 <font color="#cc0000">known_hosts</font> 中，然后就需要输入密码，之后的流程就正常进行。</p>
+<h4 id="2-2-基于公钥认证"><a href="#2-2-基于公钥认证" class="headerlink" title="2.2 基于公钥认证"></a>2.2 基于公钥认证</h4><p>在上面介绍的登录流程中可以发现，每次登录都需要输入密码，很麻烦。SSH 提供了另外一种可以免去输入密码过程的登录方式：公钥登录。流程如下：</p>
+<center><br><img src="http://dzliving.com/SSH_4.png" alt="公钥认证流程"><br></center>
+
+<ol>
+<li>Client 将自己的公钥存放在 Server 上，追加在文件 <font color="#cc0000">authorized_keys</font> 中。</li>
+<li>Server 端接收到 Client 的连接请求后，会在 authorized_keys 中匹配到 Client 的公钥 pubKey，并<font color="#cc0000">生成随机数 R</font>，用 Client 的公钥对该随机数进行加密得到 pubKey(R)，然后将加密后信息发送给 Client。</li>
+<li>Client 端通过私钥进行解密得到随机数 R，然后对随机数 R 和本次会话的 SessionKey 利用 <font color="#cc0000">MD5</font> 生成摘要 Digest1，发送给 Server 端。</li>
+<li>Server 端会也会对 R 和 SessionKey 利用同样摘要算法生成 Digest2。</li>
+<li>Server 端会最后比较 Digest1 和 Digest2 是否相同，完成认证过程。</li>
+</ol>
+<p>在步骤 1 中，Client 将自己的公钥存放在 Server 上。需要用户手动将公钥 copy 到 server 上。这就是在配置 ssh 的时候进程进行的操作。下图是 GitHub 上 SSH keys 设置视图：</p>
+<center><br><img src="http://dzliving.com/SSH_5.png" alt="GitHub中SSH keys设置"><br></center>
+
+<p>Server 端根据什么信息在 authorized_keys 中进行查找的呢？主要是根据 Client 在认证的开始会发送一个 <font color="#cc0000">KeyID</font> 给Server，这个 KeyID 是唯一对应 Client 的一个 PublicKey，Server 就是通过该 KeyID 在 authorized_keys 进行查找对应的 PublicKey。</p>
+<h2 id="三、密钥协商算法"><a href="#三、密钥协商算法" class="headerlink" title="三、密钥协商算法"></a>三、密钥协商算法</h2><p>通过 Diffie-Hellman 算法来实现，具体过程：</p>
+<ol>
+<li>服务端和客户端共同选定一个大素数，叫做种子值；</li>
+<li>服务端和客户端各自独立选择另外一个只有自己才知道的素数</li>
+<li>双方使用相同的加密算法(AES)，由种子值和各自私有的素数生成一个密钥值，并将这个值发送给对方</li>
+<li>在收到密钥后，服务端和客户端根据种子值和自己的私有素数，计算出一个最终的密钥</li>
+<li>双方使用上一步得到的结果作为密钥来加密和解密通信内容</li>
+</ol>
+<h2 id="四、SSH-实践"><a href="#四、SSH-实践" class="headerlink" title="四、SSH 实践"></a>四、SSH 实践</h2><ol>
+<li><p>生成密钥操作</p>
+<p> 经过上面的原理分析，下面三行命令的含义应该很容易理解了：</p>
+ <figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ ssh-keygen -t rsa -P <span class="string">''</span> -f ~<span class="regexp">/.ssh/id</span>_rsa</span><br><span class="line">$ cat ~<span class="regexp">/.ssh/id</span>_rsa.pub <span class="meta">&gt;&gt; </span>~<span class="regexp">/.ssh/authorized</span>_keys</span><br><span class="line">$ chmod <span class="number">0600</span> ~<span class="regexp">/.ssh/authorized</span>_keys</span><br></pre></td></tr></table></figure>
+<p> ssh-keygen 是用于生产密钥的工具。</p>
+<ul>
+<li>-t：指定生成密钥类型（rsa、dsa、ecdsa 等）</li>
+<li>-P：指定 passphrase，用于确保私钥的安全</li>
+<li><p>-f：指定存放密钥的文件（公钥、私钥文件默认在同目录下，但存放公钥的文件名需要加上后缀 .pub）</p>
+<p>首先看下面 ~/.ssh 中的四个文件：</p>
+<center><br><img src="http://dzliving.com/SSH_6.png" alt="SSH-涉及文件"><br></center>
+</li>
+<li><p>id_rsa：保存私钥</p>
+</li>
+<li>id_rsa.pub：保存公钥</li>
+<li>authorized_keys：保存已授权的客户端公钥</li>
+<li><p>known_hosts：保存已认证的远程主机 ID</p>
+<p>四个角色的关系如下图所示：</p>
+<center><br><img src="http://dzliving.com/SSH_7.png" alt="SSH 结构简图"><br></center>
+
+<p>注意：一台主机可能既是 Client，也是 Server。所以会同时拥有 authorized_keys 和 known_hosts。</p>
+</li>
+</ul>
+</li>
+<li><p>登录操作</p>
+ <figure class="highlight elixir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 以用户名 user，登录远程主机 host</span></span><br><span class="line"><span class="variable">$ </span>ssh user<span class="variable">@host</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 本地用户和远程用户相同，则用户名可省去</span></span><br><span class="line"><span class="variable">$ </span>ssh host</span><br><span class="line"></span><br><span class="line"><span class="comment"># SSH 默认端口 22，可以用参数 p 修改端口</span></span><br><span class="line"><span class="variable">$ </span>ssh -p <span class="number">2017</span> user<span class="variable">@host</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h2 id="五、known-hosts机制"><a href="#五、known-hosts机制" class="headerlink" title="五、known_hosts机制"></a>五、known_hosts机制</h2><ol>
+<li><p>known_hosts 中存储的内容是什么？</p>
+<p> known_hosts 中存储是已认证的远程主机 host key，每个 SSH Server 都有一个 <code>secret, unique ID, called a host key</code>。</p>
+</li>
+<li><p>host key 何时加入 known_hosts 的？</p>
+<p> 当我们第一次通过 SSH 登录远程主机的时候，Client 端会有如下提示：</p>
+ <figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Host key <span class="keyword">not</span> found <span class="keyword">from</span> the list <span class="keyword">of</span> known hosts.</span><br><span class="line">Are you sure you want <span class="keyword">to</span> <span class="keyword">continue</span> connecting (<span class="literal">yes</span>/<span class="literal">no</span>)?</span><br></pre></td></tr></table></figure>
+<p> 此时，如果我们选择 yes，那么该 host key 就会被加入到 Client 的 known_hosts 中，格式如下：</p>
+ <figure class="highlight maxima"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># <span class="built_in">domain</span> name+encryption algorithm+host <span class="built_in">key</span></span><br><span class="line"><span class="built_in">example</span>.hostname.com ssh-rsa AAAAB4NzaC1yc2EAAAABIwAAAQEA...</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>为什么需要 known_hosts？</p>
+<p> 这个文件主要是通过 Client 和 Server 的双向认证，从而避免中间人攻击，每次 Client 向 Server 发起连接的时候，不仅仅 Server 要验证 Client 的合法性，Client 同样也需要验证 Server 的身份，SSH client 就是通过 known_hosts 中的 host key 来验证 Server 的身份的。</p>
+</li>
+</ol>
+<p>这种方案足够安全吗？当然不，比如第一次连接一个未知 Server 的时候，known_hosts 还没有该 Server 的 host key，这不也可能遭到中间人攻击吗？这可能只是安全性和可操作性之间的折中吧。</p>
+<h2 id="六、问题"><a href="#六、问题" class="headerlink" title="六、问题"></a>六、问题</h2><blockquote>
+<p>如果 client 生成多个密钥对，把对应的公钥全部传到 server 端，这时候 server 端如何决定用哪个公钥对随机数进行加密？</p>
+</blockquote>
+<p>多密钥场景下，需要在 <code>~/.ssh/config</code> 下进行配置，显示指定主机和 <code>key</code> 的对应关系，格式如下：</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Host server01</span><br><span class="line">HostName example1.com</span><br><span class="line">Port 1000</span><br><span class="line">IdentityFile ~/.ssh/id_rsa_xxx</span><br><span class="line">User user01</span><br><span class="line"></span><br><span class="line">Host server02</span><br><span class="line">HostName example2.com</span><br><span class="line">Port 1000</span><br><span class="line">IdentityFile ~/.ssh/id_rsa_zzz</span><br><span class="line">User user02</span><br></pre></td></tr></table></figure>
+<h2 id="七、文章"><a href="#七、文章" class="headerlink" title="七、文章"></a>七、文章</h2><p><a href="https://www.jianshu.com/u/aee2b91e3398" target="_blank" rel="noopener">TopGun_Viper</a> - <a href="https://www.jianshu.com/p/33461b619d53" target="_blank" rel="noopener">图解SSH原理</a><br><a href="https://www.jianshu.com/p/3c9f3252f568" target="_blank" rel="noopener">SSH</a><br><a href="https://www.cnblogs.com/ftl1012/p/ssh.html" target="_blank" rel="noopener">Linux ssh命令详解</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/10/23/IT/SSH/">http://yoursite.com/2019/10/23/IT/SSH/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/10/24/IT/OpenSSL演示RSA加密解密/" class="pre">OpenSSL演示RSA加密解密</a><a href="/2019/10/22/IT/Git/" class="next">Git</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、SSH"><span class="toc-text">一、SSH</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二、SSH-工作原理"><span class="toc-text">二、SSH 工作原理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-基于口令的认证"><span class="toc-text">2.1 基于口令的认证</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-基于公钥认证"><span class="toc-text">2.2 基于公钥认证</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#三、密钥协商算法"><span class="toc-text">三、密钥协商算法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、SSH-实践"><span class="toc-text">四、SSH 实践</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#五、known-hosts机制"><span class="toc-text">五、known_hosts机制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#六、问题"><span class="toc-text">六、问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#七、文章"><span class="toc-text">七、文章</span></a></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">D</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"></h1><div class="post-meta"><a href="/2019/10/14/OpenGL/OpenGLES/#comments" class="comment-count"></a><p><span class="date">Oct 14, 2019</span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、核心模式与立即渲染模式"><a href="#一、核心模式与立即渲染模式" class="headerlink" title="一、核心模式与立即渲染模式"></a>一、核心模式与立即渲染模式</h2><p>早期的OpenGL使用<code>立即渲染模式（Immediate mode，也就是固定渲染管线）</code>，这个模式下绘制图形很方便。OpenGL的大多数功能都被库隐藏起来，开发者很少能控制OpenGL如何进行计算的自由。而开发者迫切希望能有更多的灵活性。</p>
+<p>随着时间推移，规范越来越灵活，开发者对绘图细节有了更多的掌控。立即渲染模式确实容易使用和理解，但是效率太低。因此从OpenGL3.2开始，规范文档开始废弃立即渲染模式，并鼓励开发者在OpenGL的<code>核心模式(Core-profile)</code>下进行开发，这个分支的规范完全移除了旧的特性。</p>
+<h2 id="二、状态机"><a href="#二、状态机" class="headerlink" title="二、状态机"></a>二、状态机</h2><p>OpenGL自身是一个巨大的状态机(State Machine)：一系列的变量描述OpenGL此刻应当如何运行。OpenGL的状态通常被称为OpenGL上下文(Context)。我们通常使用如下途径去更改 OpenGL 状态：设置选项、操作缓冲。最后，我们使用当前OpenGL上下文来渲染。</p>
+<h2 id="三、对象"><a href="#三、对象" class="headerlink" title="三、对象"></a>三、对象</h2><p>在 OpenGL中一个对象是指一些选项的集合，它代表OpenGL状态的一个子集。</p>
+<ul>
+<li>顶点数组对象：Vertex Array Object（VAO)</li>
+<li>顶点缓冲对象：Vertex Buffer Object（VBO）</li>
+<li>索引缓冲对象：Element Buffer Object（EBO）或 Index Buffer Object（IBO）</li>
+</ul>
+<h2 id="四、图形渲染管线"><a href="#四、图形渲染管线" class="headerlink" title="四、图形渲染管线"></a>四、图形渲染管线</h2><p>在 OpenGL 中，任何事物都在 3D 空间中，而屏幕和窗口却是 2D 像素数组，这导致 OpenGL 的大部分工作都是关于把 3D 坐标转变为适应你屏幕的 2D 像素。3D 坐标转为 2D 坐标的处理过程是由 OpenGL 的图形渲染管线（Graphics Pipeline，大多译为管线，实际上指的是<code>一堆原始图形数据途经一个输送管道，期间经过各种变化处理最终出现在屏幕的过程</code>）管理的。</p>
+<p>图形渲染管线可以被划分为两个主要部分：第一部分把你的 3D 坐标转换为 2D 坐标；第二部分是把 2D 坐标转变为实际的有颜色的像素。</p>
+<blockquote>
+<p>2D 坐标和像素也是不同的，2D 坐标精确表示一个点在 2D 空间中的位置，而 2D 像素是这个点的近似值，2D 像素受到你的屏幕/窗口分辨率的限制。</p>
+</blockquote>
+<p>图形渲染管线接受一组 3D 坐标，然后把它们转变为你屏幕上的有色 2D 像素输出。图形渲染管线可以被划分为几个阶段，每个阶段将会把前一个阶段的输出作为输入。</p>
+<ol>
+<li><p><code>顶点着色器(Vertex Shader)</code></p>
+<p> 它把一个单独的顶点作为输入。顶点着色器主要的目的是把 3D 坐标转为另一种 3D 坐标，同时顶点着色器允许我们对顶点属性进行一些基本处理。</p>
+</li>
+<li><p><code>图元装配(Primitive Assembly)</code></p>
+<p> 该阶段将顶点着色器输出的所有顶点作为输入（如果是GL_POINTS，那么就是一个顶点），并将所有的点装配成指定图元的形状。</p>
+<p> 为了让OpenGL知道我们的坐标和颜色值构成的到底是什么，OpenGL需要你去指定这些数据所表示的渲染类型。我们是希望把这些数据渲染成一系列的点？一系列的三角形？还是仅仅是一个长长的线？做出的这些提示叫做图元(Primitive)，任何一个绘制指令的调用都将把图元传递给 OpenGL。这是其中的几个：GL_POINTS、GL_TRIANGLES、GL_LINE_STRIP。</p>
+</li>
+<li><p><code>几何着色器(Geometry Shader)</code></p>
+<p> 图元装配阶段的输出会传递给几何着色器(Geometry Shader)。几何着色器把图元形式的一系列顶点的集合作为输入，它可以通过产生新顶点构造出新的（或是其它的）图元来生成其他形状。</p>
+</li>
+<li><p><code>光栅化阶段(Rasterization Stage)</code></p>
+<p> 几何着色器的输出会被传入光栅化阶段(Rasterization Stage)，这里它会把图元映射为最终屏幕上相应的像素，生成供片段着色器(Fragment Shader)使用的片段(Fragment)。在片段着色器运行之前会执行裁切(Clipping)。裁切会丢弃超出你的视图以外的所有像素，用来提升执行效率。</p>
+<p> 当渲染一个三角形时，光栅化(Rasterization)阶段通常会造成比原指定顶点更多的片段。光栅会根据每个片段在三角形形状上所处相对位置决定这些片段的位置。</p>
+</li>
+<li><p><code>片段着色器</code></p>
+<p> OpenGL 中的一个<code>片段</code>是 OpenGL 渲染一个像素所需的所有数据。</p>
+<p> 片段着色器的主要目的是计算一个像素的最终颜色，这也是所有 OpenGL 高级效果产生的地方。通常，片段着色器包含 3D场景的数据（比如光照、阴影、光的颜色等等），这些数据可以被用来计算最终像素的颜色。</p>
+<p> 片段插值(Fragment Interpolation)：片段着色器基于光栅化阶段的位置，它会<code>插值(Interpolate)</code>所有片段着色器的输入变量。比如说，我们有一个线段，上面的端点是绿色的，下面的端点是蓝色的。如果一个片段着色器在线段的70%的位置运行，它的颜色输入属性就会是一个绿色和蓝色的线性结合；更精确地说就是 30%蓝 + 70%绿。</p>
+</li>
+<li><p><code>Alpha测试和混合(Blending)阶段</code></p>
+<p>在所有对应颜色值确定以后，最终的对象将会被传到最后一个阶段，我们叫做Alpha测试和混合(Blending)阶段。</p>
+<p>这个阶段检测片段的对应的深度（和模板(Stencil)）值，用它们来判断这个像素是其它物体的前面还是后面，决定是否应该丢弃。这个阶段也会检查 alpha 值（alpha 值定义了一个物体的透明度）并对物体进行混合(Blend)。所以，即使在片段着色器中计算出来了一个像素输出的颜色，在渲染多个三角形的时候最后的像素颜色也可能完全不同。</p>
+</li>
+</ol>
+<p>可以看到，图形渲染管线非常复杂，它包含很多可配置的部分。然而，对于大多数场合，我们只需要配置顶点和片段着色器就行了。几何着色器是可选的，通常使用它默认的着色器就行了。</p>
+<p>在现代 OpenGL 中，我们必须定义至少一个顶点着色器和一个片段着色器（因为GPU中没有默认的顶点/片段着色器）。</p>
+<h2 id="五、着色器"><a href="#五、着色器" class="headerlink" title="五、着色器"></a>五、着色器</h2><p>图形渲染管线可以被划分为几个阶段，每个阶段将会把前一个阶段的输出作为输入。所有这些阶段都是高度专门化的（它们都有一个特定的函数），并且很容易<code>并行执行</code>。正是由于它们具有并行执行的特性，当今大多数显卡都有成千上万的小处理核心，它们在GPU上为每一个（渲染管线）阶段运行各自的小程序，从而在图形渲染管线中快速处理你的数据。这些小程序叫做着色器(Shader)。</p>
+<p>它们运行在GPU上，可以给我们节约宝贵的CPU时间。</p>
+<ol>
+<li><p>顶点着色器</p>
+<p> 顶点着色器会在 GPU 上创建内存用于储存我们的顶点数据，还要配置 OpenGL 如何解释这些内存，并且指定其如何发送给显卡，我们通过顶点缓冲对象（VBO）管理这个内存，它会在 GPU 内存（通常被称为显存）中储存大量顶点。使用这些缓冲对象的好处是我们可以一次性的发送一大批数据到显卡上。</p>
+<p> 预定义的 <code>gl_Position</code> 变量设置的值，会成为该顶点着色器的输出。</p>
+</li>
+<li><p>片段着色器</p>
+<blockquote>
+<p>片段着色器所做的是计算像素最后的颜色输出。</p>
+</blockquote>
+<p> 片段着色器只需要一个输出变量，这个变量是一个 4 分量向量，它表示的是最终的输出颜色，我们应该自己将其计算出来。我们可以用out关键字声明输出变量，这里我们命名为 FragColor（OpenGLES 中有预定义的 <code>gl_FragColor</code> 变量）</p>
+</li>
+</ol>
+<h2 id="六着色器程序"><a href="#六着色器程序" class="headerlink" title="六着色器程序"></a>六着色器程序</h2><blockquote>
+<p>着色器程序对象（Shader Program Object）是多个着色器合并之后并最终链接完成的版本。</p>
+</blockquote>
+<p>如果要使用刚才编译的着色器我们必须把它们链接（Link）为一个着色器程序对象，然后在渲染对象的时候激活这个着色器程序。已激活着色器程序的着色器将在我们发送渲染调用的时候被使用。</p>
+<p>当链接着色器至一个程序的时候，它会把每个着色器的输出链接到下个着色器的输入。<code>当输出和输入不匹配的时候，你会得到一个连接错误</code>。</p>
+<h2 id="七、数据"><a href="#七、数据" class="headerlink" title="七、数据"></a>七、数据</h2><p>以数组的形式传递3个3D坐标作为图形渲染管线的输入，用来表示一个三角形，这个数组叫做<code>顶点数据(Vertex Data)</code>。</p>
+<p>一个<code>顶点(Vertex)</code>是一个 3D 坐标的数据的集合，顶点数据是一系列顶点的集合。</p>
+<ol>
+<li><p>顶点属性(Vertex Attribute)</p>
+<p> 顶点数据是用顶点属性（Vertex Attribute）表示的，它可以包含任何我们想用的数据。</p>
+<blockquote>
+<p>每个顶点属性从一个 VBO 管理的内存中获得它的数据，而具体是从哪个 VBO（程序中可以有多个 VBO）获取则是通过在调用 glVertexAttribPointer 时绑定到 GL_ARRAY_BUFFER 的 VBO 决定的。由于在调用 glVertexAttribPointer 之前绑定的是先前定义的 VBO 对象，顶点属性 0 现在会链接到它的顶点数据。</p>
+</blockquote>
+<p> 我们能声明的顶点属性是有上限的，它一般由硬件来决定。OpenGL确保至少有 <code>16</code> 个包含 4 分量的顶点属性可用，</p>
+</li>
+<li><p>顶点缓冲数据(VBO)</p>
+<p> 顶点缓冲数据(VBO)会被解析为下面这样子：</p>
+<p> <img src="https://learnopengl-cn.github.io/img/01/04/vertex_attribute_pointer.png" alt></p>
+<ul>
+<li>位置数据被储存为 32 位（4字节）浮点值。</li>
+<li>每个位置包含 3 个这样的值。</li>
+<li>在这 3 个值之间没有空隙（或其他值）。这几个值在数组中紧密排列(Tightly Packed)。</li>
+<li>数据中第一个值在缓冲开始的位置。</li>
+</ul>
+</li>
+<li><p>顶点数组对象</p>
+<p> 顶点数组对象(VAO)可以像顶点缓冲对象那样被绑定，<code>任何随后的顶点属性调用</code>都会储存在这个 VAO 中。这样的好处就是，当配置顶点属性指针时，你只需要将那些调用执行一次，之后再绘制物体的时候只需要绑定相应的VAO就行了。这使在不同顶点数据和属性配置之间切换变得非常简单，只需要绑定不同的VAO就行了。刚刚设置的所有状态都将存储在VAO中</p>
+<p> 一个顶点数组对象会储存以下这些内容：</p>
+<ul>
+<li>glEnableVertexAttribArray 和 glDisableVertexAttribArray 的调用。</li>
+<li>通过 glVertexAttribPointer 设置的顶点属性配置。</li>
+<li><p>通过 glVertexAttribPointer 调用与顶点属性关联的顶点缓冲对象。</p>
+<p>当你打算绘制多个物体时，你首先要生成/配置所有的 VAO（和必须的 VBO 及属性指针)，然后储存它们供后面使用。当我们打算绘制物体的时候就拿出相应的 VAO，绑定它，绘制完物体后，再解绑 VAO。</p>
+</li>
+</ul>
+</li>
+<li><p>索引缓存对象</p>
+<p> 为了解决存储重复的顶点信息，索引缓冲对象能够达到只储存不同的顶点，并设定绘制这些顶点的顺序。</p>
+<p> 注意：索引从 0 开始! </p>
+ <figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">unsigned int indices[] = &#123; <span class="comment">// 注意索引从0开始! </span></span><br><span class="line"><span class="number">0</span>, <span class="number">1</span>, <span class="number">3</span>, <span class="comment">// 第一个三角形</span></span><br><span class="line"><span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>  <span class="comment">// 第二个三角形</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>用 `glDrawElements` 来替换 `glDrawArrays` 函数，来指明我们从索引缓冲渲染。
+</code></pre><h2 id="八、标准化设备坐标-Normalized-Device-Coordinates-NDC"><a href="#八、标准化设备坐标-Normalized-Device-Coordinates-NDC" class="headerlink" title="八、标准化设备坐标(Normalized Device Coordinates, NDC)"></a>八、标准化设备坐标(Normalized Device Coordinates, NDC)</h2><p>一旦你的顶点坐标已经在顶点着色器中处理过，它们就应该是标准化设备坐标了，标准化设备坐标是一个 x、y 和 z 值在 -1.0 ~ 1.0 的一小段空间。任何落在范围外的坐标都会被<code>丢弃/裁剪</code>，不会显示在你的屏幕上。下面你会看到我们定义的在标准化设备坐标中的三角形(忽略z轴)：</p>
+<p><img src="https://learnopengl-cn.github.io/img/01/04/ndc.png" alt></p>
+<p>与通常的屏幕坐标不同，y 轴正方向为向上，(0, 0) 坐标是这个图像的中心，而不是左上角。最终你希望所有(变换过的)坐标都在这个坐标空间中，否则它们就不可见了。</p>
+<p>你的标准化设备坐标接着会变换为屏幕空间坐标(Screen-space Coordinates)，这是使用你通过 glViewport 函数提供的数据，进行视口变换(Viewport Transform)完成的。所得的屏幕空间坐标又会被变换为片段输入到片段着色器中。</p>
+<ol>
+<li><p>向量(Vector)</p>
+<p> 在图形编程中我们经常会使用向量这个数学概念，因为它简明地表达了任意空间中的位置和方向，并且它有非常有用的数学属性。在 GLSL 中一个向量有最多 <code>4</code> 个分量，每个分量值都代表空间中的一个坐标，它们可以通过 vec.x、vec.y、vec.z 和 vec.w 来获取。</p>
+<p> 注意 vec.w 分量不是用作表达空间中的位置的（我们处理的是 3D 不是 4D），而是用在所谓<code>透视除法</code>（Perspective Division）上。</p>
+</li>
+</ol>
+<h2 id="九、纹理"><a href="#九、纹理" class="headerlink" title="九、纹理"></a>九、纹理</h2><p>纹理（Texture）是一个 2D 图片（甚至也有 1D 和 3D 的纹理），它可以用来添加物体的细节。</p>
+<p>为了能够把纹理映射（Map）到三角形上，我们需要指定三角形的每个顶点各自对应纹理的哪个部分。这样每个顶点就会关联着一个<code>纹理坐标（Texture Coordinate）</code>，用来标明该从纹理图像的哪个部分<code>采样</code>（采集片段颜色）。之后在图形的其它片段上进行片段插值（Fragment Interpolation）。</p>
+<p>纹理坐标在 x 和 y 轴上，范围为 0 ~ 1 之间（注意我们使用的是 2D 纹理图像）。使用纹理坐标获取纹理颜色叫做采样(Sampling)。纹理坐标起始于 (0, 0)，也就是纹理图片的左下角，终于 (1, 1)，即纹理图片的右上角。</p>
+<p>给顶点着色器传递三个纹理坐标，然后片段着色器会为每个片段进行纹理坐标的插值。</p>
+<h4 id="9-1-纹理环绕方式"><a href="#9-1-纹理环绕方式" class="headerlink" title="9.1  纹理环绕方式"></a>9.1  纹理环绕方式</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">环绕方式</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">GL_REPEAT</td>
+<td style="text-align:center">对纹理的默认行为。重复纹理图像。</td>
+</tr>
+<tr>
+<td style="text-align:center">GL_MIRRORED_REPEAT</td>
+<td style="text-align:center">和GL_REPEAT一样，但每次重复图片是镜像放置的。</td>
+</tr>
+<tr>
+<td style="text-align:center">GL_CLAMP_TO_EDGE</td>
+<td style="text-align:center">纹理坐标会被约束在 0 到 1 之间，超出的部分会重复纹理坐标的边缘，产生一种边缘被拉伸的效果。</td>
+</tr>
+<tr>
+<td style="text-align:center">GL_CLAMP_TO_BORDER</td>
+<td style="text-align:center">超出的坐标为用户指定的边缘颜色。</td>
+</tr>
+</tbody>
+</table>
+<h4 id="9-2-纹理过滤"><a href="#9-2-纹理过滤" class="headerlink" title="9.2 纹理过滤"></a>9.2 纹理过滤</h4><p>纹理坐标<code>不依赖于分辨率(Resolution)</code>，它可以是任意浮点值，所以 OpenGL 需要知道怎样将纹理像素（Texture Pixel，也叫 Texel）映射到纹理坐标。当你有一个很大的物体但是纹理的分辨率很低的时候这就变得很重要了。</p>
+<p>纹理过滤(Texture Filtering)的选项：GL_NEAREST 和 GL_LINEAR。</p>
+<blockquote>
+<p>Texture Pixel 也叫 Texel，你可以想象你打开一张 .jpg 格式图片，不断放大你会发现它是由无数像素点组成的，这个点就是纹理像素；注意不要和纹理坐标搞混，<code>纹理坐标是你给模型顶点设置的那个数组</code>，OpenGL 以这个顶点的纹理坐标数据去查找纹理图像上的像素，然后进行采样提取纹理像素的颜色。</p>
+</blockquote>
+<ul>
+<li><p>GL_NEAREST（也叫邻近过滤，Nearest Neighbor Filtering）是 OpenGL 默认的纹理过滤方式。当设置为GL_NEAREST的时候，OpenGL会选择中心点最接近纹理坐标的那个像素。下图中你可以看到四个像素，加号代表纹理坐标。左上角那个纹理像素的中心距离纹理坐标最近，所以它会被选择为样本颜色：</p>
+<p>  <img src="https://learnopengl-cn.github.io/img/01/06/filter_nearest.png" alt></p>
+</li>
+<li><p>GL_LINEAR（也叫线性过滤，(Bi)linear Filtering）它会<code>基于纹理坐标附近的纹理像素，计算出一个插值，近似出这些纹理像素之间的颜色</code>。一个纹理像素的中心距离纹理坐标越近，那么这个纹理像素的颜色对最终的样本颜色的贡献越大。<br>  <img src="https://learnopengl-cn.github.io/img/01/06/filter_linear.png" alt></p>
+</li>
+</ul>
+<p>那么这两种纹理过滤方式有怎样的视觉效果呢？让我们看看在一个很大的物体上应用一张低分辨率的纹理会发生什么吧（纹理被放大了，每个纹理像素都能看到）：</p>
+<p><img src="https://learnopengl-cn.github.io/img/01/06/texture_filtering.png" alt></p>
+<h4 id="9-3-多级渐远纹理"><a href="#9-3-多级渐远纹理" class="headerlink" title="9.3 多级渐远纹理"></a>9.3 多级渐远纹理</h4><p>假设我们有一个包含着上千物体的大房间，每个物体上都有纹理。有些物体会很远，但其纹理会拥有与近处物体同样高的分辨率。由于远处的物体可能只产生很少的片段，OpenGL 从高分辨率纹理中为这些片段获取正确的颜色值就很困难，因为它需要对一个跨过纹理很大部分的片段只拾取一个纹理颜色。在小物体上这会产生不真实的感觉，更不用说对它们使用高分辨率纹理浪费内存的问题了。</p>
+<p>OpenGL 使用一种叫做多级渐远纹理（Mipmap）的概念来解决这个问题，它简单来说就是一系列的纹理图像，后一个纹理图像是前一个的二分之一。多级渐远纹理背后的理念很简单：</p>
+<blockquote>
+<p>距观察者的距离超过一定的阈值，OpenGL 会使用不同的多级渐远纹理，即最适合物体的距离的那个。由于距离远，解析度不高也不会被用户注意到。同时，多级渐远纹理另一加分之处是它的性能非常好。</p>
+</blockquote>
+<p>让我们看一下多级渐远纹理是什么样子的：</p>
+<p><img src="https://learnopengl-cn.github.io/img/01/06/mipmaps.png" alt></p>
+<h4 id="9-4-纹理单元"><a href="#9-4-纹理单元" class="headerlink" title="9.4 纹理单元"></a>9.4 纹理单元</h4><blockquote>
+<p>一个纹理的位置值通常称为一个纹理单元(Texture Unit)。一个纹理的默认纹理单元是 0，它是默认的激活纹理单元，所以教程前面部分我们没有分配一个位置值。</p>
+</blockquote>
+<p>我们可以给纹理采样器分配一个位置值，这样的话我们能够在一个片段着色器中设置多个纹理。</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">glActiveTexture(<span class="name">GL_TEXTURE0</span>)<span class="comment">; // 在绑定纹理之前先激活纹理单元</span></span><br><span class="line">glBindTexture(<span class="name">GL_TEXTURE_2D</span>, texture)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>激活纹理单元之后，接下来的 <code>glBindTexture</code> 函数调用会绑定这个纹理到当前激活的纹理单元，纹理单元 <code>GL_TEXTURE0</code>默认总是被激活。</p>
+<blockquote>
+<p>OpenGL 至少保证有 16 个纹理单元供你使用，也就是说你可以激活从 GL_TEXTURE0 到 GL_TEXTRUE15。它们都是按顺序定义的，所以我们也可以通过 GL_TEXTURE0 + 8 的方式获得 GL_TEXTURE8，这在当我们需要循环一些纹理单元的时候会很有用。</p>
+</blockquote>
+<h2 id="十、坐标系统"><a href="#十、坐标系统" class="headerlink" title="十、坐标系统"></a>十、坐标系统</h2><p><img src="https://learnopengl-cn.github.io/img/01/08/coordinate_systems.png" alt></p>
+<ol>
+<li>局部坐标是对象相对于局部原点的坐标，也是物体起始的坐标。</li>
+<li>下一步是将局部坐标变换为世界空间坐标，世界空间坐标是处于一个更大的空间范围的。这些坐标相对于世界的全局原点，它们会和其它物体一起相对于世界的原点进行摆放。</li>
+<li>接下来我们将世界坐标变换为观察空间坐标，使得每个坐标都是从摄像机或者说观察者的角度进行观察的。</li>
+<li>坐标到达观察空间之后，我们需要将其投影到裁剪坐标。裁剪坐标会被处理至-1.0到1.0的范围内，并判断哪些顶点将会出现在屏幕上。</li>
+<li>最后，我们将裁剪坐标变换为屏幕坐标，我们将使用一个叫做视口变换（Viewport Transform）的过程。视口变换将位于 -1.0 到 1.0 范围的坐标变换到由 glViewport 函数所定义的坐标范围内。最后变换出来的坐标将会送到光栅器，将其转化为片段。</li>
+</ol>
+<h4 id="10-1-局部空间"><a href="#10-1-局部空间" class="headerlink" title="10.1 局部空间"></a>10.1 局部空间</h4><p><code>局部空间是指物体所在的坐标空间，即对象最开始所在的地方</code>。想象你在一个建模软件（比如说Blender）中创建了一个立方体。你创建的立方体的原点有可能位于(0, 0, 0)，即便它有可能最后在程序中处于完全不同的位置。甚至有可能你创建的所有模型都以(0, 0, 0)为初始位置（译注：然而<code>它们会最终出现在世界的不同位置</code>）。所以，你的模型的所有顶点都是在局部空间中：它们相对于你的物体来说都是局部的。</p>
+<p>我们一直使用的那个箱子的顶点是被设定在 -0.5 到 0.5 的坐标范围中，(0, 0) 是它的原点。这些都是局部坐标。</p>
+<h4 id="10-2-世界空间"><a href="#10-2-世界空间" class="headerlink" title="10.2 世界空间"></a>10.2 世界空间</h4><p>如果我们将我们所有的物体导入到程序当中，它们有可能会全挤在世界的原点 (0, 0, 0) 上，这并不是我们想要的结果。我们想为每一个物体定义一个位置，从而能在更大的世界当中放置它们。世界空间中的坐标正如其名：是指顶点相对于（游戏）世界的坐标。如果你希望将物体分散在世界上摆放（特别是非常真实的那样），这就是你希望物体变换到的空间。物体的坐标将会从局部变换到世界空间；<code>该变换是由模型矩阵(Model Matrix)实现的</code>。</p>
+<p>模型矩阵是一种变换矩阵，它能通过对物体进行位移、缩放、旋转来将它置于它本应该在的位置或朝向。你可以将它想像为变换一个房子，你需要先将它缩小（它在局部空间中太大了），并将其位移至郊区的一个小镇，然后在y轴上往左旋转一点以搭配附近的房子。你也可以把上一节将箱子到处摆放在场景中用的那个矩阵大致看作一个模型矩阵；我们将箱子的局部坐标变换到场景/世界中的不同位置。</p>
+<h4 id="10-3-观察空间"><a href="#10-3-观察空间" class="headerlink" title="10.3 观察空间"></a>10.3 观察空间</h4><p>观察空间经常被人们称之 OpenGL 的摄像机(Camera)（所以有时也称为摄像机空间(Camera Space)或视觉空间(Eye Space)）。<code>观察空间是将世界空间坐标转化为用户视野前方的坐标而产生的结果</code>。因此观察空间就是从摄像机的视角所观察到的空间。而这通常是由一系列的位移和旋转的组合来完成，平移/旋转场景从而使得特定的对象被变换到摄像机的前方。这些组合在一起的变换通常存储在一个观察矩阵(View Matrix)里，它被用来将世界坐标变换到观察空间。</p>
+<h4 id="10-4-裁剪空间"><a href="#10-4-裁剪空间" class="headerlink" title="10.4 裁剪空间"></a>10.4 裁剪空间</h4><p>在一个顶点着色器运行的最后，OpenGL 期望所有的坐标都能落在一个特定的范围内，且<code>任何在这个范围之外的点都应该被裁剪掉(Clipped)</code>。被裁剪掉的坐标就会被忽略，所以剩下的坐标就将变为屏幕上可见的片段。这也就是裁剪空间 (Clip Space)名字的由来。</p>
+<p>因为将所有可见的坐标都指定在 -1.0 到 1.0 的范围内不是很直观，所以我们会指定自己的坐标集(Coordinate Set)并将它变换回标准化设备坐标系，就像 OpenGL 期望的那样。</p>
+<p>为了将顶点坐标从观察变换到裁剪空间，我们需要定义一个<code>投影矩阵(Projection Matrix)</code>，它指定了一个范围的坐标，比如在每个维度上的 -1000 到 1000。投影矩阵接着会将在这个指定的范围内的坐标变换为标准化设备坐标的范围 (-1.0, 1.0)。所有在范围外的坐标不会被映射到在 -1.0 到 1.0 的范围之间，所以会被裁剪掉。在上面这个投影矩阵所指定的范围内，坐标(1250, 500, 750)将是不可见的，这是由于它的x坐标超出了范围，它被转化为一个大于 1.0 的标准化设备坐标，所以被裁剪掉了。</p>
+<p>由投影矩阵创建的观察箱(Viewing Box)被称为<code>平截头体(Frustum)</code>，每个出现在平截头体范围内的坐标都会最终出现在用户的屏幕上。将特定范围内的坐标转化到标准化设备坐标系的过程（而且它很容易被映射到 2D 观察空间坐标）被称之为<code>投影(Projection)</code>，因为使用投影矩阵能将 3D 坐标投影(Project)到很容易映射到 2D 的标准化设备坐标系中。</p>
+<p>一旦所有顶点被变换到裁剪空间，最终的操作——<code>透视除法(Perspective Division)</code>将会执行，<code>在这个过程中我们将位置向量的 x，y，z 分量分别除以向量的齐次 w 分量</code>；透视除法是将 4D 裁剪空间坐标变换为 3D 标准化设备坐标的过程。这一步会在每一个顶点着色器运行的最后被自动执行。 </p>
+<p>在这一阶段之后，最终的坐标将会被映射到屏幕空间中（使用glViewport中的设定），并被变换成片段。</p>
+<p>将观察坐标变换为裁剪坐标的投影矩阵可以为两种不同的形式，每种形式都定义了不同的平截头体。我们可以选择创建一个<code>正射投影矩阵(Orthographic Projection Matrix)</code>或<code>一个透视投影矩阵(Perspective Projection Matrix)</code>。</p>
+<ol>
+<li><p>正射投影</p>
+<p> 正射投影矩阵<code>定义了一个类似立方体的平截头箱</code>，它定义了一个裁剪空间，在这空间之外的顶点都会被裁剪掉。创建一个正射投影矩阵需要指定可见平截头体的<code>宽、高和长度</code>。在使用正射投影矩阵变换至裁剪空间之后处于这个平截头体内的所有坐标将不会被裁剪掉。它的平截头体看起来像一个容器：</p>
+<p> <img src="https://learnopengl-cn.github.io/img/01/08/orthographic_frustum.png" alt></p>
+<p> 上面的平截头体定义了可见的坐标，它由由宽、高、近(Near)平面和远(Far)平面所指定。任何出现在近平面之前或远平面之后的坐标都会被裁剪掉。正射平截头体直接将平截头体内部的所有坐标映射为标准化设备坐标，因为每个向量的 w 分量都没有进行改变；如果 w 分量等于 1.0，透视除法则不会改变这个坐标。</p>
+</li>
+<li><p>透视投影</p>
+<p> 离你越远的东西看起来更小。</p>
+<p> 这正是透视投影想要模仿的效果，它是使用<code>透视投影矩阵</code>来完成的。这个投影矩阵将给定的平截头体范围映射到裁剪空间，除此之外还修改了每个顶点坐标的 w 值，从而<code>使得离观察者越远的顶点坐标 w 分量越大</code>。被变换到裁剪空间的坐标都会在 -w 到 w 的范围之间（任何大于这个范围的坐标都会被裁剪掉）。OpenGL 要求所有可见的坐标都落在 -1.0 到 1.0 范围内，作为顶点着色器最后的输出，因此，一旦坐标在裁剪空间内之后，透视除法就会被应用到裁剪空间坐标上：</p>
+<p> 顶点坐标的每个分量都会除以它的w分量，距离观察者越远顶点坐标就会越小。<code>这是也是 w 分量非常重要的另一个原因，它能够帮助我们进行透视投影</code>。最后的结果坐标就是处于标准化设备空间中的。</p>
+</li>
+</ol>
+<h4 id="10-5-Z-缓冲"><a href="#10-5-Z-缓冲" class="headerlink" title="10.5 Z 缓冲"></a>10.5 Z 缓冲</h4><p>OpenGL 存储它的所有深度信息于一个 <code>Z缓冲(Z-buffer)</code>中，也被称为深度缓冲(Depth Buffer)。GLFW 会自动为你生成这样一个缓冲（就像它也有一个颜色缓冲来存储输出图像的颜色）。深度值存储在每个片段里面（作为片段的 z 值），当片段想要输出它的颜色时，OpenGL 会将它的深度值和 z 缓冲进行比较，如果当前的片段在其它片段之后，它将会被丢弃，否则将会覆盖。这个过程称为深度测试(Depth Testing)，它是由 OpenGL 自动完成的。</p>
+<p>然而，如果我们想要确定 OpenGL 真的执行了深度测试，首先我们要告诉 OpenGL 我们想要启用深度测试；<code>它默认是关闭的</code>。我们可以通过 <code>glEnable</code> 函数来开启深度测试。glEnable 和 glDisable 函数允许我们启用或禁用某个 OpenGL 功能。这个功能会一直保持启用/禁用状态，直到另一个调用来禁用/启用它。现在我们想启用深度测试，需要开启 <code>GL_DEPTH_TEST</code>：</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">glEnable(<span class="name">GL_DEPTH_TEST</span>)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>因为我们使用了深度测试，我们也想要在每次渲染迭代之前清除深度缓冲（否则前一帧的深度信息仍然保存在缓冲中）。就像清除颜色缓冲一样，我们可以通过在 <code>glClear</code> 函数中指定 <code>DEPTH_BUFFER_BIT</code> 位来清除深度缓冲：</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">glClear(<span class="name">GL_COLOR_BUFFER_BIT</span> | GL_DEPTH_BUFFER_BIT)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<h2 id="十一、代码"><a href="#十一、代码" class="headerlink" title="十一、代码"></a>十一、代码</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">unsigned</span> <span class="keyword">int</span> VBO;</span><br><span class="line">glGenBuffers(<span class="number">1</span>, &amp;VBO);</span><br></pre></td></tr></table></figure>
+<p>使用glGenBuffers函数和一个缓冲ID生成一个VBO对象。</p>
+<pre><code><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">glBindBuffer(<span class="name">GL_ARRAY_BUFFER</span>, VBO)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+</code></pre><p>把新创建的缓冲绑定到GL_ARRAY_BUFFER目标。</p>
+<pre><code><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数1：目标缓冲的类型：顶点缓冲对象当前绑定到GL_ARRAY_BUFFER目标上。</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数2：指定传输数据的大小(以字节为单位)；用一个简单的 sizeof 计算出顶点数据大小就行。</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数3：希望发送的实际数据。</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数4：指定了我们希望显卡如何管理给定的数据</span></span><br><span class="line"><span class="comment"> </span></span><br><span class="line"><span class="comment">             GL_STATIC_DRAW ：数据不会或几乎不会改变。</span></span><br><span class="line"><span class="comment">             GL_DYNAMIC_DRAW：数据会被改变很多。</span></span><br><span class="line"><span class="comment">             GL_STREAM_DRAW ：数据每次绘制时都会改变。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);</span><br></pre></td></tr></table></figure>
+</code></pre><p>把之前定义的顶点数据复制到缓冲的内存。</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">unsigned int vertexShader<span class="comment">;</span></span><br><span class="line"><span class="attribute">vertexShader</span> = glCreateShader(GL_VERTEX_SHADER)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>创建着色器</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数1：要编译的着色器对象。</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数2：指定了传递的源码字符串数量</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数3：顶点着色器真正的源码</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数4：先设置为 NULL。 </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">glShaderSource(vertexShader, <span class="number">1</span>, &amp;vertexShaderSource, <span class="keyword">NULL</span>);</span><br><span class="line">glCompileShader(vertexShader);</span><br></pre></td></tr></table></figure>
+<p>把着色器源码附加到着色器对象上，然后编译它</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">unsigned int shaderProgram<span class="comment">;</span></span><br><span class="line"><span class="attribute">shaderProgram</span> = glCreateProgram()<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>创建一个着色器程序对象</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">glAttachShader(<span class="name">shaderProgram</span>, vertexShader)<span class="comment">;</span></span><br><span class="line">glAttachShader(<span class="name">shaderProgram</span>, fragmentShader)<span class="comment">;</span></span><br><span class="line">glLinkProgram(<span class="name">shaderProgram</span>)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>将编译的着色器附加到程序对象上，然后用 glLinkProgram 链接它们</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数1：指定我们要配置的顶点属性。还记得在顶点着色器中使用 layout(location = 0)定义了position顶点属性的位置值(Location)吗？它可以把顶点属性的位置值设置为 0。因为我们希望把数据传递到这一个顶点属性中，所以这里我们传入 0。</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数2：指定顶点属性的大小。顶点属性是一个 vec3，它由 3 个值组成，所以大小是 3。</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数3：指定数据的类型，这里是 GL_FLOAT（GLSL中 vec* 都是由浮点数值组成的）。</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数4：定义我们是否希望数据被标准化(Normalize)。如果我们设置为 GL_TRUE，所有数据都会被映射到0（对于有符号型 signed 数据是 -1）到 1 之间。我们把它设置为 GL_FALSE。</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数5：步长(Stride)，它告诉我们在连续的顶点属性组之间的间隔。由于下个组位置数据在 3 个 float 之后，我们把步长设置为 3 * sizeof(float)。要注意的是由于我们知道这个数组是紧密排列的（在两个顶点属性之间没有空隙）我们也可以设置为0来让OpenGL决定具体步长是多少（只有当数值是紧密排列时才可用）。一旦我们有更多的顶点属性，我们就必须更小心地定义每个顶点属性之间的间隔，我们在后面会看到更多的例子（译注: 这个参数的意思简单说就是从这个属性第二次出现的地方到整个数组0位置之间有多少字节）。</span></span><br><span class="line"><span class="comment"> *  <span class="doctag">@param</span>  参数6：类型是 void*，所以需要我们进行这个奇怪的强制类型转换。它表示位置数据在缓冲中起始位置的偏移量(Offset)。由于位置数据在数组的开头，所以这里是 0。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">glVertexAttribPointer(<span class="number">0</span>, <span class="number">3</span>, GL_FLOAT, GL_FALSE, <span class="number">3</span> * sizeof(<span class="keyword">float</span>), (<span class="keyword">void</span>*)<span class="number">0</span>);</span><br><span class="line">glEnableVertexAttribArray(<span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<p>设置顶点属性指针</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">unsigned</span> <span class="keyword">int</span> VAO;</span><br><span class="line">glGenVertexArrays(<span class="number">1</span>, &amp;VAO);</span><br></pre></td></tr></table></figure>
+<p>创建顶点数组对象</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">glBindVertexArray(<span class="name">VAO</span>)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>绑定 VAO</p>
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">unsigned int EBO<span class="comment">;</span></span><br><span class="line">glGenBuffers(<span class="number">1</span>, &amp;EBO)<span class="comment">;</span></span><br><span class="line">glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)<span class="comment">;</span></span><br><span class="line">glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW)<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO)<span class="comment">;</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *  @param  参数1：指定了我们绘制的模式，这个和glDrawArrays的一样</span></span><br><span class="line"><span class="comment"> *  @param  参数2：打算绘制顶点的个数，这里填6，也就是说我们一共需要绘制6个顶点</span></span><br><span class="line"><span class="comment"> *  @param  参数3：索引的类型，这里是 GL_UNSIGNED_INT</span></span><br><span class="line"><span class="comment"> *  @param  参数4：指定EBO中的偏移量（或者传递一个索引数组，但是这是当你不在使用索引缓冲对象的时候，但是我们会在这里填写 0）</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">glDrawElements(GL_TRIANGLES, <span class="number">6</span>, GL_UNSIGNED_INT, <span class="number">0</span>)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">int nrAttributes<span class="comment">;</span></span><br><span class="line">glGetIntegerv(<span class="name">GL_MAX_VERTEX_ATTRIBS</span>, <span class="symbol">&amp;nrAttributes</span>)<span class="comment">;</span></span><br><span class="line">NSLog(@<span class="string">"能声明的顶点属性个数：%d"</span>, nrAttributes)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>获取能声明的顶点属性个数</p>
+<h2 id="十二、摄像机-观察空间"><a href="#十二、摄像机-观察空间" class="headerlink" title="十二、摄像机/观察空间"></a>十二、摄像机/观察空间</h2><p>当我们讨论摄像机/观察空间（Camera/View Space）的时候，是在讨论<code>以摄像机的视角作为场景原点时</code>场景中所有的顶点坐标：观察矩阵把所有的世界坐标变换为相对于摄像机位置与方向的观察坐标。</p>
+<p>要定义一个摄像机，我们需要它<code>在世界空间中的位置</code>、<code>观察的方向</code>、<code>一个指向它右测的向量</code>以及<code>一个指向它上方的向量</code>。我们实际上创建了一个三个单位轴相互垂直的、以摄像机的位置为原点的坐标系。</p>
+<p><img src="https://learnopengl-cn.github.io/img/01/09/camera_axes.png" alt></p>
+<ol>
+<li><p>摄像机位置</p>
+<p> 获取摄像机位置很简单。摄像机位置简单来说就是<code>世界空间中一个指向摄像机位置的向量</code>。</p>
+ <figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GLKVector3 cameraPosition = GLKVector3Make(<span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">3.0</span>);</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>不要忘记正 z 轴是从屏幕指向你的，如果我们希望摄像机向后移动，我们就沿着 z 轴的正方向移动。
+</code></pre><ol start="2">
+<li><p>摄像机方向</p>
+<p> 下一个需要的向量是摄像机的方向，这里<code>指的是摄像机指向哪个方向</code>。现在我们让摄像机指向场景原点：(0, 0, 0)。还记得如果将两个矢量相减，我们就能得到这两个矢量的差吗？<code>用场景原点向量减去摄像机位置向量的结果就是摄像机的指向向量</code>。由于我们知道摄像机指向 z 轴负方向，但我们希望方向向量(Direction Vector)指向摄像机的 z 轴正方向。如果我们交换相减的顺序，我们就会获得一个指向摄像机正 z 轴方向的向量：</p>
+ <figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GLKVector3 cameraTarget = GLKVector3Make(<span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">0.0</span>)<span class="comment">;</span></span><br><span class="line">GLKVector3 cameraDirection = GLKVector3Normalize(<span class="name">GLKVector3Subtract</span>(<span class="name">cameraPosition</span>, cameraTarget))<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p> 方向向量(Direction Vector)并不是最好的名字，因为它实际上指向从它到目标向量的相反方向。</p>
+</li>
+<li><p>右轴</p>
+<p> 我们需要的另一个向量是一个右向量(Right Vector)，它代表<code>摄像机空间的 x 轴的正方向</code>。为获取右向量我们需要先使用一个小技巧：</p>
+<ul>
+<li>先定义一个上向量(Up Vector)。</li>
+<li><p>接下来把上向量和第二步得到的方向向量进行叉乘。两个向量叉乘的结果会同时垂直于两向量，因此我们会得到指向 x 轴正方向的那个向量（如果我们交换两个向量叉乘的顺序就会得到相反的指向 x 轴负方向的向量）：</p>
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GLKVector3 up = GLKVector3Make(<span class="number">0.0</span>, <span class="number">1.0</span>, <span class="number">0.0</span>);</span><br><span class="line"><span class="comment">// 右向量，它代表摄像机空间的 x 轴的正方向。把上向量和第二步得到的方向向量进行叉乘</span></span><br><span class="line">GLKVector3 cameraRight = GLKVector3Normalize(GLKVector3CrossProduct(up, cameraDirection));</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>上轴</p>
+<p> 现在我们已经有了 x 轴向量和 z 轴向量，获取一个指向摄像机的正 y 轴向量就相对简单了：我们把右向量和方向向量进行叉乘：</p>
+ <figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GLKVector3 cameraUp = GLKVector3CrossProduct(<span class="name">cameraDirection</span>, cameraRight)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p> 在叉乘和一些小技巧的帮助下，我们创建了所有构成观察/摄像机空间的向量。对于想学到更多数学原理的读者，提示一下，在线性代数中这个处理叫做<code>格拉姆—施密特正交化(Gram-Schmidt Process)</code>。使用这些摄像机向量我们就可以创建一个 <code>LookAt</code> 矩阵了，它在创建摄像机的时候非常有用。</p>
+</li>
+<li><p>LookAt</p>
+<p> 把这个 LookAt 矩阵作为观察矩阵可以很高效地把所有世界坐标变换到刚刚定义的观察空间。LookAt 矩阵就像它的名字表达的那样：它会创建一个看着（Look at）给定目标的观察矩阵。</p>
+</li>
+<li><p>自由移动</p>
+ <figure class="highlight gauss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">void <span class="built_in">processInput</span>(GLFWwindow *<span class="built_in">window</span>)</span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">    float cameraSpeed = <span class="number">0.05</span>f; <span class="comment">// adjust accordingly</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">glfwGetKey</span>(<span class="built_in">window</span>, GLFW_KEY_W) == GLFW_PRESS)</span><br><span class="line">        cameraPos += cameraSpeed * cameraFront;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">glfwGetKey</span>(<span class="built_in">window</span>, GLFW_KEY_S) == GLFW_PRESS)</span><br><span class="line">        cameraPos -= cameraSpeed * cameraFront;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">glfwGetKey</span>(<span class="built_in">window</span>, GLFW_KEY_A) == GLFW_PRESS)</span><br><span class="line">        cameraPos -= <span class="built_in">glm</span>::<span class="built_in">normalize</span>(<span class="built_in">glm</span>::<span class="built_in">cross</span>(cameraFront, cameraUp)) * cameraSpeed;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">glfwGetKey</span>(<span class="built_in">window</span>, GLFW_KEY_D) == GLFW_PRESS)</span><br><span class="line">        cameraPos += <span class="built_in">glm</span>::<span class="built_in">normalize</span>(<span class="built_in">glm</span>::<span class="built_in">cross</span>(cameraFront, cameraUp)) * cameraSpeed;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 当我们按下 WASD 键的任意一个，摄像机的位置都会相应更新。如果我们希望向前或向后移动，我们就把位置向量加上或减去方向向量。如果我们希望向左右移动，我们使用<code>叉乘</code>来创建一个右向量(Right Vector)，并沿着它相应移动就可以了。这样就创建了使用摄像机时熟悉的<code>横移(Strafe)</code>效果。</p>
+<p> 注意，我们对右向量进行了<code>标准化</code>。如果我们没对这个向量进行标准化，最后的叉乘结果会根据 cameraFront 变量返回大小不同的向量。如果我们不对向量进行标准化，我们就得根据摄像机的朝向不同加速或减速移动了，但如果进行了标准化移动就是<code>匀速</code>的。</p>
+</li>
+<li><p>移动速度</p>
+<p> 图形程序和游戏通常会跟踪一个<code>时间差(Deltatime)</code>变量，它储存了渲染上一帧所用的时间。我们把所有速度都去乘以 deltaTime 值。结果就是，如果我们的 deltaTime 很大，就意味着上一帧的渲染花费了更多时间，所以这一帧的速度需要变得更高来平衡渲染所花去的时间。使用这种方法时，无论你的电脑快还是慢，摄像机的速度都会相应平衡，这样每个用户的体验就都一样了。</p>
+</li>
+<li><p>欧拉角</p>
+<blockquote>
+<p>欧拉角(Euler Angle)是可以表示 3D 空间中任何旋转的 3 个值。</p>
+</blockquote>
+<p> 一共有3种欧拉角：俯仰角(Pitch)、偏航角(Yaw)和滚转角(Roll)，下面的图片展示了它们的含义：</p>
+<p> <img src="https://learnopengl-cn.github.io/img/01/09/camera_pitch_yaw_roll.png" alt></p>
+<p> <code>俯仰角</code>是描述我们如何往上或往下看的角，可以在第一张图中看到。第二张图展示了偏航角，<code>偏航角</code>表示我们往左和往右看的程度。<code>滚转角</code>代表我们如何翻滚摄像机，通常在太空飞船的摄像机中使用。每个欧拉角都有一个值来表示，把三个角结合起来我们就能够计算 3D 空间中任何的旋转向量了。</p>
+</li>
+<li><p>鼠标输入</p>
+<p> 偏航角和俯仰角是通过鼠标（或手柄）移动获得的，水平的移动影响偏航角，竖直的移动影响俯仰角。它的原理就是，储存上一帧鼠标的位置，在当前帧中我们当前计算鼠标位置与上一帧的位置相差多少。如果水平/竖直差别越大那么俯仰角或偏航角就改变越大，也就是摄像机需要移动更多的距离。</p>
+</li>
+</ol>
+<h2 id="十三、词汇表"><a href="#十三、词汇表" class="headerlink" title="十三、词汇表"></a>十三、词汇表</h2><ul>
+<li>OpenGL：一个定义了函数布局和输出的图形 API 的正式规范。</li>
+<li>视口(Viewport)： 我们需要渲染的窗口。</li>
+<li>图形管线(Graphics Pipeline)：一个顶点在呈现为像素之前经过的全部过程。</li>
+<li>着色器(Shader)：一个运行在显卡上的小型程序。很多阶段的图形管道都可以使用自定义的着色器来代替原有的功能。</li>
+<li>标准化设备坐标(Normalized Device Coordinates, NDC)：顶点，通过在剪裁坐标系中剪裁与透视除法后最终呈现在的坐标系。所有位置在 NDC 下 -1.0 到 1.0 的顶点将不会被丢弃并且可见。</li>
+<li>顶点缓冲对象(Vertex Buffer Object)： 一个调用显存并存储所有顶点数据供显卡使用的缓冲对象。</li>
+<li>顶点数组对象(Vertex Array Object)： 存储缓冲区和顶点属性状态。</li>
+<li>索引缓冲对象(Element Buffer Object)： 一个存储索引供索引化绘制使用的缓冲对象。</li>
+<li>Uniform： 一个特殊类型的GLSL变量。它是全局的（在一个着色器程序中每一个着色器都能够访问uniform变量），并且只需要被设定一次。</li>
+<li>纹理(Texture)： 一种包裹着物体的特殊类型图像，给物体精细的视觉效果。</li>
+<li>纹理缠绕(Texture Wrapping)： 定义了一种当纹理顶点超出范围(0, 1)时指定OpenGL如何采样纹理的模式。</li>
+<li>纹理过滤(Texture Filtering)： 定义了一种当有多种纹素选择时指定OpenGL如何采样纹理的模式。这通常在纹理被放大情况下发生。</li>
+<li>多级渐远纹理(Mipmaps)： 被存储的材质的一些缩小版本，根据距观察者的距离会使用材质的合适大小。</li>
+<li>纹理单元(Texture Units)： 通过绑定纹理到不同纹理单元从而允许多个纹理在同一对象上渲染。</li>
+<li>向量(Vector)： 一个定义了在空间中方向和/或位置的数学实体。</li>
+<li>矩阵(Matrix)： 一个矩形阵列的数学表达式。</li>
+<li>GLM： 一个为OpenGL打造的数学库。</li>
+<li>局部空间(Local Space)： 一个物体的初始空间。所有的坐标都是相对于物体的原点的。</li>
+<li>世界空间(World Space)： 所有的坐标都相对于全局原点。</li>
+<li>观察空间(View Space)： 所有的坐标都是从摄像机的视角观察的。</li>
+<li>裁剪空间(Clip Space)： 所有的坐标都是从摄像机视角观察的，但是该空间应用了投影。这个空间应该是一个顶点坐标最终的空间，作为顶点着色器的输出。OpenGL负责处理剩下的事情（裁剪/透视除法）。</li>
+<li>屏幕空间(Screen Space)： 所有的坐标都由屏幕视角来观察。坐标的范围是从0到屏幕的宽/高。</li>
+<li>LookAt矩阵： 一种特殊类型的观察矩阵，它创建了一个坐标系，其中所有坐标都根据从一个位置正在观察目标的用户旋转或者平移。</li>
+<li>欧拉角(Euler Angles)： 被定义为偏航角(Yaw)，俯仰角(Pitch)，和滚转角(Roll)从而允许我们通过这三个值构造任何3D方向。</li>
+</ul>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/10/14/OpenGL/OpenGLES/">http://yoursite.com/2019/10/14/OpenGL/OpenGLES/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/10/18/iOS/iOS原理/iOS 点击事件和手势/" class="pre">iOS点击事件和手势</a><a href="/2019/10/10/iOS/iOS原理/iOS 内存分配与分区/" class="next">iOS 内存分配与分区</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、核心模式与立即渲染模式"><span class="toc-text">一、核心模式与立即渲染模式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二、状态机"><span class="toc-text">二、状态机</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三、对象"><span class="toc-text">三、对象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、图形渲染管线"><span class="toc-text">四、图形渲染管线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#五、着色器"><span class="toc-text">五、着色器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#六着色器程序"><span class="toc-text">六着色器程序</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#七、数据"><span class="toc-text">七、数据</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#八、标准化设备坐标-Normalized-Device-Coordinates-NDC"><span class="toc-text">八、标准化设备坐标(Normalized Device Coordinates, NDC)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#九、纹理"><span class="toc-text">九、纹理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#9-1-纹理环绕方式"><span class="toc-text">9.1  纹理环绕方式</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#9-2-纹理过滤"><span class="toc-text">9.2 纹理过滤</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#9-3-多级渐远纹理"><span class="toc-text">9.3 多级渐远纹理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#9-4-纹理单元"><span class="toc-text">9.4 纹理单元</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#十、坐标系统"><span class="toc-text">十、坐标系统</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#10-1-局部空间"><span class="toc-text">10.1 局部空间</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#10-2-世界空间"><span class="toc-text">10.2 世界空间</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#10-3-观察空间"><span class="toc-text">10.3 观察空间</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#10-4-裁剪空间"><span class="toc-text">10.4 裁剪空间</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#10-5-Z-缓冲"><span class="toc-text">10.5 Z 缓冲</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#十一、代码"><span class="toc-text">十一、代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#十二、摄像机-观察空间"><span class="toc-text">十二、摄像机/观察空间</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#十三、词汇表"><span class="toc-text">十三、词汇表</span></a></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

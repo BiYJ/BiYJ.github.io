@@ -1,0 +1,509 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>iOS 操作系统架构 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">iOS 操作系统架构</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">iOS 操作系统架构</h1><div class="post-meta"><a href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/#comments" class="comment-count"></a><p><span class="date">Nov 05, 2019</span><span><a href="/categories/iOS原理/" class="category">iOS原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、iOS-系统架构层次"><a href="#一、iOS-系统架构层次" class="headerlink" title="一、iOS 系统架构层次"></a>一、iOS 系统架构层次</h2><center><br><img src="http://dzliving.com/iOSStructure_0.jpg" alt><br></center>
+
+<p>在 iOS 中，<font color="#cc0000">框架是一个目录</font>，包含了共享资源库，用于访问该资源库中储存的代码的头文件，以及图像、声音文件等其他资源。共享资源库定义应用程序可以调用的函数和方法。</p>
+<p>iOS 为应用程序开发提供了许多可使用的框架，并构成 iOS 操作系统的层次架构，分为四层：</p>
+<ol>
+<li><p>Cocoa Touch 可触摸层</p>
+<p> 这一层为我们的应用程序开发提供了各种有用的框架，并且大部分与用户界面有关，本质上来说它<font color="#cc0000">负责用户在 iOS 设备上的触摸交互操作</font>。</p>
+<blockquote>
+<p>包括：Address Book UI Framework、Event Kit UI Framework、Game Kit Framework、iAd Framework、Map Kit Framework、Message UI Framework、UIKit Framework 等等，这一层基本都是<font color="#cc0000">基于 Objective-C</font> 的接口。</p>
+</blockquote>
+</li>
+<li><p>Media 媒体层</p>
+<p> 通过它我们可以在应用程序中<font color="#cc0000">使用各种媒体文件</font>，进行音频与视频的录制，图形的绘制，以及制作基础的动画效果。</p>
+<blockquote>
+<p>包含 Core Graphics、Core Animation、OpenGL ES、Core Text、Image I/O、Assets Library Framework、Media Player Framework、AV Foundation、OpenAL、Core Audio Frameworks、Core Media 等等</p>
+</blockquote>
+</li>
+<li><p>Core Services 核心服务层</p>
+<p> 可以通过它来访问 iOS 的一些服务。</p>
+<blockquote>
+<p>包含 Address Book Framework、CFNetwork Framework、Core Data Framework、Core Foundation Framework、Core Location Framework、Core Media Framework、Core Telephony Framework、Event Kit Framework、Foundation Framework、Mobile Core Services Framework、Quick Look Framework、Store Kit Framework、System Configuration Framework、Block Objects、Grand Central Dispatch 、In App Purchase、Location Services、SQLite、XML Support 等一些框架，也基本都是<font color="#cc0000">基于 c 语言</font>的接口。</p>
+</blockquote>
+</li>
+<li><p>Core OS 是位于 iOS 系统架构最下面的一层是核心操作系统层</p>
+<p> 它包括内存管理、文件系统、电源管理以及一些其他的操作系统任务。它可以直接和硬件设备进行交互。作为app开发者不需要与这一层打交道。</p>
+<blockquote>
+<p>包含 Accelerate Framework、External Accessory Framework、Security Framework、System 等几个框架，基本都是<font color="#cc0000">基于 c 语言</font>的接口。</p>
+</blockquote>
+</li>
+</ol>
+<p>低层次框架提供 iOS 的基本服务和技术；高层次框架建立在低层次框架之上，用来提供更加复杂的服务和技术，较高级的框架向较低级的结构提供面向对象的抽象。</p>
+<p>在开发应用时应尽可能使用较高级的框架。如果要开发的功能在高层框架中没有提供，也可以使用较低层框架和技术。</p>
+<p>Foundation 和 UIKit 框架是应用编程用到的两个主要的框架，能够满足大多数应用程序的开发需求。</p>
+<p>UIKit 框架提供的类，用于创建基于触摸的用户界面。所有 iOS 应用程序都是基于 UIKit，没有这个框架，就无法交付应用程序。UIKit 提供应用程序的基础架构，用于在屏幕上绘图、处理事件，以及创建通用用户界面及其中元素。UIKit 还通过管理屏幕上显示的内容，来组织应用程序。</p>
+<p>Foundation 框架为所有应用程序提供基本的系统服务。应用程序以及 UIKit 和其他框架，都是建立在Foundation 框架的基础结构之上。Foundation 框架提供许多基本的对象类和数据类型，使其成为应用程序开发的基础。它还制定了一些约定（如用于取消分配等任务），使代码更加一致，可复用性更好。</p>
+<h2 id="二、Cocoa-Touch-Layer"><a href="#二、Cocoa-Touch-Layer" class="headerlink" title="二、Cocoa Touch Layer"></a>二、Cocoa Touch Layer</h2><center><br><img src="http://dzliving.com/iOSStructure_2.png" alt><br></center>
+
+<p>Cocoa Touch 层包含如下框架：</p>
+<h4 id="2-1-Address-Book-UI-Framework"><a href="#2-1-Address-Book-UI-Framework" class="headerlink" title="2.1 Address Book UI Framework"></a>2.1 Address Book UI Framework</h4><p>地址本 UI 框架。</p>
+<p>该框架提供一个面向对象的编程接口。用来显示标准的系统接口，来创建新的联系人和编辑和选择已存在的联系人。</p>
+<h4 id="2-2-Event-Kit-UI-Framework"><a href="#2-2-Event-Kit-UI-Framework" class="headerlink" title="2.2 Event Kit UI Framework"></a>2.2 Event Kit UI Framework</h4><p>月历事件 UI 框架。</p>
+<p>该框架提供一个视图控制器来呈现标准的系统接口，来观察和编辑月历相关的事件。EventKit UI Framework 基于 Event Kit framework 框架。</p>
+<h4 id="2-3-Game-Kit-Framework"><a href="#2-3-Game-Kit-Framework" class="headerlink" title="2.3 Game Kit Framework"></a>2.3 Game Kit Framework</h4><p>游戏工具框架。</p>
+<p>该框架实现对游戏中心的支持，让用户能够在线共享他们的游戏相关的信息。</p>
+<h4 id="2-4-iAd-Framework"><a href="#2-4-iAd-Framework" class="headerlink" title="2.4 iAd Framework"></a>2.4 iAd Framework</h4><p>iAD 框架。</p>
+<p>该框架用来在应用中提供广告条。当你想要显示广告时，广告条与用户 UI 上的标准的视图进行合并。这些视图与苹果的 iAd 服务一起工作，自动处理、加载和呈现富媒体广告以及应答在那些广告条上的点击等所有相关的工作。</p>
+<h4 id="2-5-Map-Kit-Framewor"><a href="#2-5-Map-Kit-Framewor" class="headerlink" title="2.5 Map Kit Framewor"></a>2.5 Map Kit Framewor</h4><p>地图工具框架。</p>
+<p>MapKit 提供与应用的 UI 组合的一个可滚动的地图。</p>
+<p>除了显示一个地图，你能使用该框架接口来定制地图的内容和外观，也能使用注解来标记感兴趣的点，也能使用定制的内容来与地图内容叠置。例如，你可以在地图上来画一条公交路线，或者使用注解来高亮显示附近的商店和餐馆。</p>
+<p>除了显示地图，MapKit 框架还能与地图应用以及苹果的地图服务器集成来为用户指引方向。</p>
+<p>地图应用能够给任意支持方向的应用提供方向的代理。如提供特定类型方向的应用，例如一个显示地铁路线的应用，能登记请求接收地图应用提供的方向。</p>
+<p>应用也能向苹果的服务器请求步行或驾驶方向，并与他们定制的方向的路径信息混合来为用户提供完整的点到点体验。</p>
+<h4 id="2-6-Message-UI-Framework"><a href="#2-6-Message-UI-Framework" class="headerlink" title="2.6 Message UI Framework"></a>2.6 Message UI Framework</h4><p>消息 UI 框架。</p>
+<p>该框架用来在应用中提供编辑邮件和 sms 消息的支持。</p>
+<p>编辑支持包括一个呈现到你的应用的视图控制器接口，并能设置这个视图控制器的一些区域，如接收人、主题、邮件主体和邮件想包括的任意附件。</p>
+<p>在呈现视图控制器后，也能为用户提供一个在发送邮件之前可以编辑邮件的选项。</p>
+<h4 id="2-7-UIKit-Framework"><a href="#2-7-UIKit-Framework" class="headerlink" title="2.7 UIKit Framework"></a>2.7 UIKit Framework</h4><p>该框架提供实现图形和事件驱动的应用的至关重要的基础。包括：</p>
+<ol>
+<li>基本的应用管理和基础设施，包括应用的主循环；</li>
+<li>用户接口管理，包括对 storyboards 和 nib 文件的支持；</li>
+<li>一个用来封装用户 UI 内容的视图控制器模式；</li>
+<li>标准系统视图和控制对象；</li>
+<li>提供处理触摸和运动事件的支持；</li>
+<li>支持包括与 iCloud 集成功能的文档模式；</li>
+<li>图形和窗口支持，包括支持外部显示器；</li>
+<li>多任务支持；</li>
+<li>打印支持；</li>
+<li>定制标准 UIKit 控制的外观；</li>
+<li>支持文本和 web 内容；</li>
+<li>剪切、复制、粘贴的支持；</li>
+<li>支持动画 UI；</li>
+<li>通过 url 语义和框架接口与系统提供的其它应用集成的能力；</li>
+<li>对有障碍用户的可存取性的支持；</li>
+<li>支持 ApplePush Notification 服务；</li>
+<li>本地通知调度和提交；</li>
+<li>pdf 创建；</li>
+<li>支持定制像系统键盘行为一样的用户输入视图；</li>
+<li>支持创建与系统键盘交互的定制的文本视图；</li>
+<li>支持通过 email，Twitter，Facebook和其它服务共享内容。</li>
+</ol>
+<p>也支持一些设备特定功能的集成：</p>
+<ol>
+<li>内建的摄像机；</li>
+<li>用户的图片库；</li>
+<li>设备名和模式信息；</li>
+<li>电池状态信息；</li>
+<li>接近传感器信息；</li>
+<li>来自附件耳机的远程控制信息</li>
+</ol>
+<h2 id="三、MediaLayer"><a href="#三、MediaLayer" class="headerlink" title="三、MediaLayer"></a>三、MediaLayer</h2><center><br><img src="http://dzliving.com/iOSStructure_3.png" alt><br></center>
+
+<p>媒体层包含在应用中实现多媒体体验的图形、声音、视频技术和框架。使用这层的技术可以使你容易的建立更加好看和好听的应用。</p>
+<h4 id="3-1-图形技术"><a href="#3-1-图形技术" class="headerlink" title="3.1 图形技术"></a>3.1 图形技术</h4><p>高质量的图形是所有应用的重要的组成部分。iOS 提供了许多帮助你定制艺术和图形屏幕的技术。iOS 图形技术为其提供了广泛的支持，并可以与 UIKit 视图架构无缝工作。</p>
+<p>你能使用标准的视图来快速提交高质量的接口，或者使用本层的图形技术创建你自己的定制视图来提交一个更加丰富的图形体验。</p>
+<ol>
+<li><p>UIKit graphics</p>
+<ul>
+<li>UIKit 定义的绘制图像和 Bézier 路径，以及动画视图内容的高级别技术。</li>
+<li>UIKit 视图提供快速和有效的方式来呈现图像和文本内容。</li>
+<li>UIKIT 视图也能通过显示和使用 UIKitdynamics 技术进行动画，并为用户提供反馈，促进用户交互。</li>
+</ul>
+</li>
+<li><p>CoreGraphics 框架</p>
+<p> CoreGraphics 也称作 Quartz，是对定制的 2D 向量和图像呈现提供支持的本地绘制引擎。</p>
+<p> 该框架提供的引擎虽然没有 OpenGLES 引擎速度快，但该框架能够很好地适合于呈现定制的 2D 图形和动态图像。</p>
+</li>
+<li><p>CoreAnimation 框架</p>
+<p> CoreAnimation 也是 Quartz 核心框架的一部分，是优化应用动画体验的基础技术。</p>
+<p> UIKit 视图基于 Core Animation 提供视图级别的动画支持。当你想对动画行为有更多控制时也能直接使用 CoreAnimation。</p>
+</li>
+<li><p>Core Image</p>
+<p> CoreImage 提供非破坏的方式操作视频和静态图像。</p>
+</li>
+<li><p>OpenGL ES 及 GLKit</p>
+<ul>
+<li>OpenGLES 使用硬件加速接口来处理先进的 2D 和 3D 呈现。OpenGLES 通常由游戏开发者或想实现沉浸式图像体验的开发者使用。</li>
+<li>OpenGLES 框架提供对呈现过程的全部控制，以及提供创建平滑动画所需要的帧速。</li>
+<li>GLKit 是一组 Objective-C 类，以便能够使用面向对象接口来提供 OpenGL ES 的强大能力。</li>
+</ul>
+</li>
+<li><p>Text Kit 和 CoreText</p>
+<ul>
+<li>Text Kit 是 UIKit 框架的家族，用来执行最好的排面和文本管理。如果你的应用实现先进的文本操作，Text Kit 提供与应用视图的无缝集成。</li>
+<li>CoreText 是处理先进排面和布局的低级别的 C 语言框架。</li>
+</ul>
+</li>
+<li><p>Image I/O</p>
+<p> ImageI/O 提供读写大多数图像格式的接口。</p>
+</li>
+<li><p>Assets Library</p>
+<p> AssetsLibrary 框架让你存取用户的图片、视频和媒体。你想在应用中集成用户自己的内容时可以使用该框架。</p>
+</li>
+</ol>
+<h4 id="3-2-声音技术"><a href="#3-2-声音技术" class="headerlink" title="3.2 声音技术"></a>3.2 声音技术</h4><p>声音技术工作于底层硬件之上，为用户提供更加丰富的声音体验。这些体验包括播放和记录高质量的声音、处理MIDI内容以及使用设备内建的声音 等能力</p>
+<ol>
+<li><p>Media Player framework</p>
+<p> 该框架是一个高级别的框架， 用来为用户提供对 iTunes 库存取的容易方式，也提供对播放轨迹和播放列表的支持。</p>
+<p> 当你想快速在应用中集成声音以及不需要控制播放行为时可以使用该框架。</p>
+</li>
+<li><p>AV Foundation</p>
+<p> AVFoundation 是管理声音以及视频播放和记录的面向对象接口。在记录声音和想对声音播放过程有更好的控制时可以使用该框架。</p>
+</li>
+<li><p>OpenAL</p>
+<p> OpenAL 是一个提供位置音效的跨平台的工业标准技术和接口。游戏开发者经常使用该技术来提供高质量的声音。</p>
+</li>
+<li><p>Core Audio</p>
+<p> Core Audio 是一组简单和智能的接口来记录和播放声音以及 MIDI 内容。在需要对声音有更好控制时使用该框架。</p>
+</li>
+</ol>
+<h4 id="3-3-视频技术"><a href="#3-3-视频技术" class="headerlink" title="3.3 视频技术"></a>3.3 视频技术</h4><p>视频技术提供管理应用中的静态视频内容或者播放来自 Internet 的视频流的支持。对于带有适当的记录硬件的设备，该框架还能够记录视频以及与应用进行集成。</p>
+<ol>
+<li><p>UIImagePickerController</p>
+<p> UIImagePickerController 是一个选择用户媒体文件的 UIKit 视图控制器。</p>
+</li>
+<li><p>Media Player</p>
+<p> MediaPlayer 框架提供一组呈现视频内容的简单易用的接口，该框架支持全屏和小窗口视频播放，也为用户提供可选的播放控制。</p>
+</li>
+<li><p>AVFoundation</p>
+<p> AVFoundation 提供先进的视频播放和记录能力。</p>
+<p> 在需要对视频呈现和记录有更多的控制时使用该框架，例如在实时应用中分层显示实时视频和应用提供的其它内容。</p>
+</li>
+<li><p>CoreMedia</p>
+<p> CoreMedia 框架为操作媒体定义低级别的数据类型和接口。当你需要对视频内容有无比的控制时可以使用该框架。</p>
+</li>
+</ol>
+<h4 id="3-4-AirPlay-技术"><a href="#3-4-AirPlay-技术" class="headerlink" title="3.4 AirPlay 技术"></a>3.4 AirPlay 技术</h4><p>AirPlay 让应用串流声音和视频内容到 Apple TV 或者串流声音内容到第三方扬声器和接收器。</p>
+<p>AirPlay 内建于许多框架，包括 UIKit、Media Player、AVFoundation、Core Audio。因此在大多数情况你不需要为了支持它做任何事。</p>
+<p>在使用那些框架时，当播放内容时自动获得 AirPlay 支持。当用户选择使用 AirPlay 播放内容时系统自动进行路由。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">框架</th>
+<th style="text-align:left">服务内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Assets Library</td>
+<td style="text-align:left">AssetsLibrary.framework 提供对用户设备上图片应用管理的图片和视频的存取。<br><br>使用该框架来存取用户保存的图片相册或导入到设备的任意相册中的图片，你也能保存新的图片和视频到用户的图片相册。</td>
+</tr>
+<tr>
+<td style="text-align:left">AV Foundation</td>
+<td style="text-align:left">AVFoundation.framework 提供一组播放、记录和管理声音和视频内容的Objective-C 类。<br><br>当你想在应用的 UI 接口无缝集成媒体能力时使用该框架。你也能使用它来进行更先进的媒体处理，例如同时播放多个声音或者控制播放和记录过程的多个方面。<br><br>该框架提供的服务包括: <br>1. 声音会话管理，包括对系统声明你的应用声音能力；<br>2. 对应用媒体资源的管理；<br>3. 对编辑媒体内容的支持；<br>4. 捕捉声音和视频的能力；<br>5. 播放声音和视频的能力；<br>6. 轨迹管理；<br>7. 媒体元数据的管理；<br>8. 立体拍摄；<br>9. 声音之间的精确同步；<br>10. 提供一个确定声音文件细节内容的 Objective-C 接口，例如数据格式，采样率，通道数；<br>          11. 通过 AirPlay 串流内容。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Audio</td>
+<td style="text-align:left">Core Audio 是一个对声音处理提供本地支持的框架家族。这些框架支持声音的产生、记录、混合和回放。<br><br>你也能使用这些接口处理 MIDI 内容以及串流声音和 MIDI 内容到其它应用。<br><br>Core Audio 框架包括如下框架：<br>1. CoreAudio.framework：定义 Core Audio 框架使用的所有数据类型。<br>2. AudioToolbox.framework：提供声音文件和声音流的播放和记录服务。也提供管理声音文件，播放系统警告声音，在某些设备上触发震动的支持。<br>3. AudioUnit.framework：提供使用内建声音单元。也提供使你的应用的声音内容作为对其它应用可视的声音组件的支持。<br>4. CoreMIDI.framework：提供与 MIDI 设备通讯的标准方式，包括硬件键盘和合成器。你使用这个框架来发送和接收 MIDI 消息以及与通过 dock 连接器或网络连接到 iOS 设备的 MIDI 外设交互。<br>5. MediaToolbox.framework：提供对声音 tap 接口的存取。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Graphics</td>
+<td style="text-align:left">CoreGraphics.framework 包含Quartz 2D 绘制 api。<br><br>Quartz 是一个原先用在 OS X 的先进的、向量绘制引擎。Quartz 支持路径绘制，抗锯齿呈现，剃度、图像、颜色、坐标空间转换以及 pdf 内容创建、显示和分析等功能。<br><br>虽然这个 api 是 C-based 接口，但它使用了面向对象抽象来表现基本的绘制对象，因此使它容易存储和重用图形内容。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Image</td>
+<td style="text-align:left">CoreImage.framework 提供一组强大的内建过滤器来操作视频和静态图像。<br><br>你能在触摸弹起、纠正图片以及面部和特征检测等许多方面使用这些内建的过滤器。这些过滤器的先进特点是它们操作在非破坏方式，即原先的图像不被改变。<br><br>这些过滤器针对底层硬件进行了优化，因此它们是快速和有效的。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Text</td>
+<td style="text-align:left">CoreText.framework 提供一个对文本进行布局和字体处理的简单的、高性能的 C-based 接口。<br><br>该框架用在不使用 TextKit 但仍想获得在字处理应用中发现的先进文本处理能力。<br><br>该框架提供了一个智能的文本布局引擎，包括在其它内容周围环绕文本的能力，它也支持使用多种字体和呈现属性的先进的文本风格。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Video</td>
+<td style="text-align:left">CoreVideo.framework 为 Core Media 框架提供缓冲和缓冲池支持。多数应用从不直接使用该框架。</td>
+</tr>
+<tr>
+<td style="text-align:left">Game Controller</td>
+<td style="text-align:left">GameController.framework 让你在应用中发现和配置针对 iPhone/iPod/iPad 设备的游戏控制器。<br><br>游戏控制器可以是物理连接到 iOS 设备或者是通过蓝牙无线连接。GameController 框架当控制器可获得时通知你的应用让应用可以规定哪个控制器输入与你的应用相关。</td>
+</tr>
+<tr>
+<td style="text-align:left">GLKit</td>
+<td style="text-align:left">GLKit.framework 包含一组简化创建 OpenGLES 应用的 Objective-C based 单元类。<br><br>GLKit 支持应用开发的四个关键领域：<br>1. GLKView 和 GLKViewController 类提供一个 OpenGLES 视图和其呈现循环的标准实现。OpenGLES 视图代表应用管理底层的 framebuffer 对象。应用只需在视图上绘制。<br>2. GLKTextureLoader 类提供在你的应用中使用图像转换和加载线程，允许应用自动加载纹理图像到应用的上下文。能够异步或同步加载纹理。当异步加载纹理时，应用应提供一个完成处理块，该处理块在纹理加载进应用上下文时被调用。<br>3. GLKit 框架提供向量、矩阵和 3D 旋转以及提供 OpenGLES 1.1 上的矩阵。<br>4. GLKBaseEffect、GLKSkyboxEffect 和 GLKReflectionMapEffect 类实现给通用图形操作提供可配置的图形着色。尤其 GLKBaseEffect 类实现了 OpenGL ES 1.1 规范上的光亮和材质模式，简化了移植一个应用从 OpenGL ES 1.1 到 OpenGL ES 最后版本的努力。</td>
+</tr>
+<tr>
+<td style="text-align:left">Image I/O</td>
+<td style="text-align:left">ImageIO.framework 提供输入和输出图像数据和图像元数据的接口。<br><br>该框架利用 CoreGraphics 数据类型和功能，并支持在 iOS 上所有的可获得的标准的图像类型。你能使用这个框架存取 Exif 和 IPTC 元数据属性。</td>
+</tr>
+<tr>
+<td style="text-align:left">Media Accessibility</td>
+<td style="text-align:left">MediaAccessibility.framework 管理媒体文件中 closed-caption 内容的呈现。<br><br>该框架与新的设置配合工作可以让用户决定是否允许 closed-caption 显示。</td>
+</tr>
+<tr>
+<td style="text-align:left">Media Player</td>
+<td style="text-align:left">MediaPlayer.framework 提供应用中播放声音和视频的高级别支持。<br><br>能够使用该框架做如下工作：<br>1. 播放视频到用户屏幕或通过 AirPlay 到另外的设备屏幕。能够全屏幕播放视频或以可改变视图大小的方式播放。<br>2. 存取用户的 iTunes 音乐库。能够播放音乐轨迹和播放列表、搜索音乐、给用户提供一个媒体 picker 呈现接口。<br>3. 配置和管理电影的回放。<br>4. 在锁定屏幕和 app 切换窗口上显示 NowPlaying 信息。当内容通过 AirPlay 提交时还能显示到 AppleTV 上。<br>5. 检测视频通过 AirPlay 被串流的时间。</td>
+</tr>
+<tr>
+<td style="text-align:left">OpenAL</td>
+<td style="text-align:left">OpenAudio Library（OpenAL）接口是用来在应用中提供位置音效的跨平台的标准。<br><br>能够使用该接口在游戏和其它需要位置音效输出的程序中实现高性能、高质量的声音。<br><br>因为 OpenAL 是跨平台的标准，在 iOS 使用 OpenAL 编写的代码能够容易地移植到许多其它平台。</td>
+</tr>
+<tr>
+<td style="text-align:left">OpenGL ES</td>
+<td style="text-align:left">OpenGLES.framework 提供绘制 2D 和 3D 内容的工具，它是一个 C-based 的框架。<br><br>该框架以最接近设备硬件的方式为全屏沉浸式应用例如游戏提供细粒度的图形控制和高的帧率。<br><br>你能够与 EAGL 配合使用这个框架，为 OpenGL ES 绘制调用和 UIKit 的本地窗口对象之间提供接口。<br><br>该框架支持 OpenGLES 1.1，2.0，3.0 规范。2.0 规范增加了片段和顶点着色的支持，3.0 规范增加了更多的功能，包括多个呈现目标和变换反馈。</td>
+</tr>
+<tr>
+<td style="text-align:left">Quartz Core</td>
+<td style="text-align:left">QuartzCore.framework 包含 Core Animation 接口。<br><br>Core Animation 是一个先进的复合技术，使用它能容易创建快和有效的 view-based 的动画。<br><br>复合引擎利用底层硬件来有效的实时操作视图内容。<br><br>只需规定动画的起始点，CoreAnimation 做剩下的工作。因为 Core Animation 内嵌在UIView架构的底层，因此它总是可用的。</td>
+</tr>
+<tr>
+<td style="text-align:left">Sprite Kit</td>
+<td style="text-align:left">SpriteKit.framework 框架为 2D 和 2.5D 游戏提供硬件加速的动画系统。<br><br>SpriteKit 提供大多数游戏需要的基础，包括一个图形引擎和动画系统，声音播放支持，一个物理仿真引擎。<br><br>使用 SpriteKit 不需你自己创建这些事情，使你聚焦在内容设计和内容的高级别的交互上。<br><br>在 Sprite Kit 应用中内容组织为场景。一个场景包括纹理对象，视频，路径图形，核心图像过滤器和其它的特效。<br><br>SpriteKit 利用这些对象，确定这些对象到屏幕上的最有效的方式。<br><br>当在场景中到了动画内容的时刻，你能使用 SpriteKit 来显式规定你想执行的行动或使用物理仿真引擎来为那些对象定义物理行为（例如重力、引力或排拆力）。<br><br>除了 SpriteKit 框架，也有其它 Xcode 工具来创建颗粒发射效果和纹理图。你能使用 Xcode 工具来管理应用资源和快速地更新 Sprite Kit 场景。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="四、CoreServices-Layer"><a href="#四、CoreServices-Layer" class="headerlink" title="四、CoreServices Layer"></a>四、CoreServices Layer</h2><center><br><img src="http://dzliving.com/iOSStructure_4.png" alt><br></center>
+
+<p>CoreServices Layer 包含应用需要的基础的系统服务。这些服务中的核心是 CoreFoundation 和 Foundation 框架，定义了所有应用使用的基本类型。</p>
+<p>该层也包含独立的技术来支持一些其它功能，例如位置、iCloud、社交媒体和网络。</p>
+<h4 id="4-1-包含的高级功能"><a href="#4-1-包含的高级功能" class="headerlink" title="4.1 包含的高级功能"></a>4.1 包含的高级功能</h4><ol>
+<li><p>Peer-to-Peer Services</p>
+<p> 点到点服务。</p>
+<p> Multipeer Connectivity 框架提供通过蓝牙进行 p2p 连接的能力。</p>
+<p> 你能使用 p2p 连接来启动与附近设备的通讯会话。虽然 p2p 连接主要用在游戏中，你也能在其它类型的应用中使用这个功能。</p>
+</li>
+<li><p>iCloud Storage</p>
+<p> 云存储。</p>
+<p>iCloud 存储让应用把用户文档和数据写到一个中心位置，用户然后能从他们的计算机和 iOS 设备存取这些数据。</p>
+<p>使用 iCloud 可以使用户文档无所不在，意味着用户能从任何设备阅读或编辑那些文档，而不需要显式的同步或文件传输。存储文档到用户的 iCloud 账户也为用户提供了一层安全。即使用户的设备丢失，那些设备上的文档如果已经保存到 iCloud 就不会丢失。</p>
+<p>应用能以两种方式使用 iCloud 存储，每一种有不同的使用意图：</p>
+<ul>
+<li><p>iCloud 文档存储。</p>
+<p>   可以使用这个功能在用户的 iCloud 账户存储用户文档和数据。</p>
+<ul>
+<li><p>iCloud 键值存储。</p>
+<p> 使用这个功能在应用之间共享数据。</p>
+</li>
+</ul>
+<p>大多数应用使用 iCloud 文档存储来共享来自用户账户的文档。使用 iCloud 文档存储用户关心的是文档能否能够在设备之间共享以及他们是否能够从一个给定设备查看和管理那些文档。</p>
+<p>相对的，iCloud 键值存储是应用与应用的其它实例共享小量数据（几十k字节）的方式，应用应当用它存储非紧急的应用数据，例如设置。</p>
+</li>
+</ul>
+</li>
+<li><p>Automatic Reference Counting</p>
+<p> 自动引用计数。</p>
+<p> AutomaticReference Counting（ARC)是一个编译级别的功能，用它来简化 Objective-C 对象生命周期过程的管理，以此代替用户必须记住什么时候应该保持和释放对象。</p>
+<p> ARC 评估对象的生命周期需求和自动在编译时间插入适当的方法调用。</p>
+<p> ARC 用来代替 ios 的早期版本中存在的传统的管理内存的编程模式。</p>
+<p> 新创建的工程自动使用 ARC。Xcode 也提供了移植工具帮助你转换遗留的工程来使用 ARC.</p>
+</li>
+<li><p>Block Objects</p>
+<p> 块对象。</p>
+<p> BlockObjects 是一个能够与你的 C 或 Objective-C 代码集成的 C 语言的构造块。一个blockobject 本质上是一个异步功能和相关的数据。</p>
+<p> 在其它语言中有时也被称做 closure 或 lambda。</p>
+<p> Blocks 尤其用作回调或放在你需要一种容易的组合执行代码和相关数据方式的地方。</p>
+<p> 在 iOS，通常在下面的场景使用 Blocks：</p>
+<ul>
+<li>作为代理或代理方法的代替；</li>
+<li>作为回调功能的代替；</li>
+<li>为某个一次性操作实现其完成处理函数；</li>
+<li>在一个集合中的所有项上执行一个任务；</li>
+<li>与提交队列一起执行异步任务。</li>
+</ul>
+</li>
+<li><p>Data Protection</p>
+<p> 数据保护。</p>
+<p> DataProtection 允许应用利用设备上已有的内建的加密方法来使用用户的敏感数据。</p>
+<ul>
+<li>当应用指定一个特定的文件被保护时，系统在磁盘上以加密格式存储该文件。</li>
+<li>当设备锁定时，该文件的内容不能被应用和任何潜在的侵入者存取。</li>
+<li>可是当设备由用户解锁时，一个解密key被创建允许你的应用存取那个文件。</li>
+<li><p>用户也可以使用其它级别的数据保护机制。</p>
+<p>实现数据保护需要你考虑如何创建和管理你想保护的数据。应用必须设计在数据的创建时间加密数据，以及当用户锁定或解锁设备时为存取条件改变做好准备。</p>
+</li>
+</ul>
+</li>
+</ol>
+<ol start="6">
+<li><p>File-Sharing Support</p>
+<p> 文件共享支持。</p>
+<p> File-SharingSupport 使用户数据文件在 iTunes 9.1 和以后上可被其它应用获得。</p>
+<p> 一个应用声明支持文件共享使它的 <code>/Documents</code> 目录下的内容对其它用户可获得。用户然后当需要时能够把文件从 iTunes 移进或移出应用的 Documents 目录。</p>
+<p> 这个特征不允许应用与相同设备上的其它应用共享应用，这需要粘贴板或一个文档交互控制器对象。</p>
+<p> 应用为了允许文件共享支持，需要做如下工作：</p>
+<ol>
+<li>在应用的 Info.plist 文件中增加 UIFileSharingEnabled 键，并设置其值为 YES。</li>
+<li>在你的应用的 Documents 中放你想共享的文件；</li>
+<li>当设备插进用户的计算机时，iTunes 在选中设备的 Apps 标签下显式一个文件共享节；</li>
+<li><p>用户然后能够增加文件到设备的文档目录或移动文件到桌面。</p>
+<p>支持文件共享的应用应该能够识别文件什么时候增加到其Documents目录和做出适当的应答。例如应用可以使任意新文件的内容可以从它的接口获得。也应该从不把 Documents 目录的文件列表呈现给用户来请求用户决定对那些文件做什么。</p>
+</li>
+</ol>
+</li>
+<li><p>Grand Central Dispatch</p>
+<p> GrandCentral Dispatch（GCD)是一个 BSD 技术，应用可以用来管理其任务的执行。</p>
+<p> GCD 与高优化的核组合成一个异步编程模式，来提供方便和更有效的对线程的替代。GCD 也为许多低级别的任务提供一个方便的选择，例如读和写文件描述符，实现定时器和监视信号和处理事件。</p>
+</li>
+</ol>
+<ol start="8">
+<li><p>In-App Purchase</p>
+<p> 应用内购买。</p>
+<p> In-App Purchase 提供在应用中销售应用特定的内容和服务以及来自 iTunes 的内容的能力。</p>
+<p> 这个功能使用 StoreKit 框架实现，并提供使用用户的 iTunes 账号来处理金融方面的事务需要的基础。</p>
+<p> 应用处理全部用户体验和供购买的内容及可获得服务的呈现。作为可下载的内容，你能把可下载的内容放到你自己的服务器或使用苹果的服务器。</p>
+</li>
+</ol>
+<ol start="9">
+<li><p>SQLite</p>
+<p> SQLite 库让你在你的应用中嵌入一个轻量级的 sql 数据库，而不需要运行一个分离的远程数据库服务进程。</p>
+<p> 从你的应用，你能创建本地数据库文件，管理数据库表和表中的数据记录。</p>
+<p> SQLite 库为通用功能使用设计，但已经被优化来提供对数据记录更快速的存取。</p>
+</li>
+</ol>
+<ol start="10">
+<li><p>XML Support</p>
+<p>Foundation 框架提供一个 NSXMLParser 类用来从一个 xml 文档中引出元素。</p>
+<p>操作 xml 内容的额外的支持由 libxml2 库提供支持。libxml2 开源库让你快速地分析或写任意的 xml 数据和转换 xml 内容到 html.</p>
+</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">框架</th>
+<th style="text-align:left">服务内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Accounts Framework</td>
+<td style="text-align:left">Accounts.framework 为确定的用户账号提供单点登录模式。<br><br>单点登录通过消除用户分离的多个账号需要的多次登录提示，来增强用户体验。它也通过为应用管理账号认证过程来简化开发模式。<br><br>该框架需要与 Social 框架配合使用。</td>
+</tr>
+<tr>
+<td style="text-align:left">Address Book Framework</td>
+<td style="text-align:left">AddressBook.framework 提供可编程存取用户的联系人数据库的方式。<br><br>如果应用使用联系人信息，你能使用该框架来存取和修改联系人信息。例如一个聊天应用可以使用该框架来引出可能的联系人列表，通过联系人列表来启动一个会话以及在特定视图显示那些联系人。<br><br>重要提示：存取用户的联系人数据需要用户的明确的许可。应用因此必须准备好用户拒绝存取的情形。应用也鼓励提供Info.plist键来描述需要存取的原因。</td>
+</tr>
+<tr>
+<td style="text-align:left">Ad Support Framework</td>
+<td style="text-align:left">AdSupport.framework 提供存取应用用于广告功能的一个标识。<br><br>该框架也提供一个指示用户是否选择广告跟踪的标志。应用在试图存取广告标识前需要度和判断这个标志。</td>
+</tr>
+<tr>
+<td style="text-align:left">CFNetwork</td>
+<td style="text-align:left">CFNetwork.framework 是高性能的使用面向对象对网络协议进行抽象的一组 C-based 接口。这些抽象提供对协议栈细节的控制，使它容易使用低级别的构造例如 BSDsockets。<br><br>你能使用该框架简化与 ftp 或 http 服务器通讯或决定 dnshosts 的任务。<br><br>使用 CFNetwork 框架，你能：<br>1. 使用 BSD sockets。<br>2. 使用 SSL 或 TLS 创建安全连接。<br>3. 决定dnshosts。<br>4. 与 HTTP 服务器、认证 HTTP 服务器、HTTPS 服务器交互。<br>5. 与 FTP 服务器交互。<br>6. 发布、解决和浏览 Bonjour 服务。<br><br>CFNetwork 物理和理论上基于 BSD sockets。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Data</td>
+<td style="text-align:left">CoreData.framework 框架是管理 MVC 应用中的数据模式的一种技术。<br><br>CoreData 框架打算在数据模式是高结构化的应用中使用。<br><br>代替编程定义<a href="http://lib.csdn.net/base/datastructure" target="_blank" rel="noopener">数据结构</a>，在 Xcode 中能够使用图形工具来建立一个表现你的数据模式的纲要。在运行时，你的数据模式实体的实例通过 CoreData 框架被创建、管理和获得。<br><br>通过为你的应用管理其数据模式，CoreData 大大减少了必须书写的代码量。<br><br>CoreData 也提供如下功能：<br>1. 为优化性能在 SQLite 数据库中存储对象数据；<br>2. 一个管理数据表视图结果的 NSFetchedResultsController 类；<br>3. 对基本的文本编辑之外的 undo/redo 的管理；<br>4. 支持属性值的校验；<br>5. 支持传播改变确保对象之间的关系保持一致性；<br>6. 支持分组、过滤和在内存中优化数据。<br><br>如果你开始开发一个新应用或计划对已有应用进行大的更新，应该考虑使用 CoreData。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Foundation</td>
+<td style="text-align:left">CoreFoundation.framework 是一组 C-based 接口，为 iOS 应用提供基本的数据管理和服务功能。<br><br>该框架包括如下支持：<br>1. 集合数据类型（数组、集合等等）；<br>2. 应用打包 Bundles；<br>3. 字符串管理；<br>4. 日期和时间管理<br>5. 原始数据块管理<br>6. Preferences管理；<br>7. URL 和流操作；<br>8. 线程<br>9. 端口和 socket 通讯。<br><br>CoreFoundation 框架与 Foundation 框架紧密相关，为相同的基本功能提供 Objective-C 接口。<br><br>当你需要混合使用 Foundation 对象和 Core Foundation 类型时，你能利用两个框架之间存在的“toll-freebridging”。<br><br>toll-free bridging”意味着你能可交换地在两个框架的方法和功能中使用一些 CoreFoundation 和 Foundation 类型。这个支持对许多数据类型可用，包括集合和字符串数据类型。<br><br>每个框架的类和类型描述声明一个对象是否是 toll-freebridged以及在是的情况下来标识它连接到什么对象。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Location</td>
+<td style="text-align:left">CoreLocation.framework 为应用提供位置信息。该框架使用板上的 GPS、蜂窝、或者Wi-Fi来定位用户的当前经度和纬度。<br><br>你可在你的应用中集成该技术为用户提供位置信息。例如，你可实现一个基于用户的当前位置搜索附近餐馆、商店或者银行的应用。<br><br>CoreLocation 框架也提供如下能力：<br>1. 在包括磁力计的 iOS 设备上存取罗盘信息；<br>2. 基于地理位置或蓝牙 beacon 进行区域监视；<br>3. 支持使用蜂窝基站的低耗电的位置监视；<br>4. 与 MapKit 配合来增强在特定情景下的位置数据的质量，例如开车时。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Media Framework</td>
+<td style="text-align:left">CoreMedia.framework 提供由 AV Foundation 框架使用的低级别的媒体类型。<br><br>大多数应用从不需要使用该框架，但少数需要更精确控制音视频内容创建和呈现的开发者可以使用它。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Motion Framework</td>
+<td style="text-align:left">CoreMotion.framework 提供一组接口来存取设备上可获得的运动数据。<br><br>该框架支持使用一组新的 block-based 接口来存取原始和加工过的加速度计数据。对于带有陀螺仪的设备，你也能获得原始的陀螺仪数据和加工过的反应设备方向和旋转速度的数据。<br><br>你能在游戏或其它使用运动作为输入或作为增强用户体验的方式的应用中使用加速度计和陀螺仪两种数据。对于带有计步硬件的设备，你能存取它的数据来跟踪健康相关的运动。</td>
+</tr>
+<tr>
+<td style="text-align:left">Core Telephony Framework</td>
+<td style="text-align:left">CoreTelephony.framework 提供与蜂窝电话的通话相关的信息交互的接口。<br><br>可以使用该框架来获得用户的蜂窝服务提供者的信息。对于对蜂窝 call 事件感兴趣的应用例如 VoIP 应用也能在那些事件出现时被通知。</td>
+</tr>
+<tr>
+<td style="text-align:left">Event Kit</td>
+<td style="text-align:left">EventKit.framework 提供存取用户设备上的月历事件的接口。<br><br>能够使用该框架来做如下事情：<br>1. 获得用户月历上存在的事件和提示；<br>2. 增加事件到用户月历；<br>3. 为用户创建提示和使它们出现在提示应用中；<br>4. 为月历事件配置提示信号，包括设置提示信号应该什么时候触发的规则。<br><br>重要提示：存取用户的月历和提示数据需要用户的明确许可。应用因此必须准备好用户拒绝的情形，也鼓励应用在其 Info.plist 文件中提供一个描述需要存取原因的键。</td>
+</tr>
+<tr>
+<td style="text-align:left">Foundation</td>
+<td style="text-align:left">Foundation.framework 提供 Core Foundation 框架提供的许多功能的 Objective-C 封装。<br><br>该框架提供如下功能的支持：<br>1. 集合数据类型（数组、集合等等）；<br>2. 应用打包 Bundles；<br>3. 字符串管理；<br>4. 日期和时间管理<br>5. 原始数据块管理<br>6. Preferences 管理；<br>7. URL 和流操作；<br>8. 线程和运行环；<br>9. Bonjour；<br>10. 通讯端口管理；<br>11. 国际化；<br>12. 规则表达式匹配；<br>13. Cache 支持。</td>
+</tr>
+<tr>
+<td style="text-align:left">JavaScriptCore</td>
+<td style="text-align:left">JavaScriptCore.framework 为许多标准的 JavaScript 对象提供 Objective-C 语言的封装。使用该框架来执行 JavaScript 代码和分析 JSON 数据。</td>
+</tr>
+<tr>
+<td style="text-align:left">Mobile Core Services</td>
+<td style="text-align:left">MobileCoreServices.framework 定义在通用类型标识符（UTIs）中使用的低级别类型。</td>
+</tr>
+<tr>
+<td style="text-align:left">Multipeer Connectivity Framework</td>
+<td style="text-align:left">MultipeerConnectivity.framework 支持附近设备的发现，并与那些设备直接通讯（不需要Internet连接）。<br><br>使用该框架能够与附近设备通讯、容易的创建多人会话、支持可靠地传输顺序和实时数据。<br><br>该框架为发现和管理网络服务提供可编程和 UI-based 的选项。应用能在 UI 中集成 MCBrowserViewController 类来显示一个发现设备列表让用户选择。<br><br>另外也能使用 MCNearbyServiceBrowser 类来可编程的查找和管理对方设备。</td>
+</tr>
+<tr>
+<td style="text-align:left">Newsstand Kit</td>
+<td style="text-align:left">Newsstand 应用为用户提供了一个阅读杂志和报纸的中心位置。想通过 Newsstand 提供杂志和报纸内容的出版商能够使用 NewsstandKit 框架（NewsstandKit.framework）创建它们自己的 iOS 应用，让用户启动新杂志和报纸新闻的后台下载。在启动下载后，系统处理下载操作和当内容可获得时通知应用。</td>
+</tr>
+<tr>
+<td style="text-align:left">Pass Kit</td>
+<td style="text-align:left">Passbook 应用为用户提供了一个存储订货单、登机卡、入场券和商业折扣卡的位置。代替物理携带这些东西，用户现在能在 iOS 设备上存储它们，并和过去一样的方式使用。<br><br>Pass Kit 框架 (PassKit.framework)提供把这些功能集成到你的应用的 Objective-C 接口。<br><br>你能与web 接口和文件格式信息组合使用该框架来创建和管理你们公司提供的电子入场券。<br><br>电子入场券由你们公司的  web service创建并通过 email、Safari 或定制的应用提交到用户的设备。<br><br>电子入场券本身使用特殊的文件格式，在提交之前被加密签名。文件格式标识关于提供服务的相关信息以及用户知道是什么服务的信息。<br><br>电子入场券也可以包含一个对卡进行校验的条码或其它信息，以便它能被兑换或使用。</td>
+</tr>
+<tr>
+<td style="text-align:left">Quick Look</td>
+<td style="text-align:left">QuickLook.framework 提供了一个预览应用不直接支持的文件内容的接口。<br><br>该框架主要打算用于应用从网络下载文件或处理来自不知道来源的文件的工作。<br><br>在得到文件后，你能使用该框架提供的视图控制器来直接显示文件的内容。</td>
+</tr>
+<tr>
+<td style="text-align:left">Safari Services</td>
+<td style="text-align:left">SafariServices.framework 提供以可编程的方式增加 URLs 到用户的 Safari 的书签的支持。</td>
+</tr>
+<tr>
+<td style="text-align:left">Social Framework</td>
+<td style="text-align:left">Social.framework 提供一个简单的接口来存取用户的社交媒体账号。<br><br>该框架取代 Twitter 框架并增加了其它社交账号，包括 Facebook、Sina 微博以及其它。<br><br>应用能使用该框架提交状态更新和图像到用户账号。该框架与 Accounts 框架一起为用户提供单点登录并确保存取的用户账号是经过准许的。</td>
+</tr>
+<tr>
+<td style="text-align:left">Store Kit</td>
+<td style="text-align:left">StoreKit.framework 提供在 iOS 应用中购买内容和服务的支持，也被称作应用内购买。<br><br>例如，你能使用该功能来允许用户去锁另外的应用功能。或者如果你是一名游戏开发者，你能使用它来提供另外的游戏级别。<br><br>在这两种情况，StoreKit 框架处理事务的收入方面事务，包括通过用户的 iTunes 账号处理付费请求，给应用提供关于购买的信息。<br><br>Store Kit聚集在事务的金融方面，确保事务正确和安全。你的应用处理事务的其它方面，包括购买接口的呈现和适当内容的下载（去锁）。<br><br>工作的分工让你能够控制购买内容的用户体验。由你决定你想呈现给用户什么样的购买接口和什么时候那样做，你也决定你的应用最好的提交机制。</td>
+</tr>
+<tr>
+<td style="text-align:left">System Configuration Framework</td>
+<td style="text-align:left">SystemConfiguration.framework 提供可达性接口，你能用它来确定设备的网络配置，也能使用该框架确定一个 Wi-Fi 或蜂窝连接是否在用以及一个特定的主机服务器是否能够存取。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="五、Core-OS-Layer"><a href="#五、Core-OS-Layer" class="headerlink" title="五、Core OS Layer"></a>五、Core OS Layer</h2><center><br><img src="http://dzliving.com/iOSStructure_5.png" alt><br></center>
+
+<p>Core OS 是用 FreeBSD 和 Mach 所改写的 Darwin，是开源、符合 POSIX 标准的一个 Unix 核心。</p>
+<p>CoreOS 层包含其它大多数技术建在其之上的低级别的功能。虽然应用不直接使用这些技术，它们被其它框架使用。在需要显而易见的处理安全或与外设通讯的情形，你也能使用该层提供的框架。</p>
+<ol>
+<li><p>Accelerate 加速框架</p>
+<p> Accelerate框架 (Accelerate.framework)包含执行数字信号处理、线性代数、图像处理计算的接口。<br>使用该框架的优点是它们针对所有的ios设备上存在的硬件配置做了优化，因此你能写一次代码确保在所有设备上有效运行。</p>
+</li>
+</ol>
+<ol start="2">
+<li><p>Core Bluetooth Framework（核心蓝牙框架）</p>
+<p> CoreBluetooth 框架 (CoreBluetooth.framework)允许开发者与蓝牙低耗电外设（LE）交互。</p>
+<p> 使用该框架的Objective-C接口能够完成如下工作：</p>
+<ul>
+<li>扫描蓝牙外设，连接和断开发现的蓝牙外设；</li>
+<li>声明应用的服务，转换 iOS 设备成其它蓝牙设备的外设；</li>
+<li>从 iOS 设备广播 iBeacon 信息；</li>
+<li>保存你的蓝牙连接的状态，当应用重新启动时恢复那些连接；</li>
+<li>蓝牙外设可获得性变化时获得通知。</li>
+</ul>
+</li>
+</ol>
+<ol start="3">
+<li><p>External Accessory Framework（外部附件框架）</p>
+<p>  ExternalAccessory 框架(ExternalAccessory.framework)提供与连接到IOS设备的硬件附件通讯的支持。</p>
+<p>  附件能通过 30-pin 连接器或使用蓝牙无线与 iOS 设备进行连接。该框架给你提供了获得关于每一个可获得的附件信息和启动通讯会话的方式。然后，你可自由的使用附件支持的命令直接操作附件。</p>
+</li>
+<li><p>Generic Security Services Framework（通用安全服务框架）</p>
+<p> GenericSecurity Services 框架 (GSS.framework)给ios应用提供一组标准安全相关的服务。该框架的基本接口规定在IETF<a href="http://www.ietf.org/rfc/rfc2743.txt" target="_blank" rel="noopener">RFC2743</a> and<a href="http://tools.ietf.org/html/rfc4401" target="_blank" rel="noopener">RFC4401</a>。除了提供标准的接口，IOS还包括一些没有在标准中规定但被许多应用需要的一些管理证书需要的额外东西。</p>
+</li>
+</ol>
+<ol start="5">
+<li><p>Security Framework（安全框架）</p>
+<p> 除了内建的安全功能，IOS也提供了一个明确的安全框架（Security.framework)，你能用它来保证应用管理的数据的安全。<br> 该框架提供管理证书、公有和私有key和信任策略的接口。支持产生加密安全伪随机码。它也支持在keychain（保存敏感用户数据的安全仓库）中保存证书和加密 key。</p>
+<p> 公共加密库提供对称加密、hash认证编码（HMACs）、数字签名等额外支持，数字签名功能本质上与iOS上没有的OpenSSL库兼容。</p>
+<p> 在你创建的多个应用之间共享keychain是可能的。共享使它容易在相同的一套应用之间更平滑的协作。例如，你能使用该功能来共享用户口令或其它元素，否则可能使每个应用都需要提示用户。</p>
+<p> 为了在应用之间共享数据，必须为每个应用的 Xcode 工程配置适当的权限。</p>
+</li>
+</ol>
+<ol start="6">
+<li><p>System</p>
+<p> System 级包含 kernel 环境、驱动以及操作系统级别的 unix 接口。kernel 本身负责操作系统的每一个方面：如虚拟内存管理、线程、文件系统、网络和互联通信。</p>
+<p> 在该层的驱动也提供在可获得的硬件与系统框架之间的接口。为了安全，对 kernel 和驱动的存取被限制到一组有限的系统框架和应用。</p>
+<p> iOS 提供一组存取许多操作系统低级别功能的接口。应用通过 LibSystem 库存取这些功能。</p>
+<p> 该 C-based 的接口提供如下功能的支持：</p>
+<ul>
+<li>多任务（POSIX 线程和 GCD)</li>
+<li>网络（BSDsockets）</li>
+<li>文件系统存取</li>
+<li>标准 I/O</li>
+<li>Bonjour 和 DNS 服务</li>
+<li>位置信息</li>
+<li>内存分配</li>
+<li>数学计算</li>
+</ul>
+</li>
+<li><p>64-Bit Support</p>
+<p> iOS原先是为32-bit架构的设备设计的。自iOS 7，开始支持在64-bit进行编译、链接和调试。所有的系统库和框架是支持64位的，意味着它们能在32-bit和64-bit应用中使用。</p>
+<p> 当以 64-bit 运行时编译时，应用可能运行的更快，因为在64-bit模式可以获得额外的处理器资源。</p>
+<p> iOS使用OS X和其它64-bitUNIX系统使用的LP64模式，意味着在这些系统移植时不会碰到太头疼的事。</p>
+</li>
+</ol>
+<h2 id="文章"><a href="#文章" class="headerlink" title="文章"></a>文章</h2><p><a href="https://www.jianshu.com/u/885f40edd67a" target="_blank" rel="noopener">不会游泳De鱼</a> - <a href="https://www.jianshu.com/p/23f2c46c4b89" target="_blank" rel="noopener">iOS操作系统的层次结构</a><br><a href="https://www.jianshu.com/p/b96e35864f5d" target="_blank" rel="noopener">Mac OS 和 iOS 操作系统架构</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">http://yoursite.com/2019/11/05/iOS/iOS原理/iOS 操作系统架构/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/11/05/iOS/iOS优化/iOS 优化实例/" class="pre">iOS 优化实例</a><a href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/" class="next">iOS网络层设计</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、iOS-系统架构层次"><span class="toc-text">一、iOS 系统架构层次</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二、Cocoa-Touch-Layer"><span class="toc-text">二、Cocoa Touch Layer</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-Address-Book-UI-Framework"><span class="toc-text">2.1 Address Book UI Framework</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-Event-Kit-UI-Framework"><span class="toc-text">2.2 Event Kit UI Framework</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3-Game-Kit-Framework"><span class="toc-text">2.3 Game Kit Framework</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-4-iAd-Framework"><span class="toc-text">2.4 iAd Framework</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-5-Map-Kit-Framewor"><span class="toc-text">2.5 Map Kit Framewor</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-6-Message-UI-Framework"><span class="toc-text">2.6 Message UI Framework</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-7-UIKit-Framework"><span class="toc-text">2.7 UIKit Framework</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#三、MediaLayer"><span class="toc-text">三、MediaLayer</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-图形技术"><span class="toc-text">3.1 图形技术</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-声音技术"><span class="toc-text">3.2 声音技术</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-视频技术"><span class="toc-text">3.3 视频技术</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-4-AirPlay-技术"><span class="toc-text">3.4 AirPlay 技术</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、CoreServices-Layer"><span class="toc-text">四、CoreServices Layer</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-包含的高级功能"><span class="toc-text">4.1 包含的高级功能</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#五、Core-OS-Layer"><span class="toc-text">五、Core OS Layer</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#文章"><span class="toc-text">文章</span></a></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

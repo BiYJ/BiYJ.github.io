@@ -1,0 +1,175 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>【GLSL】七、逐像素的光照 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">【GLSL】七、逐像素的光照</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">【GLSL】七、逐像素的光照</h1><div class="post-meta"><a href="/2019/05/23/GLSL/(7)、逐像素的光照/#comments" class="comment-count"></a><p><span class="date">May 23, 2019</span><span><a href="/categories/OpenGL/" class="category">OpenGL</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>原文：<a href="http://www.cnblogs.com/mazhenyu/p/5580965.html" target="_blank" rel="noopener">http://www.cnblogs.com/mazhenyu/p/5580965.html</a> </p>
+<p><strong>一、逐像素的方向光（Directional Light per Pixel）</strong>这一节将把前面的 shader 代码改为逐像素计算的方向光。我们需要将工作按照两个 shader 拆分，以确定哪些是需要逐像素操作的。 首先看看每个顶点接收到的信息：•     法线<br>•     半向量<br>•     光源方向 我们需要将法线变换到视点空间然后归一化。我们还需要将半向量和光源方向也归一化，不过它们已经位于视点空间中了。这些归一化之后的向量会进行插值，然后送入片断 shader，所以需要声明易变变量保存这些向量。 我们也可以在顶点 shader 中完成一些与光和材质相关的计算，这样可以帮助平衡顶点 shader 和片断 shader 的负载。 </p>
+<p>顶点 shader 代码可以写成如下形式：</p>
+<ol>
+<li>varying vec4 diffuse, ambient;  </li>
+<li><p>varying vec3 normal, lightDir, halfVector;</p>
+</li>
+<li><p>void main()</p>
+</li>
+<li>{  </li>
+<li>/<em> first transform the normal into eye space and normalize the result </em>/  </li>
+<li>normal = normalize(gl_NormalMatrix * gl_Normal);  </li>
+<li>/* now normalize the light’s direction. Note that according to the OpenGL </li>
+<li>specification, the light is stored in eye space. Also since we’re talking</li>
+<li>about a directional light, the position field is actually direction */</li>
+<li>lightDir = normalize(vec3(gl_LightSource[0].position));  </li>
+<li>/<em> Normalize the halfVector to pass it to the fragment shader </em>/  </li>
+<li>halfVector = normalize(gl_LightSource[0].halfVector.xyz);  </li>
+<li>/<em> Compute the diffuse, ambient and globalAmbient terms </em>/</li>
+<li>diffuse = gl_FrontMaterial.diffuse * gl_LightSource[0].diffuse;  </li>
+<li>ambient = gl_FrontMaterial.ambient * gl_LightSource[0].ambient;  </li>
+<li><p>ambient += gl_FrontMaterial.ambient * gl_LightModel.ambient;  </p>
+</li>
+<li><p>gl_Position = ftransform();  </p>
+</li>
+<li>}  </li>
+</ol>
+<p>接下来在片断 shader 中，首先要声明同样的易变变量。此外还要再次对法线进行归一化，光线向量不需要进行归一化了，因为方向光对所有顶点都是一致的，插值得到的结果自然也不会变。之后就是计算插值过的法线向量与光线向量的点积。</p>
+<ol>
+<li>varying vec4 diffuse,ambient;  </li>
+<li><p>varying vec3 normal,lightDir,halfVector;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec3 n,halfV;  </li>
+<li>float NdotL,NdotHV;  </li>
+<li>/<em> The ambient term will always be present </em>/  </li>
+<li>vec4 color = ambient;  </li>
+<li>/* a fragment shader can’t write a varying variable, hence we need a new </li>
+<li>variable to store the normalized interpolated normal */  </li>
+<li>n = normalize(normal);  </li>
+<li>/<em> compute the dot product between normal and ldir </em>/  </li>
+<li>NdotL = max(dot(n,lightDir),0.0);  </li>
+<li>…  </li>
+<li>}</li>
+</ol>
+<p>如果点积结果 NdotL 大于 0，我们就必须计算散射光，也就是用顶点 shader 传过来的散射项乘以这个点积。我们还需要计算镜面反射光，计算时首先对接收到的半向量归一化，然后计算半向量和法线之间的点积。</p>
+<ol>
+<li>…  </li>
+<li>if (NdotL &gt; 0.0)  </li>
+<li>{  </li>
+<li>color += diffuse * NdotL;  </li>
+<li>halfV = normalize(halfVector);  </li>
+<li>NdotHV = max(dot(n, halfV), 0.0);  </li>
+<li>color += gl_FrontMaterial.specular <em> gl_LightSource[0].specular </em>  </li>
+<li>pow(NdotHV, gl_FrontMaterial.shininess);  </li>
+<li><p>}  </p>
+</li>
+<li><p>gl_FragColor = color;  </p>
+</li>
+</ol>
+<p>下图显示了逐像素光照和逐顶点光照效果的区别：<img src="http://hi.csdn.net/attachment/201108/5/0_1312515143xIk5.gif" alt>本节内容的工程下载地址：<a href="http://www.lighthouse3d.com/wp-content/uploads/2011/03/dirpixsd.zip" target="_blank" rel="noopener">http://www.lighthouse3d.com/wp-content/uploads/2011/03/dirpixsd.zip</a> <strong>二、逐像素的点光（Point Light Per Pixel）</strong>本节基于前面有关方向光的内容，大部分代码都相同。本节内容主要涉及方向光和点光的不同之处。方向光一般假设光源在无限远的地方，所以到达物体时是平行光。相反，点光源有一个空间中的位置，并向四面八方辐射光线。此外，点光的强度会随到达顶点的距离而衰弱。 对于 OpenGL 程序来说，这两种光的区别主要有：•      光源的 position 域的 w 分量：对方向光来说它是 0，表面这个 position 实际是一个方向(direction)；对点光来说，这个分量是 1。<br>•      点光源的衰减由三个系数决定：一个常数项，一个线性项和一个二次项。 对方向光来说，光线的方向对所有顶点相同，但是对点光来说，方向是从顶点指向光源位置的向量。因此对我们来说需要修改的就是在顶点 shader 中加入计算光线方向的内容。 在 OpenGL 中衰减是按照如下公式计算的：<img src="http://hi.csdn.net/attachment/201108/5/0_1312515158f7FZ.gif" alt> 式中 k0 是常数衰减系数，k1 是线性衰减系数，k2 是二次衰减系数，d 是光源位置到顶点的距离。 注意衰减与距离是非线性关系，所以我们不能逐顶点计算衰减再在片断 shader 中使用插值结果，不过我们可以在顶点 shader 中计算距离，然后在片断 shader 中使用距离的插值计算衰减。 使用点光计算颜色值的公式为：<img src="http://hi.csdn.net/attachment/201108/5/0_1312515172d7xr.gif" alt> </p>
+<p>在上面公式中，环境光部分必须分解为两项：使用光照模型的全局环境光设置和光源中的环境光设置。顶点 shader 也必须分别计算这两个环境光成分。新的顶点 shader 如下：</p>
+<ol>
+<li>varying vec4 diffuse, ambientGlobal, ambient;  </li>
+<li>varying vec3 normal, lightDir, halfVector;  </li>
+<li><p>varying float dist;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec4 ecPos;  </li>
+<li>vec3 aux;  </li>
+<li><p>normal = normalize(gl_NormalMatrix * gl_Normal);  </p>
+</li>
+<li><p>/<em> these are the new lines of code to compute the light’s direction </em>/  </p>
+</li>
+<li>ecPos = gl_ModelViewMatrix * gl_Vertex;  </li>
+<li>aux = vec3(gl_LightSource[0].position - ecPos);  </li>
+<li>lightDir = normalize(aux);  </li>
+<li>dist = length(aux);  </li>
+<li><p>halfVector = normalize(gl_LightSource[0].halfVector.xyz);  </p>
+</li>
+<li><p>/<em> Compute the diffuse, ambient and globalAmbient terms </em>/  </p>
+</li>
+<li>diffuse = gl_FrontMaterial.diffuse * gl_LightSource[0].diffuse;  </li>
+<li>/<em> The ambient terms have been separated since one of them </em>/  </li>
+<li>/<em> suffers attenuation </em>/  </li>
+<li>ambient = gl_FrontMaterial.ambient * gl_LightSource[0].ambient;  </li>
+<li>ambientGlobal = gl_FrontMaterial.ambient * gl_LightModel.ambient;  </li>
+<li>gl_Position = ftransform();  </li>
+<li>}  </li>
+</ol>
+<p>在片断 shader 中需要计算衰减，还需要将插值得到的光线方向向量归一化，因为一般来说照到每个顶点的光线方向都不同。</p>
+<ol>
+<li>varying vec4 diffuse, ambientGlobal, ambient;  </li>
+<li>varying vec3 normal, lightDir, halfVector;  </li>
+<li><p>varying float dist;  </p>
+</li>
+<li><p>void main()  </p>
+</li>
+<li>{  </li>
+<li>vec3 n, halfV, viewV, ldir;  </li>
+<li>float NdotL, NdotHV;  </li>
+<li>vec4 color = ambientGlobal;  </li>
+<li>float att;  </li>
+<li>/* a fragment shader can’t write a varying variable, hence we need a new</li>
+<li>variable to store the normalized interpolated normal */  </li>
+<li>n = normalize(normal);  </li>
+<li>/<em> compute the dot product between normal and normalized lightdir </em>/  </li>
+<li><p>NdotL = max(dot(n,normalize(lightDir)), 0.0);  </p>
+</li>
+<li><p>if (NdotL &gt; 0.0) {</p>
+</li>
+<li><p>att = 1.0 / (gl_LightSource[0].constantAttenuation +  </p>
+</li>
+<li>gl_LightSource[0].linearAttenuation * dist +  </li>
+<li>gl_LightSource[0].quadraticAttenuation <em> dist </em> dist);  </li>
+<li>color += att <em> (diffuse </em> NdotL + ambient);  </li>
+<li>halfV = normalize(halfVector);  </li>
+<li>NdotHV = max(dot(n, halfV), 0.0);  </li>
+<li>color += att <em> gl_FrontMaterial.specular </em> gl_LightSource[0].specular *  </li>
+<li>pow(NdotHV,gl_FrontMaterial.shininess);  </li>
+<li>}  </li>
+<li>gl_FragColor = color;  </li>
+<li>}  </li>
+</ol>
+<p>下图显示了固定功能的逐顶点与本节中逐像素计算得到的点光效果：<img src="http://hi.csdn.net/attachment/201108/5/0_131251522718NV.gif" alt></p>
+<p>本节内容的工程下载地址：<a href="http://www.lighthouse3d.com/wp-content/uploads/2011/03/pointlightsd.zip" target="_blank" rel="noopener">http://www.lighthouse3d.com/wp-content/uploads/2011/03/pointlightsd.zip</a></p>
+<p><strong>三、逐像素的聚光（Spot Light Per Pixel）</strong>本节内容与上一节基本一致，唯一不同的就是聚光不同于点光，其发出的光线被限制在一个圆锥体中。<br>对于 OpenGL 程序来说，这两种光的区别主要有：•      聚光包含一个方向向量 spotDirection，表示圆锥体的轴。<br>•      圆锥体包含一个角度，在 GLSL 中可以使用应用程序设置的角度值以及对应的余弦值spotCosCutoff。<br>•      最后还有一个衰减速率 spotExponent，它表示从圆锥的中心轴向外表面变化时光强度的衰减。 聚光的顶点 shader 与点光完全相同，我们只需要对片断 shader 进行一些修改。只有当当前片断位于聚光的光锥内时，才需要对散射光、镜面反射光和环境光成分进行着色。所以我们首先要检查这个条件。 </p>
+<p>光源与某点连线向量以及聚光方向向量(spotDirection)之间夹角的余弦值必须大于 spotCosCutoff，否则此点位于聚光之外，只能接收到全局环境光。</p>
+<ol>
+<li><p>…  </p>
+</li>
+<li><p>n = normalize(normal);  </p>
+</li>
+<li><p>/<em> compute the dot product between normal and ldir </em>/  </p>
+</li>
+<li><p>NdotL = max(dot(n, normalize(lightDir)), 0.0);  </p>
+</li>
+<li><p>if (NdotL &gt; 0.0) {</p>
+</li>
+<li><p>spotEffect = dot(normalize(gl_LightSource[0].spotDirection),   </p>
+</li>
+<li>normalize(-lightDir));  </li>
+<li>if (spotEffect &gt; gl_LightSource[0].spotCosCutoff) {  </li>
+<li>/<em> compute the illumination in here </em>/  </li>
+<li>}  </li>
+<li><p>}  </p>
+</li>
+<li><p>gl_FragColor = …  </p>
+</li>
+</ol>
+<p>下面的光照计算与点光非常相似，唯一区别是衰减必须乘以聚光效果(spotlight effect)，这个值按如下公式计算： </p>
+<p><img src="http://hi.csdn.net/attachment/201108/5/0_13125152549HSC.gif" alt></p>
+<p>上式中 spotDirection 来自 OpenGL 中设置的状态，lightDir 是光源到某点的向量，spotExp 是聚光衰减率，这个值也是在 OpenGL 程序中设置的，它用来控制从聚光光锥中心到边缘的衰减。spotExp 越大衰减越快，如果为 0 表示在光锥内光强是常数。</p>
+<ol>
+<li>spotEffect = pow(spotEffect, gl_LightSource[0].spotExponent);  </li>
+<li>att = spotEffect / (gl_LightSource[0].constantAttenuation +  </li>
+<li>gl_LightSource[0].linearAttenuation * dist +  </li>
+<li><p>gl_LightSource[0].quadraticAttenuation <em> dist </em> dist);  </p>
+</li>
+<li><p>color += att <em> (diffuse </em> NdotL + ambient);  </p>
+</li>
+<li><p>halfV = normalize(halfVector);  </p>
+</li>
+<li>NdotHV = max(dot(n, halfV), 0.0);  </li>
+<li>color += att <em> gl_FrontMaterial.specular </em> gl_LightSource[0].specular *</li>
+<li><p>pow(NdotHV, gl_FrontMaterial.shininess);  </p>
+<p>下图分别显示了使用固定功能流水线的逐顶点光照计算，以及使用本节 shader 的逐像素光照计算得到的聚光效果。<img src="http://hi.csdn.net/attachment/201108/5/0_1312515294z6I2.gif" alt>本节内容的工程下载地址：<a href="http://www.lighthouse3d.com/wp-content/uploads/2011/03/spotlightsd.zip" target="_blank" rel="noopener">http://www.lighthouse3d.com/wp-content/uploads/2011/03/spotlightsd.zip</a></p>
+</li>
+</ol>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/05/23/GLSL/(7)、逐像素的光照/">http://yoursite.com/2019/05/23/GLSL/(7)、逐像素的光照/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/05/23/GLSL/(9)、其他/" class="pre">【GLSL】九、其他</a><a href="/2019/05/23/GLSL/(3)、在OpenGL中向shader传递信息/" class="next">【GLSL】三、在OpenGL中向shader传递信息</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

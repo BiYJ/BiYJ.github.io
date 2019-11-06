@@ -1,0 +1,234 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>clang | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">clang</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">clang</h1><div class="post-meta"><a href="/2019/10/25/IT/Clang/#comments" class="comment-count"></a><p><span class="date">Oct 25, 2019</span><span><a href="/categories/IT/" class="category">IT</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、编译器"><a href="#一、编译器" class="headerlink" title="一、编译器"></a>一、编译器</h2><blockquote>
+<p>为什么需要编译？</p>
+</blockquote>
+<p>计算机 CPU 只能读懂机器码（machine code，也就是由一堆 0 和 1 组成的编码），但程序员现在编写的代码并不是机器码，而是高级编程语言（Objective-C、Swift、Java、…），最终也可以被计算机所执行，这就需要编译了。在编译的过程中，编译器的作用便是把我们的高级编程语言通过一系列的操作转化成可被计算机执行的机器语言。</p>
+<blockquote>
+<p>编译器是如何设计的？</p>
+</blockquote>
+<p>经典的三段式设计（three phase design）:前端(Frontend)-&gt;优化器(Optimizer)-&gt;后端(Backend)</p>
+<center><br><img src="http://dzliving.com/Clang_0.png" alt><br></center>
+
+<ol>
+<li>前端负责分析源代码，可以检查语法级错误，并构建针对该语言的抽象语法树（AST）</li>
+<li>抽象语法树可以进一步转换为优化，最终转为新的表示方式，然后再交给让优化器和后端处理</li>
+<li>最终由后端生成可执行的机器码</li>
+</ol>
+<blockquote>
+<p>为什么要使用三段式设计？优势在哪？</p>
+</blockquote>
+<p>首先解决了一个很大的问题：假如有 N 种语言（C、OC、C++、Swift…）的前端，同时也有 M 个架构（模拟器、arm64、x86…）的 Target，是否就需要 N × M 个编译器？</p>
+<p>三段式架构的价值就体现出来了，通过共享优化器的中转，很好的解决了这个问题。</p>
+<p>假如你需要增加一种语言，只需要增加一种前端；假如你需要增加一种处理器架构，也只需要增加一种后端，而其他的地方都不需要改动。</p>
+<center><br><img src="http://dzliving.com/Clang_1.png" alt><br></center>
+
+<blockquote>
+<p>编译源文件有哪些主要步骤？</p>
+</blockquote>
+<p>先列举一些整个编译过程的主要步骤，后面再详细介绍每个步骤都做了哪些事情。</p>
+<p>主要编译步骤如下：</p>
+<center><br>源代码（source code）<br><br>↓<br><br>预处理器（preprocessor）<br><br>↓<br><br>编译器（compiler）<br><br>↓<br><br>汇编程序（assembler）<br><br>↓<br><br>目标代码（object code）<br><br>↓<br><br>链接器（Linker）<br><br>↓<br><br>可执行文件（executables）<br><br></center>
+
+<h2 id="二、Xcode-编译器发展简史"><a href="#二、Xcode-编译器发展简史" class="headerlink" title="二、Xcode 编译器发展简史"></a>二、Xcode 编译器发展简史</h2><blockquote>
+<p>Xcode 3 以前：GCC；<br><br>Xcode 3：增加 LLVM，GCC(前端) + LLVM(后端)；<br><br>Xcode 4.2：出现 Clang - LLVM 3.0 成为默认编译器；<br><br>Xcode 4.6： LLVM 升级到 4.2 版本；<br><br>Xcode 5： GCC 被废弃，新的编译器是 LLVM 5.0</p>
+</blockquote>
+<p>为什么苹果的 Xcode 会使用 Clang+LLVM 取代 GCC？</p>
+<p>GCC 是第三方开源的，不属于苹果维护也不能完全掌控其开发进程，Apple 为 Objective-C 增加许多新特性，但 GCC 开发者对这些支持却不友好；Apple 需要做模块化，GCC 开发者却拖着迟迟不实现。</p>
+<p>随着 Apple 对其 IDE(也就是 Xcode)性能的要求越来越高，最终还是从零开发了一个 Clang 前端加 LLVM 后端的编译器，这个编译器的作者是大名鼎鼎的 Swift 之父 Chris Lattner。</p>
+<blockquote>
+<p>Clang 比 GCC 优秀在哪些方面？</p>
+</blockquote>
+<ol>
+<li>传说新的 Clang 编译器编译 Objective-C 代码速度比 GCC 快 3 倍</li>
+<li>提供了友好的代码提示</li>
+</ol>
+<h2 id="三、Clang-的简介"><a href="#三、Clang-的简介" class="headerlink" title="三、Clang 的简介"></a>三、Clang 的简介</h2><blockquote>
+<p>Clang: a C language family frontend for LLVM。<br>LLVM 的 C 语言家族（C、C++、OC）前端。</p>
+</blockquote>
+<p>上面是官网对于 Clang的一句话介绍，其实 Clang 就是上文所提到的编译器前端。</p>
+<p>用途：输出代码对应的抽象语法树（Abstract Syntax Tree, AST），并将代码编译成 LLVM Bitcode。接着在后端（back-end）使用 LLVM 编译成平台相关的机器语言。</p>
+<h2 id="四、Clang-的编译过程"><a href="#四、Clang-的编译过程" class="headerlink" title="四、Clang 的编译过程"></a>四、Clang 的编译过程</h2><h4 id="4-1-预处理"><a href="#4-1-预处理" class="headerlink" title="4.1 预处理"></a>4.1 预处理</h4><p>预处理顾名思义是预先处理。预处理的内容如下：</p>
+<ol>
+<li><p>import 头文件替换</p>
+<p> 在面向对象编程的思维下，写代码会经常用到其他类的属性或方法等，只需要导入头文件就可以用了，如：</p>
+ <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#import <span class="meta-string">&lt;Foundation/Foundation.h&gt; </span></span></span><br><span class="line"><span class="comment">// 这里将会在预处理时把 Foundation.h 文件的内容拷贝过来并替换</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>如果 A.h 文件引用 B.h，并且 B.h 也引用了 A.h，就会导致了循环引入。
+
+解决办法是在头文件中使用 `@class A;` 代替 `#import &quot;A.h&quot;`。
+
+这个意思是声明 A 是一个类，这样就可以使用 A 做类名，如果需要使用 A 的方法属性等，可以在 .m 实现文件中通过 `#import A.h` 的方式使用，这种方法不但可以解决互相引入的问题还可以优化编译速度。
+</code></pre><ol start="2">
+<li><p>macro 宏展开</p>
+<ul>
+<li><p>无参宏。如：</p>
+  <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> COUNT  3</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+</ol>
+<pre><code>* 带参宏。如：
+
+    <figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">#def</span>ine SUM(<span class="selector-tag">a</span>, b)  <span class="selector-tag">a</span> + b</span><br></pre></td></tr></table></figure>
+
+在宏定义的作用域内，输入了 COUNT、SUM()，在预处理过程中都会被替换。
+</code></pre><ol start="3">
+<li><p>处理其他的预编译指令</p>
+<p> 条件编译语句也是在预处理阶段完成，并且条件编译只允许编译源程序中满足条件的程序段，使生成的目标程序较短，从而减少了内存的开销并提高了程序的效率。如以下代码就只会保留一个 return 语句：</p>
+ <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">if</span> DEBUG        </span></span><br><span class="line">     <span class="keyword">return</span> YES;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">     <span class="keyword">return</span> NO;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>简单来说，<font color="#cc0000"><code>“#”</code></font> 这个符号是编译器预处理的标志。</p>
+<center><br><br>|预处理指令|说明|<br>|:——|:—–|<br>|#undef|取消已定义的宏|<br>|#if|如果给定条件为真，则编译以下代码|<br>|#ifdef|如果宏已经定义，则编译以下代码|<br>|#ifndef|如果宏没有定义，则编译以下代码|<br>|#elif|如果前面的 #if 的条件不为真，当前条件为真，则编译以下代码|<br>|#endif|结束一个 #if……#else 条件编译块|<br><br></center>
+
+
+<h4 id="4-2-Lexical-Analysis-词法分析（输出-token-流）"><a href="#4-2-Lexical-Analysis-词法分析（输出-token-流）" class="headerlink" title="4.2 Lexical Analysis - 词法分析（输出 token 流）"></a>4.2 Lexical Analysis - 词法分析（输出 token 流）</h4><p>词法分析其实是编译器开始工作真正意义上的第一个步骤，其所做的工作主要为<font color="#cc0000">将输入的代码转换为一系列符合特定语言的词法单元</font>，这些词法单元类型包括了关键字、操作符、变量等等。</p>
+<p>举个例子:</p>
+<blockquote>
+<p>Objective-C 语言包含了关键字 if、else、new 等，那么在词法分析步骤时，遇到 i与f 或 n与e与w 组合在一起的时候，需要将这几个字母组合为关键字 if 或 new 等词法单元。</p>
+</blockquote>
+<p>词法分析，只需要将源代码以字符文本的形式转化成 Token 流的形式，不涉及校验语义，不需要递归，是线性的。</p>
+<blockquote>
+<p>什么是 token 流？</p>
+</blockquote>
+<p>就是有“类型”，有“值”的一些小单元。</p>
+<p>举个例子：</p>
+<blockquote>
+<p>一个运算表达式：(28 + 78) * 2 </p>
+<p>只需要解析出 <font color="#cc0000">(</font> 是一个开括号，<font color="#cc0000">28</font> 是数字整形，<font color="#cc0000">+</font> 是一个运算符号即可。</p>
+</blockquote>
+<p>编译指令： <code>$clang -fmodules -fsyntax-only -Xclang -dump-tokens main.m</code></p>
+<center><br><img src="http://dzliving.com/Clang_2.png?imageView2/0/w/400" alt><br><img src="http://dzliving.com/Clang_3.png" alt><br></center>
+
+<p>里面的每一行都可以说是一个 token 流。一个表达式也会被逐个的解析。</p>
+<h4 id="4-3-Semantic-Analysis-语法分析（输出-AST-抽象语法树）"><a href="#4-3-Semantic-Analysis-语法分析（输出-AST-抽象语法树）" class="headerlink" title="4.3 Semantic Analysis - 语法分析（输出(AST)抽象语法树）"></a>4.3 Semantic Analysis - 语法分析（输出(AST)抽象语法树）</h4><p>编译指令：<code>$clang -fmodules -fsyntax-only -Xclang -ast-dump main.m</code></p>
+<p><img src="http://dzliving.com/Clang_4.png" alt></p>
+<ul>
+<li>语法分析的最终产物是输出抽象语法树</li>
+<li>语法分析在 Clang 中由 Parser 和 Sema 两个模块配合完成</li>
+<li>校验语法是否正确</li>
+<li>根据当前语言的语法，生成语意节点，并将所有节点组合成抽象语法树（AST）</li>
+<li>这一步跟源码等价，可以反写出源码</li>
+<li>Static Analysis 静态分析<ul>
+<li>通过语法树进行代码静态分析，找出非语法性错误</li>
+<li>模拟代码执行路径，分析出 control-flow graph(CFG) 【MRC时代会分析出引用计数的错误】</li>
+<li>预置了常用 Checker（检查器）</li>
+</ul>
+</li>
+</ul>
+<h4 id="4-4-CodeGen-IR-Intermediate-Representation-中间代码生成"><a href="#4-4-CodeGen-IR-Intermediate-Representation-中间代码生成" class="headerlink" title="4.4 CodeGen - IR(Intermediate Representation)中间代码生成"></a>4.4 CodeGen - IR(Intermediate Representation)中间代码生成</h4><p>CodeGen 负责将语法树从顶至下遍历，翻译成 LLVM IR。</p>
+<p>LLVM IR 是 Frontend 的输出，LLVM Backend 的输入，前后端的桥接语言 （Swift也是转成这个）</p>
+<p>与 Objective-C Runtime 桥接</p>
+<ul>
+<li>Class/Meta Class/Protocol/Category 内存结构生成，并存放在指定 section 中（如 Class：_DATA, _objc_classrefs）</li>
+<li>Method/lvar/Property 内存结构生成</li>
+<li>组成 method_list/ivar_list/property_list 并填入 Class</li>
+<li>Non-Fragile ABI：为每个 Ivar 合成 OBJC_IVAR_$_ 偏移值常量</li>
+<li>存取 Ivar 的语句（ivar = 123; int a = ivar;）转写成 base + OBJC_IVAR$_ 的形式</li>
+<li>将语法树中的 ObjcMessageExpr 翻译成相应版本的 objc_msgSend，对 super 关键字的调用翻译成 objc_msgSendSuper</li>
+<li>根据修饰符 strong/weak/copy/atomic 合成 @property 自动实现的 setter/getter</li>
+<li>处理 @synthesize</li>
+<li>生成 block_layout 的数据结构</li>
+<li>变量的 capture(__block/__weak)</li>
+<li>生成 _block_invoke 函数</li>
+<li>ARC：分析对象引用关系，将 objc_storeStrong/objc_storeWeak 等 ARC 代码插入</li>
+<li>将 ObjCAutoreleasePoolStmt 转译成 objc_autoreleasePoolPush/Pop</li>
+<li>实现自动调用 [super dealloc]</li>
+<li>为每个拥有 ivar 的 Class 合成 .cxx_destructor 方法来自动释放类的成员变量，代替 MRC 时代的“self.xxx = nil”</li>
+</ul>
+<h4 id="4-5-Optimize-优化-IR"><a href="#4-5-Optimize-优化-IR" class="headerlink" title="4.5 Optimize - 优化 IR"></a>4.5 Optimize - 优化 IR</h4><p>递归优化成尾递归</p>
+<h4 id="4-6-LLVM-Bitcode-生成字节码"><a href="#4-6-LLVM-Bitcode-生成字节码" class="headerlink" title="4.6 LLVM Bitcode - 生成字节码"></a>4.6 LLVM Bitcode - 生成字节码</h4><h4 id="4-7-Assemble-生成-Target-相关汇编"><a href="#4-7-Assemble-生成-Target-相关汇编" class="headerlink" title="4.7 Assemble - 生成 Target 相关汇编"></a>4.7 Assemble - 生成 Target 相关汇编</h4><p>Assemble - 生成Target相关Object(Mach-O)</p>
+<h4 id="4-8-Link-生成-Executable"><a href="#4-8-Link-生成-Executable" class="headerlink" title="4.8 Link 生成 Executable"></a>4.8 Link 生成 Executable</h4><h2 id="五、问题"><a href="#五、问题" class="headerlink" title="五、问题"></a>五、问题</h2><blockquote>
+<p>clang 编译错误: fatal error: ‘UIKit/UIKit.h’ file not found</p>
+</blockquote>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">fatal</span> <span class="literal">error</span>: <span class="string">'UIKit/UIKit.h'</span> file not found</span><br><span class="line"><span class="comment">#import &lt;UIKit/UIKit.h&gt;</span></span><br><span class="line">       <span class="regexp"> ^~~~~~~~~~~~~~~</span></span><br><span class="line"><span class="regexp">1</span> <span class="literal">error</span> generated.</span><br></pre></td></tr></table></figure>
+<p><strong>解决 1：</strong></p>
+<figure class="highlight coq"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ clang -<span class="built_in">rewrite</span>-objc xx.m</span><br></pre></td></tr></table></figure>
+<p>替换成:</p>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ clang -x objective-c -rewrite-objc -isysroot <span class="regexp">/Applications/</span>Xcode.app<span class="regexp">/Contents/</span>Developer<span class="regexp">/Platforms/i</span>PhoneSimulator.platform<span class="regexp">/Developer/</span>SDKs<span class="regexp">/iPhoneSimulator.sdk xx.m</span></span><br></pre></td></tr></table></figure>
+<p>这个命令很繁琐，可以采用 alias 来起一个别名来代替这个命令。</p>
+<ol>
+<li>终端键入 $ vim ~/.bash_profile</li>
+<li>编辑状态键入 $ alias rewriteoc=’clang -x objective-c -rewrite-objc -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk’</li>
+<li>键入完毕后, esc 退出编辑状态, 再键入 :wq 退出 vim</li>
+<li>键入命令 source ~/.bash_profile</li>
+</ol>
+<p><strong>解决 2：</strong></p>
+<figure class="highlight elixir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 模拟器</span></span><br><span class="line"><span class="variable">$ </span>xcrun -sdk iphonesimulator clang -rewrite-objc main.m</span><br><span class="line"></span><br><span class="line"><span class="comment"># 真机</span></span><br><span class="line"><span class="variable">$ </span>xcrun -sdk iphoneos clang -rewrite-objc main.m</span><br><span class="line"></span><br><span class="line"><span class="comment"># 带有版本的真机、模拟器</span></span><br><span class="line"><span class="variable">$ </span> xcrun -sdk iphonesimulator9.<span class="number">3</span> clang -rewrite-objc main.m</span><br></pre></td></tr></table></figure>
+<p>查看设备上都装哪些 SDK。</p>
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ xcodebuild -showsdks</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">iOS <span class="string">SDKs:</span></span><br><span class="line">	iOS <span class="number">12.1</span>                      	-sdk iphoneos12<span class="number">.1</span></span><br><span class="line"></span><br><span class="line">iOS Simulator <span class="string">SDKs:</span></span><br><span class="line">	Simulator - iOS <span class="number">12.1</span>          	-sdk iphonesimulator12<span class="number">.1</span></span><br><span class="line"></span><br><span class="line">macOS <span class="string">SDKs:</span></span><br><span class="line">	macOS <span class="number">10.14</span>                   	-sdk macosx10<span class="number">.14</span></span><br><span class="line"></span><br><span class="line">tvOS <span class="string">SDKs:</span></span><br><span class="line">	tvOS <span class="number">12.1</span>                     	-sdk appletvos12<span class="number">.1</span></span><br><span class="line"></span><br><span class="line">tvOS Simulator <span class="string">SDKs:</span></span><br><span class="line">	Simulator - tvOS <span class="number">12.1</span>         	-sdk appletvsimulator12<span class="number">.1</span></span><br><span class="line"></span><br><span class="line">watchOS <span class="string">SDKs:</span></span><br><span class="line">	watchOS <span class="number">5.1</span>                   	-sdk watchos5<span class="number">.1</span></span><br><span class="line"></span><br><span class="line">watchOS Simulator <span class="string">SDKs:</span></span><br><span class="line">	Simulator - watchOS <span class="number">5.1</span>       	-sdk watchsimulator5<span class="number">.1</span></span><br></pre></td></tr></table></figure>
+<h2 id="六、Clang-Attributes"><a href="#六、Clang-Attributes" class="headerlink" title="六、Clang Attributes"></a>六、Clang Attributes</h2><p>Clang Attributes 是 Clang 提供的一种<font color="#cc0000">源码注解</font>，方便开发者向编译器表达某种要求，参与控制如 Static Analyzer、Name Mangling、Code Generation 等过程，一般以 __attribute__(xxx) 的形式出现在代码中；为方便使用，一些常用属性也被 Cocoa 定义成宏，比如在系统头文件中经常出现的 NS_CLASS_AVAILABLE_IOS(9_0) 就是 __attribute__(availability(…)) 这个属性的简单写法。</p>
+<ol>
+<li><p>objc_subclassing_restricted</p>
+<p> 使用这个属性可以定义一个 Final Class，不允许被继承。</p>
+ <figure class="highlight ada"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">__attribute__((objc_subclassing_restricted))</span><br><span class="line">@<span class="keyword">interface</span> Eunuch : <span class="type">NSObject</span></span><br><span class="line">@<span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">@<span class="keyword">interface</span> Child : <span class="type">Eunuch</span> // &lt;<span class="comment">--- Compile Error</span></span><br><span class="line">@<span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>objc_requires_super</p>
+<p> 标志子类继承这个方法时需要调用 super，否则给出编译警告</p>
+ <figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">@interface</span> <span class="attribute">Father </span>: NSObject</span><br><span class="line">- (void)hailHydra __attribute__((objc_requires_super));</span><br><span class="line"><span class="variable">@end</span></span><br><span class="line"></span><br><span class="line"><span class="variable">@implementation</span> Father</span><br><span class="line">- (void)hailHydra &#123;</span><br><span class="line">	<span class="selector-tag">NSLog</span>(@<span class="string">"hail hydra!"</span>);</span><br><span class="line">&#125;</span><br><span class="line">@<span class="selector-tag">end</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@<span class="selector-tag">interface</span> <span class="selector-tag">Son</span> : <span class="selector-tag">Father</span></span><br><span class="line">@<span class="selector-tag">end</span></span><br><span class="line"></span><br><span class="line">@<span class="selector-tag">implementation</span> <span class="selector-tag">Son</span></span><br><span class="line"><span class="selector-tag">-</span> (void)<span class="selector-tag">hailHydra</span> &#123;</span><br><span class="line"></span><br><span class="line">&#125; <span class="comment">// &lt;--- Warning missing [super hailHydra]</span></span><br><span class="line"><span class="variable">@end</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>objc_boxable</p>
+<p> Objective-C 中的 @(…) 语法糖可以将基本数据类型 box 成 NSNumber 对象，假如想 box 一个 struct 类型或是 union 类型成 NSValue 对象，可以使用这个属性：</p>
+ <figure class="highlight elm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">typedef struct __attribute__((objc_boxable)) &#123;</span><br><span class="line">	<span class="type">CGFloat</span> x, y, width, height;</span><br><span class="line">&#125; <span class="type">XXRect</span>;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>这样一来，XXRect 就具备被 box 的能力：
+
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">CGRect rect1 = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>&#125;;</span><br><span class="line">NSValue * value1 = @(rect1); <span class="comment">// &lt;--- Compile Error</span></span><br><span class="line">XXRect rect2 = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>&#125;;</span><br><span class="line">NSValue * value2 = @(rect2); <span class="comment">// √</span></span><br></pre></td></tr></table></figure>
+</code></pre><ol start="4">
+<li><p>constructor / destructor</p>
+<p>顾名思义，构造器和析构器，加上这两个属性的函数会在分别在可执行文件（或 shared library）load 和 unload 时被调用，可以理解为在 main() 函数调用前和 return 后执行：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">__attribute__((constructor))</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">beforeMain</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">	NSLog(@<span class="string">"beforeMain"</span>);</span><br><span class="line">&#125;</span><br><span class="line">__attribute__((destructor))</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">afterMain</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">	NSLog(@<span class="string">"afterMain"</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> * argv[])</span> </span>&#123;</span><br><span class="line">	NSLog(@<span class="string">"main"</span>);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Console:</span></span><br><span class="line"><span class="comment">// "beforeMain" -&gt; "main" -&gt; "afterMain"</span></span><br></pre></td></tr></table></figure>
+<p>constructor 和 +load 都是在 main 函数执行前调用，但 +load 比 constructor 更加早一丢丢，因为 dyld（动态链接器，程序的最初起点）在加载 image（可以理解成 Mach-O 文件）时会先通知 objc runtime 去加载其中所有的类，每加载一个类时，它的 +load 随之调用，全部加载完成后，dyld 才会调用这个 image 中所有的 constructor 方法。</p>
+<p>所以 constructor 是一个干坏事的绝佳时机：</p>
+<ol>
+<li>所有 Class 都已经加载完成</li>
+<li>main 函数还未执行</li>
+<li>无需像 +load 还得挂载在一个 Class 中</li>
+</ol>
+<p>FDStackView 的 FDStackViewPatchEntry 方法便是使用的这个时机来实现偷天换日的伎俩。</p>
+<p>PS：若有多个 constructor 且想控制优先级的话，可以写成 <code>__attribute__((constructor(101)))</code>，里面的数字越小优先级越高，1 ~ 100 为系统保留。</p>
+</li>
+<li><p>enable_if</p>
+<p> 这个属性只能用在 C 函数上，可以用来实现参数的静态检查：</p>
+ <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">printValidAge</span><span class="params">(<span class="keyword">int</span> age)</span></span></span><br><span class="line"><span class="function">__<span class="title">attribute__</span><span class="params">((enable_if(age &gt; <span class="number">0</span> &amp;&amp; age &lt; <span class="number">120</span>, <span class="string">"你丫火星人？"</span>)))</span> </span>&#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">"%d"</span>, age);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>它表示调用这个函数时必须满足 age &gt; 0 &amp;&amp; age &lt; 120 才被允许，于是乎：
+
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">printValidAge</span>(<span class="number">26</span>);  <span class="comment">// √</span></span><br><span class="line"><span class="selector-tag">printValidAge</span>(<span class="number">150</span>); <span class="comment">// &lt;--- Compile Error</span></span><br><span class="line"><span class="selector-tag">printValidAge</span>(-<span class="number">1</span>);  <span class="comment">// &lt;--- Compile Error</span></span><br></pre></td></tr></table></figure>
+</code></pre><ol start="6">
+<li><p>cleanup</p>
+<p> 声明到一个变量上，当这个变量作用域结束时，调用指定的一个函数，Reactive Cocoa 用这个特性实现了神奇的 @onExit。</p>
+</li>
+<li><p>overloadable</p>
+<p> 用于 C 函数，可以定义若干个函数名相同，但参数不同的方法，调用时编译器会自动根据参数选择函数原型：</p>
+ <figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">__attribute__</span>((overloadable)) <span class="selector-tag">void</span> <span class="selector-tag">logAnything</span>(id obj) &#123;</span><br><span class="line">	<span class="selector-tag">NSLog</span>(@<span class="string">"%@"</span>, obj);</span><br><span class="line">&#125;</span><br><span class="line"><span class="selector-tag">__attribute__</span>((overloadable)) <span class="selector-tag">void</span> <span class="selector-tag">logAnything</span>(int number) &#123;</span><br><span class="line">	<span class="selector-tag">NSLog</span>(@<span class="string">"%@"</span>, @(number));</span><br><span class="line">&#125;</span><br><span class="line"><span class="selector-tag">__attribute__</span>((overloadable)) <span class="selector-tag">void</span> <span class="selector-tag">logAnything</span>(CGRect rect) &#123;</span><br><span class="line">	<span class="selector-tag">NSLog</span>(@<span class="string">"%@"</span>, NSStringFromCGRect(rect));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Tests</span></span><br><span class="line"><span class="selector-tag">logAnything</span>(@[@<span class="string">"1"</span>, @<span class="string">"2"</span>]);</span><br><span class="line"><span class="selector-tag">logAnything</span>(<span class="number">233</span>);</span><br><span class="line"><span class="selector-tag">logAnything</span>(CGRectMake(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>));</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>objc_runtime_name</p>
+<p> 用于 @interface 或 @protocol，将类或协议的名字在编译时指定成另一个：</p>
+ <figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">__attribute__((objc_runtime_name(<span class="string">"SarkGay"</span>)))</span><br><span class="line"><span class="class"><span class="keyword">@interface</span> <span class="title">Sark</span> : <span class="title">NSObject</span></span></span><br><span class="line"><span class="keyword">@end</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">NSLog</span>(<span class="string">@"%@"</span>, <span class="built_in">NSStringFromClass</span>([Sark <span class="keyword">class</span>])); <span class="comment">// "SarkGay"</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>所有直接使用这个类名的地方都会被替换（唯一要注意的是这时用反射就不对了），最简单粗暴的用处就是去做个类名混淆：
+
+<figure class="highlight ada"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">__attribute__((objc_runtime_name(<span class="string">"40ea43d7629d01e4b8d6289a132482d0dd5df4fa"</span>)))</span><br><span class="line">@<span class="keyword">interface</span> SecretClass : <span class="type">NSObject</span></span><br><span class="line">@<span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+
+还能用数字开头，怕不怕 - -，假如写个脚本把每个类前加个随机生成的 objc\_runtime\_name，岂不是最最精简版的代码混淆就完成了。
+
+它是我所了解的唯一一个对 objc 运行时类结构有影响的 attribute，通过编码类名可以在编译时注入一些信息，被带到运行时之后，再反解出来，这就相当于开设了一条秘密通道，打通了写码时和运行时。脑洞一下，假如把这个 attribute 定义成宏，以 annotation 的形式完成某些功能，比如：
+
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// @singleton 包裹了 __attribute__((objc_runtime_name(...)))</span></span><br><span class="line"><span class="comment">// 将类名改名成 "SINGLETON_Sark_sharedInstance"</span></span><br><span class="line"><span class="variable">@singleton</span>(Sark, sharedInstance)</span><br><span class="line"><span class="variable">@interface</span> <span class="attribute">Sark </span>: NSObject</span><br><span class="line">+ (instancetype)sharedInstance;</span><br><span class="line"><span class="variable">@end</span></span><br></pre></td></tr></table></figure>
+
+
+在运行时用 \_\_attribute\_\_((constructor)) 获取入口时机，用 runtime 找到这个类，反解出 “sharedInstance” 这个 selector 信息，动态将 +alloc，-init 等方法替换，返回 +sharedInstance 单例。
+</code></pre><ol start="9">
+<li><p>unavailable</p>
+<p> 表明类不能被调用，编辑器会给出红色警告。</p>
+ <figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="name">instancetype</span>)new __attribute__((<span class="name">unavailable</span>(<span class="string">"Singleton2类只能初始化一次"</span>)))<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h2 id="七、文章"><a href="#七、文章" class="headerlink" title="七、文章"></a>七、文章</h2><p><a href="https://www.jianshu.com/u/3f995dac0230" target="_blank" rel="noopener">Developer_Yancy</a> - <a href="https://www.jianshu.com/p/513a9bd35a7d" target="_blank" rel="noopener">iOS底层探索(一) - 从零开始认识Clang与LLVM</a><br><a href="https://www.jianshu.com/u/3f995dac0230" target="_blank" rel="noopener">Developer_Yancy</a> - <a href="https://www.jianshu.com/p/c9fccc93ed15" target="_blank" rel="noopener">iOS底层探索(二) - 从零开始认识Clang与LLVM</a><br><a href="http://clang.llvm.org/" target="_blank" rel="noopener">http://clang.llvm.org/</a><br><a href="http://www.aosabook.org/en/llvm.html" target="_blank" rel="noopener">http://www.aosabook.org/en/llvm.html</a><br><a href="https://zh.wikipedia.org/wiki/Clang" target="_blank" rel="noopener">Clang</a><br><a href="https://zh.wikipedia.org/wiki/LLVM" target="_blank" rel="noopener">LLVM</a><br><a href="https://zh.wikipedia.org/wiki/C%E9%A2%84%E5%A4%84%E7%90%86%E5%99%A8" target="_blank" rel="noopener">C预处理器</a><br><a href="https://www.objc.io/issues/6-build-tools/compiler/" target="_blank" rel="noopener">The Compiler</a><br><a href="http://www.cocoachina.com/articles/16364" target="_blank" rel="noopener">Clang Attributes 黑魔法小记</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/10/25/IT/Clang/">http://yoursite.com/2019/10/25/IT/Clang/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/10/25/IT/LLVM/" class="pre"></a><a href="/2019/10/24/iOS/iOS原理/Xcode/" class="next">Xcode</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、编译器"><span class="toc-text">一、编译器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二、Xcode-编译器发展简史"><span class="toc-text">二、Xcode 编译器发展简史</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三、Clang-的简介"><span class="toc-text">三、Clang 的简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、Clang-的编译过程"><span class="toc-text">四、Clang 的编译过程</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-预处理"><span class="toc-text">4.1 预处理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-Lexical-Analysis-词法分析（输出-token-流）"><span class="toc-text">4.2 Lexical Analysis - 词法分析（输出 token 流）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-Semantic-Analysis-语法分析（输出-AST-抽象语法树）"><span class="toc-text">4.3 Semantic Analysis - 语法分析（输出(AST)抽象语法树）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-4-CodeGen-IR-Intermediate-Representation-中间代码生成"><span class="toc-text">4.4 CodeGen - IR(Intermediate Representation)中间代码生成</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-5-Optimize-优化-IR"><span class="toc-text">4.5 Optimize - 优化 IR</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-6-LLVM-Bitcode-生成字节码"><span class="toc-text">4.6 LLVM Bitcode - 生成字节码</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-7-Assemble-生成-Target-相关汇编"><span class="toc-text">4.7 Assemble - 生成 Target 相关汇编</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-8-Link-生成-Executable"><span class="toc-text">4.8 Link 生成 Executable</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#五、问题"><span class="toc-text">五、问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#六、Clang-Attributes"><span class="toc-text">六、Clang Attributes</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#七、文章"><span class="toc-text">七、文章</span></a></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

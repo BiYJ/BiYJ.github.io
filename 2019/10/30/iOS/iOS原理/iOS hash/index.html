@@ -1,0 +1,201 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>iOS hash | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">iOS hash</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">iOS hash</h1><div class="post-meta"><a href="/2019/10/30/iOS/iOS原理/iOS hash/#comments" class="comment-count"></a><p><span class="date">Oct 30, 2019</span><span><a href="/categories/iOS原理/" class="category">iOS原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、iOS-hash"><a href="#一、iOS-hash" class="headerlink" title="一、iOS hash"></a>一、iOS hash</h2><p>下图列出 Hash 在 iOS 中的应用分析整理</p>
+<center><br><img src="http://dzliving.com/Hash_3.png" alt><br></center>
+
+<p>知乎上的一句话：</p>
+<blockquote>
+<p>算法、数据结构、通信协议、文件系统、驱动等，虽然自己不写那些东西，但是了解其原理对于排错、优化自己的代码有很大帮助，就好比虽然你不设计制造汽车，但如果你了解发动机、变速器、安全气囊等几项原理，对于你驾车如何省油、延长使用寿命、保证自身安全有很大好处，学而不思则罔、思而不学则殆，开发人员就是个随波而进的行业，无论何时何地，保持学习的深度和广度对于自身发展是很重要的，谁都不想 60 岁退休了还停留在增删查改的层面。</p>
+</blockquote>
+<h4 id="1-1-关联对象的实现原理"><a href="#1-1-关联对象的实现原理" class="headerlink" title="1.1 关联对象的实现原理"></a>1.1 关联对象的实现原理</h4><p>关联对象采用的是 HashMap 嵌套 HashMap 的结构存储数据的，简单来说就是根据对象从第一个 HashMap 中取出存储对象所有关联对象的第二个 HashMap，然后根据属性名从第二个 HashMap 中取出属性对应的值和策略。</p>
+<p>设计关联对象的初衷：通过传入对象 + 属性名字，就可以找到属性值。方案设计实现好后，查找一个对象的关联对象的基本步骤：</p>
+<ol>
+<li>已知条件一：对象，因此引出第一个 HashMap（AssociationsHashMap），用一个能唯一代表对象的值作为 key，用存储对象的所有关联对象的结构（名字：值+策略）作为 value</li>
+<li>已知条件二：属性名字，因此引出第二个 HashMap（ObjectAssociationMap），用属性名字作为key，用属性名字对应的结构体（值+策略）作为 value。</li>
+</ol>
+<p>参考资料：</p>
+<p><a href="https://juejin.im/post/5af86b276fb9a07aa34a59e6" target="_blank" rel="noopener">iOS底层原理总结 - 关联对象实现原理</a><br><a href="https://link.juejin.im/?target=https%3A%2F%2Fdraveness.me%2Fao" target="_blank" rel="noopener">关联对象 AssociatedObject 完全解析</a></p>
+<h4 id="1-2-weak-的实现原理"><a href="#1-2-weak-的实现原理" class="headerlink" title="1.2 weak 的实现原理"></a>1.2 weak 的实现原理</h4><p>weak 采用的是一个全局的 HashMap 嵌套数组的结构存储数据的，销毁对象（weak 指针指向的对象）的时候，根据对象从 HashMap 中找到存放所有指向该对象的 weak 指针的数组，然后将数组中的所有元素都置为 nil。</p>
+<p>weak 的最大特点就是在对象销毁时，自动置 nil，减少访问野指针的风险，这也是设计 weak 的初衷。方案设计实现好后，weak 指针置 nil 的基本步骤：</p>
+<ol>
+<li>对象 dealloc 的时候，从全局的 HashMap 中，根据一个唯一代表对象的值作为 key，找到存储所有指向该对象的 weak 指针的数组；</li>
+<li>将数组中的所有元素都置为 nil。</li>
+</ol>
+<p>参考资料：</p>
+<p><a href="https://link.juejin.im/?target=http%3A%2F%2Fwww.cocoachina.com%2Fios%2F20170328%2F18962.html" target="_blank" rel="noopener">iOS 底层解析weak的实现原理（包含weak对象的初始化，引用，释放的分析）</a><br><a href="https://juejin.im/post/5a3081316fb9a0450a67537e" target="_blank" rel="noopener">weak实现原理</a></p>
+<h4 id="1-3-KVO-实现使用的基本数据结构"><a href="#1-3-KVO-实现使用的基本数据结构" class="headerlink" title="1.3 KVO 实现使用的基本数据结构"></a>1.3 KVO 实现使用的基本数据结构</h4><p>一个对象可以被 n 个对象观察，一对象的 n 个属性又可以分别被 n 个对象观察。</p>
+<p>详细参考： <a href="https://link.juejin.im/?target=https%3A%2F%2Fwww.jianshu.com%2Fp%2Fd6e4ba25acd2" target="_blank" rel="noopener">GNUstep KVC/KVO探索（二）：KVO的内部实现</a></p>
+<h4 id="1-4-iOS-App-签名的原理"><a href="#1-4-iOS-App-签名的原理" class="headerlink" title="1.4 iOS App 签名的原理"></a>1.4 iOS App 签名的原理</h4><p>一致性哈希算法 + 非对称加解密算法。</p>
+<p>详细参考：<a href="https://link.juejin.im/?target=https%3A%2F%2Fwereadteam.github.io%2F2017%2F03%2F13%2FSignature%2F" target="_blank" rel="noopener">iOS App 签名的原理</a></p>
+<h4 id="1-5-对象的引用计数存储的位置"><a href="#1-5-对象的引用计数存储的位置" class="headerlink" title="1.5 对象的引用计数存储的位置"></a>1.5 对象的引用计数存储的位置</h4><p>具体参考 ：<a href="https://juejin.im/post/5b4c59a55188251ac9767872#comment" target="_blank" rel="noopener">苹果iOS系统源码思考：对象的引用计数存储在哪里？–从runtime源码得到的启示</a></p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> 对象支持TaggedPointer &#123;</span><br><span class="line">	<span class="keyword">return</span> 直接将对象的指针值作为引用计数返回</span><br><span class="line">&#125; </span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> 设备是<span class="number">64</span>位环境 &amp;&amp; Objective-C2.0 &#123;</span><br><span class="line">	<span class="keyword">return</span> 对象isa指针的一部分空间(bits_extra_rc)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> hash表</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="1-6-Runloop-与线程的存储关系"><a href="#1-6-Runloop-与线程的存储关系" class="headerlink" title="1.6 Runloop 与线程的存储关系"></a>1.6 Runloop 与线程的存储关系</h4><p>线程和 RunLoop 之间是一一（子线程可以没有）对应的，其关系是保存在一个全局的 Dictionary 里。线程刚创建时并没有 RunLoop，如果你不主动获取，那它一直都不会有。RunLoop 的创建是发生在第一次获取时，RunLoop 的销毁是发生在线程结束时。你只能在一个线程的内部获取其 RunLoop（主线程除外）。</p>
+<h4 id="1-7-NSDictionary的原理"><a href="#1-7-NSDictionary的原理" class="headerlink" title="1.7 NSDictionary的原理"></a>1.7 NSDictionary的原理</h4><p>参考文章：<a href="https://juejin.im/post/5c510617f265da613f2fdac4" target="_blank" rel="noopener">笔记-集合NSSet、字典NSDictionary的底层实现原理</a></p>
+<h2 id="二、哈希表"><a href="#二、哈希表" class="headerlink" title="二、哈希表"></a>二、哈希表</h2><h4 id="2-1-哈希表定义"><a href="#2-1-哈希表定义" class="headerlink" title="2.1 哈希表定义"></a>2.1 哈希表定义</h4><p>哈希表（hash table，也叫散列表），是根据键（key）直接访问访问在内存储存位置的数据结构。</p>
+<p>哈希表本质是一个数组，数组中的每一个元素成为一个箱子，箱子中存放的是键值对。根据下标 index 从数组中取 value。关键是如何获取 index，这就需要一个固定的函数（哈希函数），将 key 转换成 index。不论哈希函数设计的如何完美，都可能出现不同的 key 经过 hash 处理后得到相同的 hash 值，这时候就需要处理哈希冲突。</p>
+<h4 id="2-2-哈希表优缺点"><a href="#2-2-哈希表优缺点" class="headerlink" title="2.2 哈希表优缺点"></a>2.2 哈希表优缺点</h4><p>优点</p>
+<ul>
+<li>哈希表可以提供快速的操作。</li>
+</ul>
+<p>缺点</p>
+<ul>
+<li>哈希表通常是基于数组的，数组创建后难于扩展。</li>
+<li>没有一种简便的方法可以以任何一种顺序〔例如从小到大）遍历表中的数据项。</li>
+</ul>
+<p>综上，如果不需要有序遍历数据，井且可以提前预测数据量的大小。那么哈希表在速度和易用性方面是无与伦比的。</p>
+<h4 id="2-3-哈希查找步骤"><a href="#2-3-哈希查找步骤" class="headerlink" title="2.3 哈希查找步骤"></a>2.3 哈希查找步骤</h4><ol>
+<li>使用哈希函数将被查找的键映射（转换）为数组的索引，理想情况下（hash 函数设计合理）不同的键映射的数组下标也不同，所有的查找时间复杂度为 O(1)。但是实际情况下不是这样的，所以哈希查找的第二步就是处理哈希冲突。</li>
+<li>处理哈希碰撞冲突。处理方法有很多，比如拉链法、线性探测法。</li>
+</ol>
+<h4 id="2-4-哈希表存储过程："><a href="#2-4-哈希表存储过程：" class="headerlink" title="2.4 哈希表存储过程："></a>2.4 哈希表存储过程：</h4><ol>
+<li>使用 hash 函数根据 key 得到哈希值 h</li>
+<li>如果箱子的个数为 n，那么值应该存放在底(h%n)个箱子中。h%n 的值范围为 [0, n-1]。</li>
+<li>如果该箱子非空（已经存放了一个值）即不同的 key 得到了相同的h产生了哈希冲突，此时需要使用拉链法或者开放定址线性探测法解决冲突。</li>
+</ol>
+<h4 id="2-5-常用哈希函数"><a href="#2-5-常用哈希函数" class="headerlink" title="2.5 常用哈希函数"></a>2.5 常用哈希函数</h4><p>哈希查找第一步就是使用哈希函数将键映射成索引。这种映射函数就是哈希函数。如果我们有一个保存 0~M 数组，那么我们就需要一个能够将任意键转换为该数组范围内的索引（0~M-1）的哈希函数。哈希函数需要易于计算并且能够均匀分布所有键。比如举个简单的例子，使用手机号码后三位就比前三位作为 key 更好，因为前三位手机号码的重复率很高。再比如使用身份证号码出生年月位数要比使用前几位数要更好。</p>
+<p>在实际中，我们的键并不都是数字，有可能是字符串，还有可能是几个值的组合等，所以我们需要实现自己的哈希函数。</p>
+<ol>
+<li>直接寻址法</li>
+<li>数字分析法</li>
+<li>平方取中法</li>
+<li>折叠法</li>
+<li>随机数法</li>
+<li>除留余数法</li>
+</ol>
+<p>要想设计一个优秀的哈希算法并不容易，根据经验，总结了需要满足的几点要求：</p>
+<ol>
+<li>从哈希值不能反向推导出原始数据（所以哈希算法也叫单向哈希算法）；</li>
+<li>对输入数据非常敏感，哪怕原始数据只修改了一个 Bit，最后得到的哈希值也大不相同；</li>
+<li>散列冲突的概率要很小，对于不同的原始数据，哈希值相同的概率非常小；</li>
+<li>哈希算法的执行效率要尽量高效，针对较长的文本，也能快速地计算出哈希值。</li>
+</ol>
+<h4 id="2-6-负载因子"><a href="#2-6-负载因子" class="headerlink" title="2.6 负载因子"></a>2.6 负载因子</h4><blockquote>
+<p>负载因子 = 总键值对数/数组的个数</p>
+</blockquote>
+<p>负载因子是哈希表的一个重要属性，用来衡量哈希表的空/满程度，一定程度也可以提现查询的效率。负载因子越大，意味着哈希表越满，越容易导致冲突，性能也就越低。所以当负载因子大于某个常数（一般是<font color="#cc0000">0.75</font>）时，哈希表将自动扩容。哈希表扩容时，一般会创建<font color="#cc0000">两倍</font>于原来的数组长度。因此即使 key 的哈希值没有变化，对数组个数取余的结果会随着数组个数的扩容发生变化，因此键值对的位置都有可能发生变化，这个过程也成为重哈希（rehash）。</p>
+<h4 id="2-7-哈希表扩容"><a href="#2-7-哈希表扩容" class="headerlink" title="2.7 哈希表扩容"></a>2.7 哈希表扩容</h4><ul>
+<li>在数组比较多的时候，需要重新哈希并移动数据，性能影响较大。</li>
+<li>虽然能够使负载因子降低，但并不总是能有效提高哈希表的查询性能。比如哈希函数设计的不合理，导致所有的 key 计算出的哈希值都相同，那么即使扩容他们的位置还是在同一条链表上，变成了线性表，性能极低，查询的时候时间复杂度就变成了 O(n)。</li>
+</ul>
+<h4 id="2-8-哈希冲突的解决方法"><a href="#2-8-哈希冲突的解决方法" class="headerlink" title="2.8 哈希冲突的解决方法"></a>2.8 哈希冲突的解决方法</h4><ol>
+<li><p>拉链法</p>
+<p> 简单来说就是数组 + 链表。将键通过 hash 函数映射为大小为 M 的数组的下标索引，数组的每一个元素指向一个链表，链表中的每一个结点存储着 hash 出来的索引值为结点下标的键值对。</p>
+<p> Java 8 解决哈希冲突采用的就是拉链法。在处理哈希函数设计不合理导致链表很长时（<font color="#cc0000">链表长度超过 8 切换为红黑树，小于 6 重新退化为链表</font>）。将链表切换为红黑树能够保证插入和查找的效率，缺点是当哈希表比较大时，哈希表扩容会导致瞬时效率降低。</p>
+<p> Redis 解决哈希冲突采用的也是拉链法。通过增量式扩容解决了 Java 8 中的瞬时扩容导致的瞬时效率降低的缺点，同时拉链法的实现方式（新插入的键值对放在链表头部）带来了两个好处：</p>
+<ul>
+<li>头插法可以节省插入耗时。如果插到尾部，则需要时间复杂度为 O(n) 的操作找到链表尾部，或者需要额外的内存地址来保存尾部链表的位置。</li>
+<li>头插法可以节省查找耗时。对于一个数据系统来说，最新插入的数据往往可能频繁的被查询。</li>
+</ul>
+</li>
+</ol>
+<ol start="2">
+<li><p>开放定址线性探测法</p>
+<p> 使用两个大小为 N 的数组（一个存放 keys，另一个存放 values）。使用数组中的空位解决碰撞，当碰撞发生时（即一个键的 hash 值对应数组的下标被两外一个键占用）直接将下标索引加一（index += 1），这样会出现三种结果：</p>
+<ul>
+<li>未命中（数组下标中的值为空，没有占用）。keys[index] = key，values[index] = value。</li>
+<li>命中（数组下标中的值不为空，占用）。keys[index] == key，values[index] == value。</li>
+<li>命中（数组下标中的值不为空，占用）。keys[index] != key，继续 index += 1，直到遇到结果 1 或 2 停止。</li>
+</ul>
+</li>
+<li><p>拉链法的优点</p>
+<p> 与开放定址线性探测发相比，拉链法有如下几个优点：</p>
+<ul>
+<li>拉链法处理冲突简单，且无堆积现象，即非同义词决不会发生冲突，因此平均查找长度较短；</li>
+<li>由于拉链法中各链表上的结点空间是动态申请的，故它更适合于造表前无法确定表长的情况；</li>
+<li>开放定址线性探测法为减少冲突，要求装填因子 α 较小，故当结点规模较大时会浪费很多空间。而拉链法中可取 α≥1，且结点较大时，拉链法中增加的指针域可忽略不计，因此节省空间；</li>
+<li>在用拉链法构造的散列表中，删除结点的操作易于实现。只要简单地删去链表上相应的结点即可。而对开放定址线性探测发构造的散列表，删除结点不能简单地将被删结 点的空间置为空，否则将截断在它之后填人散列表的同义词结点的查找路径。这是因为各种开放定址线性探测发中，空地址单元(即开放地址)都是查找失败的条件。因此在用开放定址线性探测发处理冲突的散列表上执行删除操作，只能在被删结点上做删除标记，而不能真正删除结点。</li>
+</ul>
+</li>
+<li><p>拉链法的缺点</p>
+<ul>
+<li>指针需要额外的空间，故当结点规模较小时，开放定址线性探测发较为节省空间，而若将节省的指针空间用来扩大散列表的规模，可使装填因子变小，这又减少了开放定址线性探测发中的冲突，从而提高平均查找速度。</li>
+</ul>
+</li>
+<li><p>开放定址线性探测法缺点</p>
+<ul>
+<li>容易产生堆积问题；</li>
+<li>不适于大规模的数据存储；</li>
+<li>散列函数的设计对冲突会有很大的影响；</li>
+<li>插入时可能会出现多次冲突的现象，删除的元素是多个冲突元素中的一个，需要对后面的元素作处理，实现较复杂；</li>
+<li>结点规模很大时会浪费很多空间；</li>
+</ul>
+</li>
+</ol>
+<h4 id="2-9-Hash-表的平均查找长度"><a href="#2-9-Hash-表的平均查找长度" class="headerlink" title="2.9 Hash 表的平均查找长度"></a>2.9 Hash 表的平均查找长度</h4><p>Hash 表的平均查找长度包括查找成功时的平均查找长度和查找失败时的平均查找长度。</p>
+<p>查找成功时的平均查找长度=表中每个元素查找成功时的比较次数之和/表中元素个数；</p>
+<p>查找不成功时的平均查找长度相当于在表中查找元素不成功时的平均比较次数，可以理解为向表中插入某个元素，该元素在每个位置都有可能，然后计算出在每个位置能够插入时需要比较的次数，再除以表长即为查找不成功时的平均查找长度。</p>
+<p>例子：</p>
+<blockquote>
+<p>给定一组数据{32，14，23，01，42，20，45，27，55，24，10，53}，假设散列表的长度为 13（最接近 n 的质数），散列函数为 H(k) = k。分别画出用 线性探测法 和 拉链法 解决冲突时构造的哈希表，并求出在等概率下情况，这两种方法查找成功和查找不成功的平均查找长度。</p>
+</blockquote>
+<ol>
+<li><p>拉链法</p>
+ <center><br> <img src="http://dzliving.com/Hash_4.png" alt><br> </center>
+
+<p> 查找成功时的平均查找长度：ASL = (1*6 + 2*4 + 3*1 + 4*1)/12 = 7/4</p>
+<p> 查找不成功时的平均查找长度：ASL = (4 + 2 + 2 + 1 + 2 + 1)/13</p>
+</li>
+<li><p>线性探测法</p>
+<p> 查找成功时查找次数 = 插入元素时的比较次数，查找成功的平均查找长度：ASL = (1 + 2 + 1 + 4 + 3 + 1 + 1 + 1 + 3 + 9 + 1 + 1 + 3)/12 = 2.5</p>
+<p> 查找不成功时的查找次数 = 第 n 个位置不成功时的比较次数为，第 n 个位置到第 1 个没有数据位置的距离：如第 0 个位置取值为 1，第 1个位置取值为 2。查找不成功时的平均查找长度：ASL = （ 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12/13 = 91/13</p>
+</li>
+</ol>
+<h4 id="2-10-NSDictionary"><a href="#2-10-NSDictionary" class="headerlink" title="2.10 NSDictionary"></a>2.10 NSDictionary</h4><ol>
+<li><p>版本一</p>
+<blockquote>
+<p>是使用 NSMapTable 实现的，采用拉链法解决哈希冲突。</p>
+</blockquote>
+ <figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> &#123;</span><br><span class="line">   <span class="built_in">NSMapTable</span>        *table;</span><br><span class="line">   <span class="built_in">NSInteger</span>          i;</span><br><span class="line">   <span class="keyword">struct</span> _NSMapNode *j;</span><br><span class="line">&#125; <span class="built_in">NSMapEnumerator</span>;</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>上述结构体描述了遍历一个 NSMapTable 时的一个指针对象，其中包含 table 对象自身的指针，计数值，和节点指针。
+
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> &#123;</span><br><span class="line">   <span class="built_in">NSUInteger</span> (*hash)(<span class="built_in">NSMapTable</span> *table,<span class="keyword">const</span> <span class="keyword">void</span> *);</span><br><span class="line">   <span class="built_in">BOOL</span> (*isEqual)(<span class="built_in">NSMapTable</span> *table,<span class="keyword">const</span> <span class="keyword">void</span> *,<span class="keyword">const</span> <span class="keyword">void</span> *);</span><br><span class="line">   <span class="keyword">void</span> (*<span class="keyword">retain</span>)(<span class="built_in">NSMapTable</span> *table,<span class="keyword">const</span> <span class="keyword">void</span> *);</span><br><span class="line">   <span class="keyword">void</span> (*release)(<span class="built_in">NSMapTable</span> *table,<span class="keyword">void</span> *);</span><br><span class="line">   <span class="built_in">NSString</span>  *(*describe)(<span class="built_in">NSMapTable</span> *table,<span class="keyword">const</span> <span class="keyword">void</span> *);</span><br><span class="line">   <span class="keyword">const</span> <span class="keyword">void</span> *notAKeyMarker;</span><br><span class="line">&#125; <span class="built_in">NSMapTableKeyCallBacks</span>;</span><br></pre></td></tr></table></figure>
+
+上述结构体中存放的是几个函数指针，用于计算 key 的 hash 值，判断 key 是否相等，retain，release 操作。
+
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> &#123;</span><br><span class="line">   <span class="keyword">void</span>       (*<span class="keyword">retain</span>)(<span class="built_in">NSMapTable</span> *table,<span class="keyword">const</span> <span class="keyword">void</span> *);</span><br><span class="line">   <span class="keyword">void</span>       (*release)(<span class="built_in">NSMapTable</span> *table,<span class="keyword">void</span> *);</span><br><span class="line">   <span class="built_in">NSString</span>  *(*describe)(<span class="built_in">NSMapTable</span> *table, <span class="keyword">const</span> <span class="keyword">void</span> *);</span><br><span class="line">&#125; <span class="built_in">NSMapTableValueCallBacks</span>;</span><br></pre></td></tr></table></figure>
+
+
+上述存放的三个函数指针，定义在对 NSMapTable 插入一对 key、value 时，对 value 对象的操作。
+
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">@interface</span> <span class="title">NSMapTable</span> : <span class="title">NSObject</span> </span>&#123;</span><br><span class="line">   <span class="built_in">NSMapTableKeyCallBacks</span>   *keyCallBacks;</span><br><span class="line">   <span class="built_in">NSMapTableValueCallBacks</span> *valueCallBacks;</span><br><span class="line">   <span class="built_in">NSUInteger</span>             count;</span><br><span class="line">   <span class="built_in">NSUInteger</span>             nBuckets;</span><br><span class="line">   <span class="keyword">struct</span> _NSMapNode  **buckets;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+从上面的结构真的能看出 NSMapTable 是一个 哈希表 + 链表 的数据结构吗？在 NSMapTbale 中插入或者删除一个对象的寻找时间 = O(1) + O(m) ，m 为最坏时可能为 n。
+
+O(1)：对 key 进行 hash 得到 bucket 的位置
+
+O(m)：不同的 key 得到相同的 hash 值的 value 存放到链表中，遍历链表的时间
+
+上面的结论和对应的解释似乎很合理？看看下面的分析再说也不迟！
+</code></pre><ol start="2">
+<li><p>版本二</p>
+<blockquote>
+<p>是对 _CFDictionary 的封装，解决哈希冲突使用的是开放定址线性探测法</p>
+</blockquote>
+ <figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">struct __CFDictionary &#123;</span><br><span class="line">    CFRuntimeBase _base<span class="comment">;</span></span><br><span class="line">    CFIndex _<span class="built_in">count</span><span class="comment">;</span></span><br><span class="line">    CFIndex _capacity<span class="comment">;</span></span><br><span class="line">    CFIndex _bucketsNum<span class="comment">;</span></span><br><span class="line">    uintptr_t _marker<span class="comment">;</span></span><br><span class="line">    void *_<span class="built_in">context</span><span class="comment">;</span></span><br><span class="line">    CFIndex _deletes<span class="comment">;</span></span><br><span class="line">    CFOptionFlags _xflags<span class="comment">;</span></span><br><span class="line">    const void **_keys<span class="comment">;</span></span><br><span class="line">    const void **_values<span class="comment">;</span></span><br><span class="line">&#125;<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p> 从上面的数据结构可以看出 NSDictionary 内部使用了两个指针数组分别保存 keys 和 values。采用的是连续方式存储键值对。拉链法会将 key 和 value 包装成一个结果存储（链表结点），而 Dictionary 的结构拥有 keys 和 values 两个数组（开放寻址线性探测法解决哈希冲突的用的就是两个数组），说明两个数据是被分开存储的，不像是拉链法。</p>
+<p> NSDictionary 使用开放定址线性探测法解决哈希冲突的原理：</p>
+<p> 可以看到，NSDictionary 设置的 key 和 value，key 值会根据特定的 hash 函数算出建立的空桶数组，keys 和 values 同样多，然后存储数据的时候，根据 hash 函数算出来的值，找到对应的 index 下标，如果下标已有数据，开放定址法后移动插入，如果空桶数组到达数据阀值，这个时候就会把空桶数组扩容，然后重新哈希插入。</p>
+<p> 这样把一些不连续的 key-value 值插入到了能建立起关系的 hash 表中，当我们查找的时候，key 根据哈希算法算出来索引，然后根据索引，直接 index 访问 hash 表 keys 和 hash 表 values，这样查询速度就可以和连续线性存储的数据一样接近 O(1) 了，只是占用空间有点大，性能就很强悍。</p>
+<p> 如果删除的时候，也会根据 _maker 标记逻辑上的删除，除非 NSDictionary（NSDictionary 本体的hash 值就是 count）内存被移除。</p>
+<p> NSDictionary 之所以采用这种设计：</p>
+<ol>
+<li>出于查询性能的考虑；</li>
+<li>NSDictionary 在使用过程中总是会很快的被释放，不会长期占用内存;</li>
+</ol>
+</li>
+</ol>
+<h4 id="2-11-Apple方案选择"><a href="#2-11-Apple方案选择" class="headerlink" title="2.11 Apple方案选择"></a>2.11 Apple方案选择</h4><p>解决哈希冲突的拉链法和开放定址线性探测法，Apple 都是用了。具体使用哪一种是根据存储数据的生命周期和特性决定的。</p>
+<ul>
+<li><p>@synchronized 使用的是拉链法。拉链法多用于存储的数据是通用类型，能够被反复利用，就像@synchronized 存储的是锁是一种无关业务的实现结构，程序运行时多个对象使用同一个锁的概率相当高，有效的节省了内存。</p>
+</li>
+<li><p>weak 对象 associatedObject 采用的是开放定址线性探测法。开放定址线性探测法用于存储的数据是临时的，用完尽快释放，就像 associatedObject，weak。</p>
+</li>
+</ul>
+<h4 id="2-12-NSDictionary-的存储过程"><a href="#2-12-NSDictionary-的存储过程" class="headerlink" title="2.12 NSDictionary 的存储过程"></a>2.12 NSDictionary 的存储过程</h4><p><a href="https://juejin.im/post/5bf4269df265da6134380660" target="_blank" rel="noopener">iOS笔记：进一步认识 ==、isEqual、hash</a></p>
+<ol>
+<li>通过方法 <code>- (void)setObject:(id)anObject forKey:(id)aKey;</code> 可以看出key必须遵循 NSCopy 协议，也就是说 NSDictionary 的 key 是 copy 一份新的，而 value 是浅拷贝的（如果想深拷贝可以使用 NSMapTable）。</li>
+<li>key 还必须要继承 NSObject，并且重写 <code>-(NSUInteger)hash;</code> 和 <code>-(BOOL)isEqual:(id)object;</code> 两个方法。第一个函数用于计算 hash 值，第二个函数用来判断当哈希值相同的时候 value 是否相同（解决哈希冲突）。</li>
+</ol>
+<h2 id="文章"><a href="#文章" class="headerlink" title="文章"></a>文章</h2><p><a href="https://link.juejin.im/?target=http%3A%2F%2Fwww.cnblogs.com%2Fyangecnu%2Fp%2FIntroduce-Hashtable.html" target="_blank" rel="noopener">浅谈算法和数据结构: 十一 哈希表</a><br><a href="https://link.juejin.im/?target=https%3A%2F%2Fblog.csdn.net%2FDeft_MKJing%2Farticle%2Fdetails%2F82732833" target="_blank" rel="noopener">NSDictionary和NSMutableArray底层原理（哈希表和环形缓冲区）</a><br><a href="https://link.juejin.im/?target=https%3A%2F%2Fbestswifter.com%2Fdictionary-implemation%2F" target="_blank" rel="noopener">Swift中字典的实现原理</a><br><a href="https://link.juejin.im/?target=https%3A%2F%2Fbestswifter.com%2Fhashtable%2F" target="_blank" rel="noopener">深入理解哈希表</a><br><a href="https://link.juejin.im/?target=http%3A%2F%2Fhuyangjie.com%2F2017%2F04%2F20%2F%25E8%25A7%25A3%25E8%25AF%25BBObjective-C%25E7%259A%2584NSDictionary%2F" target="_blank" rel="noopener">解读Objective-C的NSDictionary</a><br><a href="https://link.juejin.im/?target=http%3A%2F%2Fwww.cocoachina.com%2Fios%2F20180723%2F24267.html" target="_blank" rel="noopener">iOS重做轮子，写一个NSDictionary（一）</a><br><a href="https://link.juejin.im/?target=https%3A%2F%2Fblog.csdn.net%2Fu011080472%2Farticle%2Fdetails%2F51177412" target="_blank" rel="noopener">哈希表——线性探测法、链地址法、查找成功、查找不成功的平均长度</a><br><a href="https://link.juejin.im/?target=https%3A%2F%2Fwww.jianshu.com%2Fp%2F5d933fc6df3b" target="_blank" rel="noopener">哈希表、哈希算法、一致性哈希表</a><br><a href="https://link.juejin.im/?target=https%3A%2F%2Fwww.jianshu.com%2Fp%2Fef3f77c8b320" target="_blank" rel="noopener">细说@synchronized和dispatch_once</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/10/30/iOS/iOS原理/iOS hash/">http://yoursite.com/2019/10/30/iOS/iOS原理/iOS hash/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/10/30/IT/macro/" class="pre">macro</a><a href="/2019/10/30/iOS/iOS原理/hash、isEqual/" class="next">isEqual</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、iOS-hash"><span class="toc-text">一、iOS hash</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-1-关联对象的实现原理"><span class="toc-text">1.1 关联对象的实现原理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-2-weak-的实现原理"><span class="toc-text">1.2 weak 的实现原理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-3-KVO-实现使用的基本数据结构"><span class="toc-text">1.3 KVO 实现使用的基本数据结构</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-4-iOS-App-签名的原理"><span class="toc-text">1.4 iOS App 签名的原理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-5-对象的引用计数存储的位置"><span class="toc-text">1.5 对象的引用计数存储的位置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-6-Runloop-与线程的存储关系"><span class="toc-text">1.6 Runloop 与线程的存储关系</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-7-NSDictionary的原理"><span class="toc-text">1.7 NSDictionary的原理</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#二、哈希表"><span class="toc-text">二、哈希表</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-哈希表定义"><span class="toc-text">2.1 哈希表定义</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-哈希表优缺点"><span class="toc-text">2.2 哈希表优缺点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3-哈希查找步骤"><span class="toc-text">2.3 哈希查找步骤</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-4-哈希表存储过程："><span class="toc-text">2.4 哈希表存储过程：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-5-常用哈希函数"><span class="toc-text">2.5 常用哈希函数</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-6-负载因子"><span class="toc-text">2.6 负载因子</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-7-哈希表扩容"><span class="toc-text">2.7 哈希表扩容</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-8-哈希冲突的解决方法"><span class="toc-text">2.8 哈希冲突的解决方法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-9-Hash-表的平均查找长度"><span class="toc-text">2.9 Hash 表的平均查找长度</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-10-NSDictionary"><span class="toc-text">2.10 NSDictionary</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-11-Apple方案选择"><span class="toc-text">2.11 Apple方案选择</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-12-NSDictionary-的存储过程"><span class="toc-text">2.12 NSDictionary 的存储过程</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#文章"><span class="toc-text">文章</span></a></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

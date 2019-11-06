@@ -1,0 +1,115 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>iOS 类簇 | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">iOS 类簇</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">iOS 类簇</h1><div class="post-meta"><a href="/2019/11/04/iOS/iOS原理/iOS 类簇/#comments" class="comment-count"></a><p><span class="date">Nov 04, 2019</span><span><a href="/categories/iOS原理/" class="category">iOS原理</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、类簇"><a href="#一、类簇" class="headerlink" title="一、类簇"></a>一、类簇</h2><p>类簇是 Foundation 框架广泛使用的设计模式。<font color="#cc0000">类簇在公共抽象超类下对多个私有的具体子类进行分组</font>。以这种方式对类进行分组<font color="#cc0000">简化了面向对象框架的公共可见体系结构</font>，而不会降低其功能丰富度。类簇是基于抽象工厂设计模式的。</p>
+<h2 id="二、抽象工厂"><a href="#二、抽象工厂" class="headerlink" title="二、抽象工厂"></a>二、抽象工厂</h2><p>抽象工厂模式是指当有多个抽象角色时，使用的一种工厂模式。抽象工厂模式可以向客户端提供一个接口，使客户端在不必指定产品的具体的情况下，创建多个产品族中的产品对象。很多人会混淆抽象工厂模式和工厂模式。实际上，两种的差别还是比较明显的，如下表。</p>
+<center><br><br>|抽象工厂模式|工厂模式|<br>|:—-:|:——:|<br>|通过对象组合创建抽象产品|通过类继承创建抽象产品|<br>|创建多系列产品|创建一种产品|<br>|必须修改父类的接口才能支持新的产品|子类化创建者并重载工厂方法以创建新产品|<br><br></center>
+
+<p>点击<a href="https://gist.github.com/Catfish-Man/bc4a9987d4d7219043afdf8ee536beb2" target="_blank" rel="noopener">查看子类的名称</a>。</p>
+<h2 id="三、NSArray"><a href="#三、NSArray" class="headerlink" title="三、NSArray"></a>三、NSArray</h2><p>《Effective Objective-C 2.0》中有一段话：</p>
+<blockquote>
+<p>In the case of NSArray, when an instance is allocated, it’s an instance of another class that’s allocated (during a call to alloc), known as a placeholder array. This placeholder array is then converted to an instance of another class, which is a concrete subclass of NSArray.</p>
+<p>在使用了 NSArray 的 alloc 方法来获取实例时，该方法首先会分类一个属于某类的实例，此实例充当“占位数组”。该数组稍后会转为另一个类的实例，而那个类则是 NSArray 的实体子类。</p>
+</blockquote>
+<p>不管创建的是可变还是不可变的数组，在 alloc 之后得到的类都是 <code>__NSPlaceholderArray</code>。而当我们 init 一个不可变的空数组之后，得到的是 <code>__NSArray0</code>；如果有且只有一个元素，那就是 <code>__NSSingleObjectArrayI</code>；有多个元素的，叫做 <code>__NSArrayI</code>；init 出来一个可变数组的话，都是 <code>__NSArrayM</code>。</p>
+<p>注意：当使用 + array.. 方法创建数组对象时，只有一个元素也是 <code>__NSArrayI</code>。</p>
+<p>这里 __NSSingleObjectArrayI，需要说明它的用意。</p>
+<h2 id="四、-NSSingleObjectArrayI"><a href="#四、-NSSingleObjectArrayI" class="headerlink" title="四、__NSSingleObjectArrayI"></a>四、__NSSingleObjectArrayI</h2><p>作为对比，__NSArrayI 必须要实现</p>
+<ul>
+<li><ul>
+<li>count</li>
+</ul>
+</li>
+<li><ul>
+<li>objectAtIndex:</li>
+</ul>
+</li>
+</ul>
+<p>两个方法，但是我们可以非常显而易见的看出来，当数组只有一个数字的时候，是完全不需要这两个方法的。<br>再深入一点的说明一下，__NSSingleObjectArrayI 是不需要去记录字符串长度的。它会比 __NSArrayI <font color="#cc0000">少 8 个字节的长度</font>。苹果可能是为了优化性能考虑，从而在 iOS8 之后推出这个新的子类。</p>
+<p>另外需要说明的是，实际上，__NSArrayM 本身只有 7 个方法，分别是：</p>
+<ul>
+<li><ul>
+<li>count</li>
+</ul>
+</li>
+<li><ul>
+<li>objectAtIndex:</li>
+</ul>
+</li>
+<li><ul>
+<li>insertObject:atIndex:</li>
+</ul>
+</li>
+<li><ul>
+<li>removeObjectAtIndex:</li>
+</ul>
+</li>
+<li><ul>
+<li>addObject:</li>
+</ul>
+</li>
+<li><ul>
+<li>removeLastObject</li>
+</ul>
+</li>
+<li><ul>
+<li>replaceObjectAtIndex:withObject:</li>
+</ul>
+</li>
+</ul>
+<p>所有其它高等级的抽象建立在它们的基础之上。例如 <code>- removeAllObjects</code> 方法简单地往回迭代，一个个地调用 <code>- removeObjectAtIndex:</code>。</p>
+<h2 id="五、NSDictionary"><a href="#五、NSDictionary" class="headerlink" title="五、NSDictionary"></a>五、NSDictionary</h2><p>NSDictionary 与 NSArray 类似，不管创建的是可变还是不可变的字典，在 alloc 之后得到的类都是 <code>__NSPlaceholderDictionary</code>。而 init 一个不可变的空数组之后，得到的是 <code>__NSDictionary0</code>；如果有且只有一个元素，那就是 <code>__NSSingleEntryDictionaryI</code>；有多个元素的，叫做 <code>__NSDictionaryI</code>；init 出来一个可变数组的话，都是 <code>__NSDictionaryM</code>。还有一个子类，<code>__NSFrozenDictionaryM</code>。</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NSDictionary</span> * dict = [[<span class="built_in">NSDictionary</span> alloc] initWithObjectsAndKeys:<span class="string">@"Tom"</span>, <span class="string">@"name"</span>, <span class="literal">nil</span>];</span><br><span class="line"><span class="built_in">NSDictionary</span> * copyDict = dict.copy;</span><br><span class="line"><span class="built_in">NSLog</span>(<span class="string">@"copyDict       : %@   %p   %@"</span>, copyDict, copyDict, [copyDict <span class="keyword">class</span>]);</span><br><span class="line"></span><br><span class="line">copyMDict       : &#123;</span><br><span class="line">    name = Tom;</span><br><span class="line">&#125;   <span class="number">0x60000363cb60</span>   __NSFrozenDictionaryM</span><br></pre></td></tr></table></figure>
+<p>这个子类没什么特殊的作用，它仍然会被视为不可变字典。也就是说，对它进行改变的操作，会导致程序崩溃。崩溃信息如下：</p>
+<figure class="highlight smali"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-[__NSFrozenDictionaryM setObject:forKey:]: unrecognized selector sent to<span class="built_in"> instance </span>0x600000490860</span><br><span class="line">*** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[__NSFrozenDictionaryM setObject:forKey:]: unrecognized selector sent to<span class="built_in"> instance </span>0x600000490860'</span><br></pre></td></tr></table></figure>
+<p>其实在在 NSArray 中也有个对应的 <code>__NSFrozenArrayM</code>。</p>
+<h2 id="六、NSSet"><a href="#六、NSSet" class="headerlink" title="六、NSSet"></a>六、NSSet</h2><p>NSSet 的子类不过是 NSDictionary 换了个名字而已，不做细讲。</p>
+<p>这里说明一下，<code>__NSSingleObjectSetI</code> 不需要打扰实际的哈希表，因为只有一个对象需要担心。类似的方法 containsObject: 不需要遍历任何东西或查找任何东西，它可以简单地将参数与 set/array/dictionary 表示的单个对象进行比较。</p>
+<h2 id="七、NSString"><a href="#七、NSString" class="headerlink" title="七、NSString"></a>七、NSString</h2><p>当测试创建 NSString 对象的时候，通过创建 NSString 不同的对象，并利用 object_getClassName 方法打印对象。</p>
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NSString</span> * str1 = <span class="string">@"1234567890"</span>;</span><br><span class="line"><span class="built_in">NSLog</span>(<span class="string">@"str1: %@"</span>, [str1 <span class="keyword">class</span>]);  <span class="comment">// str1: __NSCFConstantString</span></span><br><span class="line">    </span><br><span class="line"><span class="built_in">NSString</span> * str2 = <span class="string">@"123456789"</span>;</span><br><span class="line"><span class="built_in">NSLog</span>(<span class="string">@"str2: %@"</span>, [str2 <span class="keyword">class</span>]);  <span class="comment">//str2: __NSCFConstantString</span></span><br><span class="line">    </span><br><span class="line"><span class="built_in">NSString</span> * str3 = [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"123456789"</span>];</span><br><span class="line"><span class="built_in">NSLog</span>(<span class="string">@"str3: %@"</span>, [str3 <span class="keyword">class</span>]);  <span class="comment">// str3: NSTaggedPointerString</span></span><br><span class="line">    </span><br><span class="line"><span class="built_in">NSString</span> * str4 = [<span class="built_in">NSString</span> stringWithFormat:<span class="string">@"1234567890"</span>];</span><br><span class="line"><span class="built_in">NSLog</span>(<span class="string">@"str4: %@"</span>, [str4 <span class="keyword">class</span>]);  <span class="comment">// str4: __NSCFString</span></span><br></pre></td></tr></table></figure>
+<p>这里出现了三个子类：</p>
+<ul>
+<li>__NSCFConstantString</li>
+<li>__NSCFString</li>
+<li>NSTaggedPointerString</li>
+</ul>
+<ol>
+<li><p>__NSCFConstantString</p>
+<p> 它是一个字符串常量。它的引用计数非常大，是 4294967295。它的意思是：这个属性，怎么都不会被释放。相同的对象，内存地址是相同的，可以直接使用 == 方法（但是，这个对象的指针的地址依然不同，还是两个不同的对象）。它在编译时就决定的，不能在运行时创建。</p>
+<p> 更详细的可以查看<a href="https://blog.cnbluebox.com/blog/2014/04/16/nsstringte-xing-fen-xi-xue-xi/" target="_blank" rel="noopener">这篇博客</a>。</p>
+</li>
+<li><p>__NSCFString</p>
+<p> 这个就是可变的 NSString 所属的子类。</p>
+</li>
+<li><p>NSTaggedPointerString</p>
+<p> 要从 iPhone5s 开始说起，iPhone5s 开始采用了 64 位处理器。在 32 位时代，一个指针大小是 32 位（4字节），而在 64 位时代翻倍，一个指针的大小变成了 64 位（8字节）。这样子，在处理某些小一点，短一点的 NSString、NSNumber、NSDate 对象的时候，会显得过于浪费效率。这个时候，苹果推出了 Tagged Pointer 技术。</p>
+<p> 苹果将一个对象的指针拆分成了两部分，一部分直接保存数据，另一部分作为特殊标记（tag），表示这个是一个特别的指针。这样呢，就会将节省很多的时间，因为它不再需要正常创建对象的申请和创建空间，处理引用计数，以及直接读取（在 objc_msgSend 当中，Tagged Pointer 会被识别出来，直接从指针中读取）。</p>
+<p> 苹果之前说过：</p>
+<blockquote>
+<p>使用 Tagged Pointer 技术之后，在内存上读取的速度快了 3 倍，创建时的速度比以前快了 106 倍。</p>
+</blockquote>
+<p> 当然，这么做其实也是会有问题的，因为它并不是一个真正的对象，当你想要想其他普通的对象一样获取指针的时候，编译器直接就会报错（因为它也是在编译时创建的，而且压根没有 isa 指针）。</p>
+<p> 编译器会告诉你正确的方法：改为使用 <code>object_getClass()</code>。</p>
+</li>
+</ol>
+<h2 id="八、总结"><a href="#八、总结" class="headerlink" title="八、总结"></a>八、总结</h2><p>类簇的优点：</p>
+<ol>
+<li>可以将抽象基类背后的复杂细节隐藏起来</li>
+<li>程序员不会需要记住各种创建对象的具体类实现，简化了开发成本，提高了开发效率</li>
+<li>便于进行封装和组件化</li>
+<li>减少了 if-else 这样缺乏扩展性的代码</li>
+<li>增加新功能支持不影响其他代码</li>
+</ol>
+<p>类簇的缺点：</p>
+<ol>
+<li>已有的类簇非常不好扩展</li>
+</ol>
+<p>我们了解类簇的好处：</p>
+<ul>
+<li>出现 bug 时，可以通过崩溃报告中的类簇关键字，快速定位 bug 位置。</li>
+<li><p>在实现一些固定且并不需要经常修改的事物时，可以高效的选择类簇去实现。</p>
+<p>  举个例子：针对不同版本，不同机型往往需要不同的设置，这时可以选择使用类簇；</p>
+</li>
+<li><p>app 的设置页面这种并不需要经常修改的页面，可以使用类簇去创建大量重复的布局代码。</p>
+</li>
+</ul>
+<h2 id="九、文章"><a href="#九、文章" class="headerlink" title="九、文章"></a>九、文章</h2><p><a href="https://www.jianshu.com/u/471ab65a3123" target="_blank" rel="noopener">伯陽</a> - <a href="https://www.jianshu.com/p/68956f300fc2" target="_blank" rel="noopener">iOS中类簇的使用</a><br><a href="https://www.mikeash.com/pyblog/friday-qa-2015-07-31-tagged-pointer-strings.html" target="_blank" rel="noopener">Friday Q&amp;A 2015-07-31: Tagged Pointer Strings</a><br><a href="https://blog.cnbluebox.com/blog/2014/04/16/nsstringte-xing-fen-xi-xue-xi/" target="_blank" rel="noopener">NSString特性分析学习</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/11/04/iOS/iOS原理/iOS 类簇/">http://yoursite.com/2019/11/04/iOS/iOS原理/iOS 类簇/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/" class="pre">iOS网络层设计</a><a href="/2019/11/04/iOS/iOS原理/iOS OCR/" class="next">iOS OCR</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、类簇"><span class="toc-text">一、类簇</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二、抽象工厂"><span class="toc-text">二、抽象工厂</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三、NSArray"><span class="toc-text">三、NSArray</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、-NSSingleObjectArrayI"><span class="toc-text">四、__NSSingleObjectArrayI</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#五、NSDictionary"><span class="toc-text">五、NSDictionary</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#六、NSSet"><span class="toc-text">六、NSSet</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#七、NSString"><span class="toc-text">七、NSString</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#八、总结"><span class="toc-text">八、总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#九、文章"><span class="toc-text">九、文章</span></a></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

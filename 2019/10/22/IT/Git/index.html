@@ -1,0 +1,332 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title>Git | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">Git</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title">Git</h1><div class="post-meta"><a href="/2019/10/22/IT/Git/#comments" class="comment-count"></a><p><span class="date">Oct 22, 2019</span><span><a href="/categories/工具/" class="category">工具</a></span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><h2 id="一、Git-工作流程"><a href="#一、Git-工作流程" class="headerlink" title="一、Git 工作流程"></a>一、Git 工作流程</h2><center><br><img src="http://dzliving.com/Git_0.png" alt><br></center>
+
+<ul>
+<li>Workspace：工作区</li>
+<li>Index / Stage：暂存区（和 git stash 命令暂存的地方不一样）</li>
+<li>Repository：仓库区（或本地仓库）</li>
+<li>Remote：远程仓库</li>
+</ul>
+<h4 id="1-1-工作区"><a href="#1-1-工作区" class="headerlink" title="1.1 工作区"></a>1.1 工作区</h4><p>程序员进行开发改动的地方，是你当前看到的，也是最新的。</p>
+<p>平常我们开发就是拷贝远程仓库中的一个分支，基于该分支进行开发。在开发过程中就是对工作区的操作。</p>
+<h4 id="1-2-暂存区"><a href="#1-2-暂存区" class="headerlink" title="1.2 暂存区"></a>1.2 暂存区</h4><p>.git 目录下的 index 文件，暂存区会记录 <code>git add</code> 添加文件的相关信息(文件名、大小、timestamp，…)，不保存文件实体，通过 <code>id</code> 指向每个文件实体。可以使用 <code>git status</code> 查看暂存区的状态。暂存区标记了你当前工作区中，哪些内容是被 git 管理的。</p>
+<p>当你完成某个需求或功能后需要提交到远程仓库，那么第一步就是通过 git add 先提交到暂存区，被 git 管理。</p>
+<h4 id="1-3-本地仓库"><a href="#1-3-本地仓库" class="headerlink" title="1.3 本地仓库"></a>1.3 本地仓库</h4><p>保存了对象被提交过的各个版本，比起工作区和暂存区的内容，它要<font color="#cc0000">更旧</font>一些。</p>
+<p><code>git commit</code> 后同步 index 的目录树到本地仓库，方便从下一步通过 git push 同步本地仓库与远程仓库的同步。</p>
+<h4 id="1-4-远程仓库"><a href="#1-4-远程仓库" class="headerlink" title="1.4 远程仓库"></a>1.4 远程仓库</h4><p>远程仓库的内容可能被分布在多个地点的处于协作关系的本地仓库修改，因此它可能与本地仓库同步，也可能不同步，但是它的内容是最旧的。</p>
+<h4 id="1-5-小结"><a href="#1-5-小结" class="headerlink" title="1.5 小结"></a>1.5 小结</h4><ul>
+<li>任何对象都是在工作区中诞生和被修改；</li>
+<li>任何修改都是从进入 index 区才开始被版本控制；</li>
+<li>只有把修改提交到本地仓库，该修改才能在仓库中留下痕迹；</li>
+<li>与协作者分享本地的修改，可以把它们push到远程仓库来共享。</li>
+</ul>
+<p>下面这幅图更加直接阐述了四个区域之间的关系，可能有些命令不太清楚，没关系，下部分会详细介绍。</p>
+<center><br><img src="http://dzliving.com/Git_1.png" alt><br></center>
+
+
+<h2 id="二、常用的-Git-命令"><a href="#二、常用的-Git-命令" class="headerlink" title="二、常用的 Git 命令"></a>二、常用的 Git 命令</h2><center><br><img src="http://dzliving.com/Git_2.png" alt><br></center>
+
+<h4 id="2-1-HEAD"><a href="#2-1-HEAD" class="headerlink" title="2.1 HEAD"></a>2.1 HEAD</h4><center><br><img src="http://dzliving.com/Git_HEAD.png" alt><br></center>
+
+<p>HEAD 始终指向当前所处分支的最新的提交点。你所处的分支变化了，或者产生了新的提交点，HEAD 就会跟着改变。</p>
+<h4 id="2-2-add"><a href="#2-2-add" class="headerlink" title="2.2 add"></a>2.2 add</h4><center><br><img src="http://dzliving.com/Git_Add.png" alt><br></center>
+
+<p>add 主要实现将工作区修改的内容提交到暂存区，交由 git 管理。</p>
+<center><br><br>|命令|描述|<br>|:—-|:—–|<br>|git add .|添加当前目录的所有文件到暂存区|<br>|git add \&lt;dir>|添加指定目录到暂存区，包括子目录|<br>|git add \&lt;file1>|添加指定文件到暂存区|<br><br></center>
+
+<h4 id="2-3-commit"><a href="#2-3-commit" class="headerlink" title="2.3 commit"></a>2.3 commit</h4><center><br><img src="http://dzliving.com/Git_Commit.png" alt><br></center>
+
+<p>commit 主要实现将暂存区的内容提交到本地仓库，并使得当前分支的 HEAD 向后移动一个提交点。</p>
+<center><br><br>|命令|描述|<br>|:———-|:———|<br>|git commit -m \&lt;message>|提交暂存区到本地仓库，message 代表说明信息|<br>|git commit <file1> -m \&lt;message>|提交暂存区的指定文件到本地仓库|<br>|git commit –amend -m \&lt;message>|使用一次新的 commit，替代上一次提交|<br><br></file1></center>
+
+
+<h4 id="2-4-branch"><a href="#2-4-branch" class="headerlink" title="2.4 branch"></a>2.4 branch</h4><center><br><img src="http://dzliving.com/Git_Branch.png" alt><br></center>
+
+<p>涉及到协作，自然会涉及到分支。关于分支，大概有四种操作：</p>
+<ol>
+<li>展示分支</li>
+<li>切换分支</li>
+<li>创建分支</li>
+<li>删除分支</li>
+</ol>
+<p>分支是用来标记特定代码的提交，每一个分支通过 <font color="#cc0000"><code>SHA1sum</code></font> 值来标识，所以对分支的操作是轻量级的，你改变的仅仅是 SHA1sum 值。</p>
+<center><br><br>|命令|描述|<br>|:——–|:———|<br>|git branch|列出所有本地分支|<br>|git branch -r|列出所有远程分支|<br>|git branch -a|列出所有本地分支和远程分支|<br>|git branch \&lt;branch-name>|新建一个分支，但依然停留在当前分支|<br>|git checkout -b \&lt;branch-name>|新建一个分支，并切换到该分支|<br>|git branch –track \&lt;branch>\&lt;remote-branch>|新建一个分支，与指定的远程分支建立追踪关系|<br>|git checkout \&lt;branch-name>|切换到指定分支，并更新工作区|<br>|git branch -d \&lt;branch-name>|删除分支|<br>|git push origin –delete \&lt;branch-name>|删除远程分支|<br><br></center>
+
+<h4 id="2-5-fetch"><a href="#2-5-fetch" class="headerlink" title="2.5 fetch"></a>2.5 fetch</h4><table>
+<thead>
+<tr>
+<th style="text-align:left">命令</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">git fetch &lt;远程主机名&gt;</td>
+<td style="text-align:left">将某个远程主机的更新全部取回本地</td>
+</tr>
+<tr>
+<td style="text-align:left">git fetch &lt;远程主机名&gt; &lt;分支名&gt;</td>
+<td style="text-align:left">取回特定分支的更新</td>
+</tr>
+<tr>
+<td style="text-align:left">git fetch origin master</td>
+<td style="text-align:left">取回 origin 主机的 master 分支</td>
+</tr>
+</tbody>
+</table>
+<p>取回更新后，会返回一个 FETCH_HEAD，指的是某个 branch 在服务器上的最新状态，我们可以在本地通过它查看刚取回的更新信息：</p>
+<figure class="highlight gams"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">$</span> git <span class="built-in">log</span> -p FETCH_HEAD</span><br></pre></td></tr></table></figure>
+<h4 id="2-6-merge"><a href="#2-6-merge" class="headerlink" title="2.6 merge"></a>2.6 merge</h4><center><br><img src="http://dzliving.com/Git_Merge.png" alt><br></center>
+
+<p>merge 命令把不同的分支合并起来。如上图，在实际开放中，我们可能从 master 分支中切出一个分支，然后进行开发完成需求，中间经过 R3、R4、R5 的 commit 记录，最后开发完成需要合入 master 中，这便用到了 merge。</p>
+<center><br><br>|命令|描述|<br>|:——–|:——-|<br>|git fetch \&lt;remote>|merge 之前先拉一下远程仓库最新代码|<br>|git merge \&lt;branch>|合并指定分支到当前分支|<br><br></center>
+
+<p>一般在 merge 之后，会出现 conflict，需要针对冲突情况，手动解除冲突。主要是因为两个用户修改了同一文件的同一块区域。</p>
+<ol>
+<li><p>中断合并</p>
+ <figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">merge</span> <span class="comment">--abort</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<ol start="2">
+<li><p>撤销合并</p>
+<p> 撤销合并时采用 git reset/revert 操作。</p>
+</li>
+</ol>
+<h4 id="2-7-rebase"><a href="#2-7-rebase" class="headerlink" title="2.7 rebase"></a>2.7 rebase</h4><center><br><img src="http://dzliving.com/Git_Rebase.png" alt><br></center>
+
+<p>rebase 又称为衍合，是合并的另外一种选择。</p>
+<p>在开始阶段，我们处于 new 分支上，执行 <code>git rebase dev</code>，那么 new 分支上新的 commit 都在master 分支上重演一遍，最后 checkout 切换回到 new 分支。这一点与 merge 是一样的，合并前后所处的分支并没有改变。</p>
+<p>git rebase dev，通俗的解释就是 new 分支想站在 dev 的肩膀上继续下去。rebase也需要手动解决冲突。</p>
+<ol>
+<li><p>rebase 与 merge 的区别</p>
+<p> 现在我们有这样的两个分支：test 和 master，提交如下：</p>
+ <figure class="highlight brainfuck"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">      <span class="comment">D</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">E</span> <span class="comment">test</span></span><br><span class="line"><span class="comment"></span>     <span class="comment">/</span></span><br><span class="line"><span class="comment">A</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">B</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">C</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">F</span> <span class="comment">master</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>在 master 执行 git merge test，然后会得到如下结果：
+
+<figure class="highlight brainfuck"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">      <span class="comment">D</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">E</span></span><br><span class="line"><span class="comment"></span>     <span class="comment">/</span>          <span class="comment">\</span></span><br><span class="line"><span class="comment">A</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">B</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">C</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">F</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">G</span>   <span class="comment">test</span><span class="string">,</span> <span class="comment">master</span></span><br></pre></td></tr></table></figure>
+
+
+在 master 执行 git rebase test，然后得到如下结果：
+
+<figure class="highlight brainfuck"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">A</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">B</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">D</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">E</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">C'</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="comment">F'</span>   <span class="comment">test</span><span class="string">,</span> <span class="comment">master</span></span><br></pre></td></tr></table></figure>
+
+
+可以看到，merge 操作会&lt;font color=#cc0000&gt;生成一个新的节点&lt;/font&gt;，之前的提交分开显示。而 rebase 操作&lt;font color=#cc0000&gt;不会生成新的节点&lt;/font&gt;，是将两个分支融合成一个线性的提交。
+</code></pre><p>如果你想要一个干净的，没有 merge commit 的线性历史树，那么你应该选择 git rebase；如果你想保留完整的历史记录，并且想要避免重写 commit history 的风险，你应该选择使用 git merge。</p>
+<h4 id="2-8-reset"><a href="#2-8-reset" class="headerlink" title="2.8 reset"></a>2.8 reset</h4><center><br><img src="http://dzliving.com/Git_Reset.png" alt><br></center>
+
+<p>reset 命令把当前分支指向另一个位置，并且相应的变动工作区和暂存区。</p>
+<center><br><br>|命令|描述|<br>|:——|:——-|<br>|git reset —soft \&lt;commit>|只改变提交点，暂存区和工作目录的内容都不改变|<br>|git reset —mixed \&lt;commit>|改变提交点，同时改变暂存区的内容|<br>|git reset —hard \&lt;commit>|暂存区、工作区的内容都会被修改到与提交点完全一致的状态|<br>|git reset –hard HEAD|让工作区回到上次提交时的状态|<br><br></center>
+
+
+<h4 id="2-9-revert"><a href="#2-9-revert" class="headerlink" title="2.9 revert"></a>2.9 revert</h4><center><br><img src="http://dzliving.com/Git_Revert.jpg" alt><br></center>
+
+
+<p>git revert 用一个新提交来消除一个历史提交所做的任何修改。</p>
+<ol>
+<li><p>revert 与 reset 的区别</p>
+ <center><br> <img src="http://dzliving.com/Git_ResetVSRevert.jpg" alt><br> </center>
+
+<ul>
+<li>git revert 是用一次新的 commit 来回滚之前的 commit，git reset 是直接删除指定的commit。</li>
+<li>在回滚这一操作上看，效果差不多。但是在日后继续 merge 以前的老版本时有区别。因为 git revert 是用一次逆向的 commit“中和”之前的提交，因此日后合并老的 branch 时，导致这部分改变不会再次出现，减少冲突。但是 git reset 是之间把某些 commit 在某个 branch 上删除，因而和老的branch 再次 merge 时，这些被回滚的 commit 应该还会被引入，产生很多冲突。关于这一点，不太理解的可以看<a href="http://yijiebuyi.com/blog/8f985d539566d0bf3b804df6be4e0c90.html" target="_blank" rel="noopener">这篇文章</a>。</li>
+<li>git reset 是把 HEAD 向后移动了一下，而 git revert 是 HEAD 继续前进，只是新的commit 的内容和要 revert 的内容正好相反，能够抵消要被 revert 的内容。</li>
+</ul>
+</li>
+</ol>
+<h4 id="2-10-push"><a href="#2-10-push" class="headerlink" title="2.10 push"></a>2.10 push</h4><p>上传本地仓库分支到远程仓库分支，实现同步。</p>
+<center><br><br>|命令|描述|<br>|:——–|:——-|<br>|git push \&lt;remote>\&lt;branch>|上传本地指定分支到远程仓库|<br>|git push \&lt;remote> –force|强行推送当前分支到远程仓库，即使有冲突|<br>|git push \&lt;remote> –all|推送所有分支到远程仓库|<br><br></center>
+
+<h4 id="2-11-pull"><a href="#2-11-pull" class="headerlink" title="2.11 pull"></a>2.11 pull</h4><p>git pull 的过程可以理解为：</p>
+<figure class="highlight cos"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git fetch origin master   <span class="comment">// 从远程主机的 master 分支拉取最新内容 </span></span><br><span class="line">git <span class="keyword">merge</span> FETCH_HEAD      <span class="comment">// 将拉取下来的最新内容合并到当前所在的分支中</span></span><br></pre></td></tr></table></figure>
+<p>即将远程主机的某个分支的更新取回，并与本地指定的分支合并，完整格式可表示为：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git pull <span class="tag">&lt;<span class="name">远程主机名</span>&gt;</span> <span class="tag">&lt;<span class="name">远程分支名</span>&gt;</span>:<span class="tag">&lt;<span class="name">本地分支名</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>如果远程分支是与当前分支合并，则冒号后面的部分可以省略：</p>
+<figure class="highlight elixir"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$ </span>git pull origin <span class="keyword">next</span></span><br></pre></td></tr></table></figure>
+<h4 id="2-12-stash"><a href="#2-12-stash" class="headerlink" title="2.12 stash"></a>2.12 stash</h4><table>
+<thead>
+<tr>
+<th style="text-align:left">命令</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">git stash save “xx”</td>
+<td style="text-align:left">执行存储，并添加备注，只执行 git stash 也是可以的，但查找时不方便识别</td>
+</tr>
+<tr>
+<td style="text-align:left">git stash list</td>
+<td style="text-align:left">查看 stash 了哪些存储</td>
+</tr>
+<tr>
+<td style="text-align:left">git stash show</td>
+<td style="text-align:left">显示做了哪些修改，默认 show 第一个存储，如果要显示其他存储，后面加stash@{$num}，比如第<font color="#cc0000">二</font>个 <code>git stash show stash@{1}</code></td>
+</tr>
+<tr>
+<td style="text-align:left">git stash show -p</td>
+<td style="text-align:left">显示第一个存储的改动，如果想显示其他存储，加上 stash@{$num}，比如第二个：<code>git stash show  stash@{1}  -p</code></td>
+</tr>
+<tr>
+<td style="text-align:left">git stash apply</td>
+<td style="text-align:left">应用某个存储，但不会把存储从存储列表中删除，默认使用第一个存储，即 stash@{0}，如果要使用其他的，git stash apply stash@{$num} ， 比如第二个：git stash apply stash@{1}</td>
+</tr>
+<tr>
+<td style="text-align:left">git stash pop</td>
+<td style="text-align:left">命令恢复之前缓存的工作目录，将缓存堆栈中的对应 stash 删除，并将对应修改应用到当前的工作目录下，默认为第一个 stash，即 stash@{0}，如果要应用并删除其他 stash，命令：git stash pop stash@{$num}，比如应用并删除第二个：git stash pop stash@{1}</td>
+</tr>
+<tr>
+<td style="text-align:left">git stash drop stash@{$num}</td>
+<td style="text-align:left">丢弃 stash@{$num} 存储，从列表中删除这个存储</td>
+</tr>
+<tr>
+<td style="text-align:left">git stash clear</td>
+<td style="text-align:left">删除所有缓存的stash</td>
+</tr>
+</tbody>
+</table>
+<center><br><img src="http://dzliving.com/Git_Stash.png" alt><br></center>
+
+<blockquote>
+<p><strong>注意</strong>：没有在 git 版本控制中的文件，是不能被 git stash 存起来的。</p>
+</blockquote>
+<p>如果新增了一个文件，直接执行 git stash 是不会存起来的，可以先执行 git add，再执行 git stash。</p>
+<p>这个时候，想切分支就再也不会报错有改动未提交了。</p>
+<p>如果要应用这些 stash，直接使用 git stash apply 或者 git stash pop 就可以再次导出来了。</p>
+<ol>
+<li><p>总结 </p>
+<p> git add 只是把文件加到 git 版本控制里，并不等于就被 stash 起来了，git add 和 git stash 没有必然的关系，但是执行 git stash 能正确存储的前提是文件必须在 git 版本控制中才行。</p>
+<p> 常规 git stash 的一个限制是它会一下暂存所有的文件。有时，只备份某些文件更为方便，让另外一些与代码库保持一致。一个非常有用的技巧，用来备份部分文件：</p>
+<ul>
+<li>add 那些你不想备份的文件</li>
+<li>调用 git stash –keep-index。只会备份那些没有被 add 的文件。</li>
+<li>调用 git reset 取消已经 add 的文件的备份，继续自己的工作。</li>
+</ul>
+</li>
+</ol>
+<h4 id="2-13-其他命令"><a href="#2-13-其他命令" class="headerlink" title="2.13 其他命令"></a>2.13 其他命令</h4><center><br><br>|命令|描述|<br>|:——|:——-|<br>|git status|显示有变更的文件|<br>|git log|显示当前分支的版本历史|<br>|git diff|显示暂存区和工作区的差异|<br>|git diff HEAD|显示工作区与当前分支最新 commit 之间的差异|<br>|git cherry-pick \&lt;commit>|选择一个 commit，合并进当前分支|<br><br></center>
+
+<h2 id="三、Git-Reset-三种模式"><a href="#三、Git-Reset-三种模式" class="headerlink" title="三、Git Reset 三种模式"></a>三、Git Reset 三种模式</h2><p>使用 Git 时有可能 commit 提交代码后，发现这一次 commit 的内容是有错误的，那么有两种处理方法：</p>
+<ol>
+<li>修改错误内容，再次 commit一次</li>
+<li>使用 git reset 命令撤销这一次错误的 commit</li>
+</ol>
+<p>第一种方法多一条 commit 记录；第二种方法，错误的 commit 不会被保留下来。</p>
+<blockquote>
+<p>git reset：Reset current HEAD to the specified state。让 HEAD 指针指向其他的地方。</p>
+</blockquote>
+<p>例如我们有一次 commit 不是很满意，需要回到上一次的 Commit 里面。那么这个时候就需要通过 reset，把 HEAD 指针指向上一次的 commit 的点。</p>
+<p>它有三种模式：soft、mixed、hard。</p>
+<center><br><img src="http://dzliving.com/Git_Reset_0.png" alt="git各个区域和命令关系"><br></center>
+
+<p>这三个模式理解了，对于使用这个命令很有帮助。在理解这三个模式之前，需要略微知道一点 Git 的基本流程。</p>
+<center><br><img src="http://dzliving.com/Git_Reset_1.png" alt><br></center>
+
+<p>简单叙述一下把文件存入 Repository 流程：</p>
+<ol>
+<li><p>刚开始 working tree、index 与 repository(HEAD) 里面的内容都是一致的。</p>
+ <center><br> <img src="http://dzliving.com/Git_Reset_2.png" alt><br> </center>
+</li>
+<li><p>当 git 管理的文件夹里面的内容出现改动后，此时 working tree 的内容就会跟 index 及 repository(HEAD) 的不一致，而 Git 知道是哪些文件(Tracked File)被改动过，直接将文件状态设置为 modified (Unstaged files)。</p>
+ <center><br> <img src="http://dzliving.com/Git_Reset_3.png" alt><br> </center>
+</li>
+<li><p>当我们执行 <code>git add</code> 后，会将这些改变的文件内容加入 index 中 (Staged files)，所以此时working tree 跟 index 的内容是一致的，但与 repository(HEAD) 内容不一致。</p>
+ <center><br> <img src="http://dzliving.com/Git_Reset_4.png" alt><br> </center>
+</li>
+<li><p>接着执行 <code>git commit</code> 后，将 Git 索引中所有改变的文件内容提交至 Repository 中，建立出新的 commit 节点(HEAD)后， working tree、index 与 repository(HEAD) 区域的内容 又会保持一致。</p>
+ <center><br> <img src="http://dzliving.com/Git_Reset_5.png" alt><br> </center>
+
+
+</li>
+</ol>
+<h4 id="3-1-reset-–hard"><a href="#3-1-reset-–hard" class="headerlink" title="3.1 reset –hard"></a>3.1 reset –hard</h4><blockquote>
+<p>reset –hard 会在重置 HEAD 和 branch 的同时，重置 stage 区和工作目录里的内容。</p>
+</blockquote>
+<p>当你在 reset 后面加了 –hard 参数时，你的 stage 区和工作目录里的内容会被完全重置为和 HEAD 的新位置相同的内容。换句话说，就是你的没有 commit 的修改会被全部擦掉。</p>
+<center><br><img src="http://dzliving.com/Git_Reset_6.png" alt="git status"><br></center>
+
+<p>然后，你执行了 reset 并附上了 –hard 参数：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="keyword">reset</span> <span class="comment">--hard</span></span><br></pre></td></tr></table></figure>
+<p>你的 HEAD 和当前 branch 切到上一条 commit 的同时，你工作目录里的新改动和已经 add 到 stage 区的新改动也一起全都消失了：</p>
+<center><br><img src="http://dzliving.com/Git_Reset_7.png" alt="git status"><br></center>
+
+<p>可以看到，在 reset –hard 后，所有的改动都被擦掉了。</p>
+<h4 id="3-2-reset-–soft"><a href="#3-2-reset-–soft" class="headerlink" title="3.2 reset –soft"></a>3.2 reset –soft</h4><blockquote>
+<p>reset –soft 会在重置 HEAD 和 branch 时，保留工作目录和暂存区中的内容，并把重置 HEAD 所带来的新的差异放进暂存区。</p>
+</blockquote>
+<p>什么是「重置 HEAD 所带来的新的差异」？就是这里：</p>
+<center><br><img src="http://dzliving.com/Git_Reset_Soft.gif" alt><br></center>
+
+<p>由于 HEAD 从 4 移动到了 3，而且在 reset 的过程中工作目录和暂存区的内容没有被清理掉，所以 4 中的改动在 reset 后就也成了工作目录新增的「工作目录和 HEAD 的差异」。这就是上面一段中所说的「重置 HEAD 所带来的差异」。</p>
+<p>此模式下会保留 working tree 工作目录的内容，不会改变到目前所有的 git 管理的文件夹的内容；也会保留 index 暂存区的内容，让 index 暂存区与 working tree 工作目录的内容是一致的。就只有 repository 中的内容的更变需要与 reset 目标节点一致，因此原始节点与 reset 节点之间的差异变更集合会存在与 index 暂存区中(Staged files)，所以我们可以直接执行 git commit 将 index 暂存区中的内容提交至 repository 中。当我们想合并「当前节点」与「reset 目标节点」之间不具太大意义的 commit 记录（可能是阶段性地频繁提交）时，可以考虑使用 Soft Reset 来让 commit 演进线图较为清晰点。</p>
+<ol>
+<li><p>修改后的 AppDelegate.h 文件 add 到 stage 区，修改后的 AppDelegate.m 保留在工作目录</p>
+ <center><br> <img src="http://dzliving.com/Git_Reset_8.png" alt><br> </center>
+</li>
+<li><p>查看当前最新的 commit 记录</p>
+ <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="keyword">show</span> <span class="comment">--stat</span></span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<pre><code>&lt;center&gt;
+![](http://dzliving.com/Git_Reset_9.png)
+&lt;/center&gt;
+</code></pre><ol start="3">
+<li><p>执行 git reset –soft HEAD^</p>
+ <center><br> <img src="http://dzliving.com/Git_Reset_10.png" alt><br> </center>
+
+<p> 那么除了 HEAD 和它所指向的 branch1 被移动到 HEAD^ 之外，原先 HEAD 处 commit 的改动（README.md 文件）也会被放进暂存区。</p>
+</li>
+</ol>
+<p>这就是 –soft 和 –hard 的区别：–hard 会清空工作目录和暂存区的改动，而 –soft 则会保留工作目录的内容，并把因为保留工作目录内容所带来的新的文件差异放进暂存区。</p>
+<h4 id="3-3-reset-–mixed"><a href="#3-3-reset-–mixed" class="headerlink" title="3.3 reset –mixed"></a>3.3 reset –mixed</h4><blockquote>
+<p>reset 如果不加参数，那么默认使用 –mixed 参数。它的行为是：保留工作目录，并且清空暂存区。也就是说，工作目录的修改、暂存区的内容以及由 reset 所导致的新的文件差异，都会被放进工作目录。简而言之，就是「把所有差异都混合（mixed）放在工作目录中」。</p>
+</blockquote>
+<p>以上面的情况为例：</p>
+<center><br><img src="http://dzliving.com/Git_Reset_11.png" alt><br></center>
+
+<p>工作目录的内容和 –soft 一样会被保留，但和 –soft 的区别在于，它会把<font color="#cc0000">暂存区清空</font>，并把原节点和 reset 节点的差异的文件放在工作目录。总而言之就是，工作目录的修改、暂存区的内容以及由 reset 所导致的新的文件差异，<font color="#cc0000">都会被放进工作目录</font>。</p>
+<h4 id="3-4-总结"><a href="#3-4-总结" class="headerlink" title="3.4 总结"></a>3.4 总结</h4><blockquote>
+<p>reset 的本质：移动 HEAD 以及它所指向的 branch。</p>
+</blockquote>
+<p>实质上，reset 这个指令虽然可以用来撤销 commit，但它的实质行为并不是撤销，而是移动 HEAD ，并且「捎带」上 HEAD 所指向的 branch（如果有的话）。也就是说，reset 这个指令的行为其实和它的字面意思“重置”十分相符：它是用来重置 HEAD 以及它所指向的 branch 的位置的。</p>
+<p>而 reset –hard HEAD^ 之所以起到了撤销 commit 的效果，是因为它把 HEAD 和它所指向的 branch 一起移动到了当前 commit 的父 commit 上，从而起到了「撤销」的效果：</p>
+<center><br><img src="http://dzliving.com/Git_Reset_Hard_HEAD.gif" alt><br></center>
+
+<p>Git 的历史只能往回看，不能向未来看，所以把 HEAD 和 branch 往回移动，就能起到撤回 commit 的效果。</p>
+<p>所以同理，reset –hard 不仅可以撤销提交，还可以用来把 HEAD 和 branch 移动到其他的任何地方。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="keyword">reset</span> <span class="comment">--hard branch2</span></span><br></pre></td></tr></table></figure>
+<center><br><img src="http://dzliving.com/Git_Reset_Branch.gif" alt><br></center>
+
+
+<h4 id="3-5-reset-三种模式区别和使用场景"><a href="#3-5-reset-三种模式区别和使用场景" class="headerlink" title="3.5 reset 三种模式区别和使用场景"></a>3.5 reset 三种模式区别和使用场景</h4><ol>
+<li><p>区别</p>
+<ul>
+<li>–hard：重置位置的同时，直接将 working Tree工作目录、index 暂存区及 repository 都重置成目标 Reset 节点的内容，所以效果看起来等同于清空暂存区和工作区。</li>
+<li>–soft：重置位置的同时，保留 working Tree 工作目录和 index 暂存区的内容，只让 repository 中的内容和 reset 目标节点保持一致，因此原节点和 reset 节点之间的【差异变更集】会放入 index 暂存区中(Staged files)。所以效果看起来就是工作目录的内容不变，暂存区原有的内容也不变，只是原节点和 Reset 节点之间的所有差异都会放到暂存区中。</li>
+<li>–mixed（默认）：重置位置的同时，只保留 Working Tree 工作目录的内容，但会将 Index 暂存区和 Repository 中的内容更改和 reset 目标节点一致，因此原节点和 Reset 节点之间的【差异变更集】会放入 Working Tree 工作目录中。所以效果看起来就是原节点和 Reset 节点之间的所有差异都会放到工作目录中。</li>
+</ul>
+</li>
+<li><p>使用场景</p>
+<ul>
+<li>–hard：<ul>
+<li>要放弃目前本地的所有改变时，即去掉所有 add 到暂存区的文件和工作区的文件，可以执行 git reset -hard HEAD 来强制恢复 git 管理的文件夹的内容及状态；</li>
+<li>真的想抛弃目标节点后的所有 commit（可能觉得目标节点到原节点之间的 commit 提交都是错了，之前所有的 commit 有问题）。</li>
+</ul>
+</li>
+<li>–soft<ul>
+<li>原节点和 reset 节点之间的【差异变更集】会放入 index 暂存区中(Staged files)，所以假如我们之前工作目录没有改过任何文件，也没 add 到暂存区，那么使用 reset –soft 后，我们可以直接执行 git commit 将 index 暂存区中的内容提交至 repository 中。为什么要这样呢？这样做的使用场景是：假如我们想合并「当前节点」与「reset 目标节点」之间不具太大意义的 commit 记录(可能是阶段性地频繁提交,就是开发一个功能的时候，改或者增加一个文件的时候就commit，这样做导致一个完整的功能可能会好多个commit点，这时假如你需要把这些commit整合成一个commit的时候)时，可以考虑使用reset –soft来让 commit 演进线图较为清晰。总而言之，可以使用 –soft 合并 commit 节点。</li>
+</ul>
+</li>
+<li>–mixed（默认）<ul>
+<li>使用完reset –mixed 后，我們可以直接执行 git add 将這些改变果的文件内容加入 index 暂存区中，再执行 git commit 将 Index暂存区 中的内容提交至Repository中，这样一样可以达到合并commit节点的效果（与上面–soft合并commit节点差不多，只是多了git add添加到暂存区的操作）；</li>
+<li>移除所有Index暂存区中准备要提交的文件(Staged files)，我们可以执行 git reset HEAD 来 Unstage 所有已列入 Index暂存区 的待提交的文件。(有时候发现add错文件到暂存区，就可以使用命令)。</li>
+<li>commit提交某些错误代码，或者没有必要的文件也被commit上去，不想再修改错误再commit（因为会留下一个错误commit点），可以回退到正确的commit点上，然后所有原节点和reset节点之间差异会返回工作目录，假如有个没必要的文件的话就可以直接删除了，再 commit 上去就 OK 了。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h2 id="四、文章"><a href="#四、文章" class="headerlink" title="四、文章"></a>四、文章</h2><p><a href="https://git-scm.com/docs" target="_blank" rel="noopener">Git</a><br><a href="https://www.jianshu.com/u/0fa6f5d09040" target="_blank" rel="noopener">Ruheng</a> - <a href="https://www.jianshu.com/p/072587b47515" target="_blank" rel="noopener">一篇文章，教你学会Git</a><br><a href="https://www.jianshu.com/u/772b2edab0f4" target="_blank" rel="noopener">carway</a> - <a href="https://www.jianshu.com/p/c2ec5f06cf1a" target="_blank" rel="noopener">Git Reset 三种模式</a><br><a href="https://www.jianshu.com/p/bb5b84c638f0" target="_blank" rel="noopener">Git回滚Merge</a><br><a href="http://www.ruanyifeng.com/blog/2014/06/git_remote.html" target="_blank" rel="noopener">Git远程操作详解</a></p>
+</div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/10/22/IT/Git/">http://yoursite.com/2019/10/22/IT/Git/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/10/23/IT/SSH/" class="pre">SSH</a><a href="/2019/10/21/GLSL/GLSL之变量和数据类型/" class="next">GLSL之变量和数据类型</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、Git-工作流程"><span class="toc-text">一、Git 工作流程</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-1-工作区"><span class="toc-text">1.1 工作区</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-2-暂存区"><span class="toc-text">1.2 暂存区</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-3-本地仓库"><span class="toc-text">1.3 本地仓库</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-4-远程仓库"><span class="toc-text">1.4 远程仓库</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-5-小结"><span class="toc-text">1.5 小结</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#二、常用的-Git-命令"><span class="toc-text">二、常用的 Git 命令</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-HEAD"><span class="toc-text">2.1 HEAD</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-add"><span class="toc-text">2.2 add</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3-commit"><span class="toc-text">2.3 commit</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-4-branch"><span class="toc-text">2.4 branch</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-5-fetch"><span class="toc-text">2.5 fetch</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-6-merge"><span class="toc-text">2.6 merge</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-7-rebase"><span class="toc-text">2.7 rebase</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-8-reset"><span class="toc-text">2.8 reset</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-9-revert"><span class="toc-text">2.9 revert</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-10-push"><span class="toc-text">2.10 push</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-11-pull"><span class="toc-text">2.11 pull</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-12-stash"><span class="toc-text">2.12 stash</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-13-其他命令"><span class="toc-text">2.13 其他命令</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三、Git-Reset-三种模式"><span class="toc-text">三、Git Reset 三种模式</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-reset-–hard"><span class="toc-text">3.1 reset –hard</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-reset-–soft"><span class="toc-text">3.2 reset –soft</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-reset-–mixed"><span class="toc-text">3.3 reset –mixed</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-4-总结"><span class="toc-text">3.4 总结</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-5-reset-三种模式区别和使用场景"><span class="toc-text">3.5 reset 三种模式区别和使用场景</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、文章"><span class="toc-text">四、文章</span></a></li></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>

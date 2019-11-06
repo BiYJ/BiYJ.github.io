@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description"><title> | D</title><link rel="stylesheet" type="text/css" href="//fonts.loli.net/css?family=Source+Code+Pro"><link rel="stylesheet" type="text/css" href="/css/style-dark.css?v=2.0.3"><link rel="stylesheet" type="text/css" href="/css/highlight-dark.css?v=2.0.3"><link rel="Shortcut Icon" href="/favicon.ico"><link rel="bookmark" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">D</h1><a id="logo" href="/.">D</a><p class="description">While there is life there is hope</p></div><div id="nav-menu"><a href="/." class="current"><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div><div id="search-form"><div id="result-mask" class="hide"></div><label><input id="search-key" type="text" autocomplete="off" placeholder="搜索"></label><div id="result-wrap" class="hide"><div id="search-result"></div></div><div class="hide"><template id="search-tpl"><div class="item"><a href="/{path}" title="{title}"><div class="title">{title}</div><div class="time">{date}</div><div class="tags">{tags}</div></a></div></template></div></div></div><div id="layout" class="layout-g"><div class="layout-l"><div class="content_container"><div class="post"><h1 class="post-title"></h1><div class="post-meta"><a href="/2019/04/23/GLSL/GLSL/#comments" class="comment-count"></a><p><span class="date">Apr 23, 2019</span><span><i id="busuanzi_container_page_pv"><i id="busuanzi_value_page_pv"></i><i>点击</i></i></span></p></div><div class="post-content"><p>##一、GLSL基础</p>
+<ol>
+<li><p>GLSL（OpenGL Shading Language）作为一种着色语言是纯粹的和 <font color="#CC00000">GPU</font> 打交道的计算机语言。因为<font color="#CC00000"> GPU 是多线程并行处理器</font>，所以 GLSL 直接面向 SIMD 模型的多线程计算。</p>
+</li>
+<li><p>GLSL 编写的着色器函数是对每个数据<font color="#CC00000">同时执行</font>的。</p>
+</li>
+<li><p>每个顶点都会由顶点着色器中的算法处理，每个像素也都会由片段着色器中的算法处理。</p>
+<p> 因此，初学者在编写自己的着色器时，需要考虑到SIMD的并发特性，并用并行计算的思路来思考问题。 </p>
+<p> 最常见用法是在顶点着色器里生成所需要的值，然后传给片断着色器用。</p>
+<p> <br></p>
+</li>
+</ol>
+<p>##二、GLSL能做什么？</p>
+<ul>
+<li>日以逼真的材质 – 金属，岩石，木头，油漆等</li>
+<li>日益逼真的光照效果 – 区域光和软阴影</li>
+<li>非现实材质 – 美术效果，钢笔画，水墨画和对插画技术的模拟</li>
+<li>针对纹理内存的新用途</li>
+<li>更少的纹理访问 </li>
+<li>图形处理 – 选择，边缘钝化遮蔽和复杂混合</li>
+<li>动画效果 – 关键帧插值，粒子系统</li>
+<li>用户可编程的反走样方法</li>
+</ul>
+<p><br></p>
+<p>##三、GLSL注意</p>
+<ul>
+<li>GLSL支持函数重载</li>
+<li>GLSL不存在数据类型的自动提升，数据类型必须严格保持一致。</li>
+<li>GLSL不支持指针，字符串，字符，它基本上是一种处理数字数据的语言</li>
+<li>GLSL不支持联合、枚举类型、结构体位字段及按位运算符</li>
+</ul>
+<p><br></p>
+<p>##四、数据类型<br>GLSL 有三种基本数据类型：<font color="#CC00000">float</font>，<font color="#CC00000">int</font> 和 <font color="#CC00000">bool</font>，以及由这些数据类型组成的<font color="#CC00000">数组</font>和<font color="#CC00000">结构体</font>。</p>
+<p>需要注意的是，GLSL 并<font color="#CC00000">不支持指针</font>。与 C/C++ 不同的是，<font color="#CC00000">GLSL 将向量和矩阵作为基本数据类型</font>。</p>
+<p>注意：GLSL不存在数据类型的自动提升，类型必须严格保持一致。</p>
+<p>####1、标量</p>
+<ul>
+<li>float </li>
+<li>int </li>
+<li>bool </li>
+</ul>
+<figure class="highlight basic"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">42 </span>  // 十进制  </span><br><span class="line"><span class="symbol">042 </span> // 八进制  </span><br><span class="line"><span class="number">0</span>x2A // 十六进制</span><br></pre></td></tr></table></figure>
+<p>GLSL 不存在数据类型的自动提升，类型必须严格保持一致</p>
+<p><br></p>
+<p>####2、矢量</p>
+<p>矢量可以和标量甚至矩阵做加减乘除(必须符合规则)</p>
+<figure class="highlight glsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"> <span class="type">vec2</span>,  <span class="type">vec3</span>,  <span class="type">vec4</span> <span class="comment">// 包含2/3/4个浮点数的矢量</span></span><br><span class="line"><span class="type">ivec2</span>, <span class="type">ivec3</span>, <span class="type">ivec4</span> <span class="comment">// 包含2/3/4个整数的矢量</span></span><br><span class="line"><span class="type">bvec2</span>, <span class="type">bvec3</span>, <span class="type">bvec4</span> <span class="comment">// 包含2/3/4个布尔值的矢量</span></span><br></pre></td></tr></table></figure>
+<p>声明：</p>
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">vec3 v;             <span class="comment">//声明三维浮点型向量v  </span></span><br><span class="line">v[<span class="number">1</span>]=<span class="number">3.0</span>;           <span class="comment">//给向量v的第二个元素赋值  </span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 下面两种等价</span></span><br><span class="line">vec3 v = vec3(<span class="number">0.6</span>);</span><br><span class="line">vec3 v = vec3(<span class="number">0.6</span>, <span class="number">0.6</span>, <span class="number">0.6</span>);</span><br></pre></td></tr></table></figure>
+<p>注意：除了用索引的方式外，还可以用选择运算符的方式来使用向量。选择运算符是对于向量的各个元素（最多为 <font color="#CC00000">4</font> 个）约定俗成的名称，用一个小写拉丁字母来表示。根据向量表示对象的意义不同，可以使用以下选择运算符：</p>
+<pre><code>表示顶点可以用 (x、y、z、w)
+
+表示颜色可以用 (r、g、b、a)
+
+表示纹理坐标用 (s、t、r、q)
+</code></pre><p>用户可以选择其中任意一种选择运算符，它们的作用是等效的。</p>
+<p>例如：</p>
+<figure class="highlight smali"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">vec4 v1=vec4(1.0, 2.0, 3.0, 4.0)；   //用构造函数的方式声明并初始化四维浮点型</span><br><span class="line">vec4 v2；  </span><br><span class="line">v2.xy=v1.yz;                    //将v1的第二个和第三个元素复制到v2的第一个和第二个元素 </span><br><span class="line">v2.z=2.0;                       //给v2的第三个元素赋值  </span><br><span class="line">v2.xy=v1.yx;                    //将v1的头两个元素互换，再复制到v2的头两个元素中</span><br></pre></td></tr></table></figure>
+<p><br></p>
+<p>####3、矩阵</p>
+<pre><code>mat2, mat3, mat4 -- 2*2 / 3*3 / 4*4 的矩阵
+</code></pre><p>矩阵是按列顺序组织的，<font color="#CC00000">先列后行</font>。</p>
+<p>例如：</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">mat4 m;             // 声明四维浮点型方阵 m  </span><br><span class="line">m[<span class="string">2</span>][<span class="symbol">3</span>]=2.0;        // 给方阵的第三列、第四行元素赋值 </span><br><span class="line"></span><br><span class="line">// 下面两种等价，初始化矩阵对角</span><br><span class="line">mat2 m = mat2(1.0)</span><br><span class="line">mat2 m = mat2(1.0, 0.0, 0.0, 1.0);</span><br></pre></td></tr></table></figure>
+<p><br></p>
+<p>####4、取样器(Sampler)</p>
+<p>纹理查找需要指定哪个纹理或者纹理单元将指定查找。</p>
+<figure class="highlight glsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">sampler1D</span>           访问一个一维纹理</span><br><span class="line"><span class="type">sampler2D</span>           访问一个二维纹理           </span><br><span class="line"><span class="type">sampler3D</span>           访问一个三维纹理</span><br><span class="line"><span class="type">samplerCube</span>         访问一个立方贴图纹理</span><br><span class="line"><span class="type">sampler1DShadow</span>     访问一个带对比的一维深度纹理</span><br><span class="line"><span class="type">sampler2DShadow</span>     访问一个带对比的二维深度纹理</span><br></pre></td></tr></table></figure>
+<figure class="highlight glsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">uniform</span> <span class="type">sampler2D</span> grass;</span><br><span class="line"></span><br><span class="line">vcc2 coord = <span class="type">vec2</span>(<span class="number">100</span>, <span class="number">100</span>);</span><br><span class="line"><span class="type">vec4</span> color = <span class="built_in">texture2D</span>(grass, coord);</span><br><span class="line"><span class="comment">// 如果一个着色器要在程序里结合多个纹理，可以使用取样器数组</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> <span class="type">int</span> tex_nums = <span class="number">4</span>;</span><br><span class="line"><span class="keyword">uniform</span> <span class="type">sampler2D</span> textures[tex_nums];</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>; i &lt; tex_nums; ++i) &#123;</span><br><span class="line">    <span class="type">sampler2D</span> tex = textures[i];</span><br><span class="line">    <span class="comment">// todo ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><br></p>
+<p>####5、结构体</p>
+<p>这是<font color="#CC00000">唯一的用户定义类型</font>。</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">struct light  </span><br><span class="line">&#123;  </span><br><span class="line">    vec3 position<span class="comment">;  </span></span><br><span class="line">    vec3 color<span class="comment">;  </span></span><br><span class="line">&#125;<span class="comment">;  </span></span><br><span class="line"></span><br><span class="line">light ceiling_light<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p><br></p>
+<p>####6、数组</p>
+<p>数组索引是从 0 开始的，而且没有指针概念。</p>
+<figure class="highlight glsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个具有 10 个元素的数组  </span></span><br><span class="line"><span class="type">vec4</span> <span class="keyword">points</span>[<span class="number">10</span>];  </span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建一个不指定大小的数组</span></span><br><span class="line"><span class="type">vec4</span> <span class="keyword">points</span>[]; </span><br><span class="line"><span class="keyword">points</span>[<span class="number">2</span>] = <span class="type">vec4</span>(<span class="number">1.0</span>);  <span class="comment">// points 现在数组长度为 3</span></span><br><span class="line"><span class="keyword">points</span>[<span class="number">7</span>] = <span class="type">vec4</span>(<span class="number">2.0</span>);  <span class="comment">// points 现在数组长度为 8</span></span><br></pre></td></tr></table></figure>
+<p><br></p>
+<p>####7、void</p>
+<p>只能用于声明函数返回值。</p>
+<p><br></p>
+<p>##五、类型转换<br>必须明确地进行类型转换，不会自动类型提升。</p>
+<figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">float</span> f = <span class="number">2</span>.<span class="number">3</span>; </span><br><span class="line"><span class="built_in">bool</span> b = <span class="built_in">bool</span>(f); // b <span class="keyword">is</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+<p><br></p>
+<p>##六、限定符<br>GLSL 中有 4 个限定符（variable qualifiers）可供使用，它们限定了被标记的变量不能被更改的”范围”。</p>
+<ul>
+<li>const</li>
+<li>attribute</li>
+<li>uniform</li>
+<li>varying</li>
+</ul>
+<p>####1、const</p>
+<p>const 和 C++ 里差不多，定义不可变常量。表示限定的变量在编译时不可被修改</p>
+<p><br></p>
+<p>####2、attribute</p>
+<p>attribute 是应用程序传给顶点着色器用的。<font color="#CC00000">不允许声明时初始化</font>。</p>
+<p>attribute 限定符标记的是一种全局变量，该变量在顶点着色器中是只读（read-only）的，该变量被用作从OpenGL应用程序向顶点着色器中传递参数，因此该限定符<font color="#CC0000">仅能用于顶点着色器</font>。</p>
+<p><br></p>
+<p>####3、uniform</p>
+<p>unifrom 一般是应用程序用于设定顶点着色器和片断着色器相关初始化值。</p>
+<p>不允许声明时初始化</p>
+<p>uniform限定符标记的是一种全局变量,该变量对于一个图元（primitive）来说是不可更改的 它可以从OpenGL应用程序中接收传递来的参数。</p>
+<p><br></p>
+<p>####4、varying</p>
+<p>varying用于传递顶点着色器的值给片断着色器</p>
+<font color="#CC00000">不允许声明时初始化</font>
+
+<p>它提供了从顶点着色器向片段着色器传递数据的方法，varying限定符可以在顶点着色器中定义变量，然后再传递给光栅化器，光栅化器对数据插值后，再将每个片段的值交给片段着色器。 </p>
+<p><br></p>
+<p>##七、限制</p>
+<ul>
+<li>不能在 if-else 中声明变量</li>
+<li>用于判断的条件必须是bool类型(if,while,for…)</li>
+<li>(?:) 操作符后两个参数必须类型相同</li>
+<li>不支持 switch 语句</li>
+</ul>
+<figure class="highlight glsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">vec4</span> toonify(<span class="keyword">in</span> <span class="type">float</span> intensify) </span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">vec4</span> color;</span><br><span class="line">    color = <span class="type">vec4</span>(<span class="number">0.8</span>,<span class="number">0.8</span>,<span class="number">0.8</span>,<span class="number">0.8</span>)</span><br><span class="line">    <span class="keyword">return</span> color;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><br></p>
+<h2 id="八、discard关键字"><a href="#八、discard关键字" class="headerlink" title="八、discard关键字"></a>八、discard关键字</h2><p>discard 关键字可以避免片段更新帧缓冲区，当流控制遇到这个关键字时，正在处理的片段就会被标记为丢</p>
+<p><br></p>
+<h2 id="九、函数"><a href="#九、函数" class="headerlink" title="九、函数"></a>九、函数</h2><ul>
+<li>函数名可以通过参数类型重载，但是和返回值类型无关</li>
+<li>所有参数必须完全匹配，参数不会自动</li>
+<li>函数不能被递归调用</li>
+<li>函数返回值不能是数组</li>
+</ul>
+<p>函数参数标示符</p>
+<pre><code>in: 进复制到函数中，但不返回的参数(默认)
+
+out: 不将参数复制到函数中，但返回参数
+
+inout: 复制到函数中并返回 
+</code></pre><p><br></p>
+<h2 id="十、混合操作"><a href="#十、混合操作" class="headerlink" title="十、混合操作"></a>十、混合操作</h2><p>通过在选择器 (.) 后列出各分量名，就可以选择这些分量。</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">vec4 v4<span class="comment">;</span></span><br><span class="line">v4.rgba<span class="comment">;    // 得到vec4</span></span><br><span class="line">v4.rgb<span class="comment">;     // 得到vec3</span></span><br><span class="line">v4.b<span class="comment">;       // 得到float</span></span><br><span class="line">v4.xy<span class="comment">;      // 得到vec2</span></span><br><span class="line">v4.xgba<span class="comment">;    // 错误！分量名不是同一类</span></span><br><span class="line"></span><br><span class="line">v4.wxyz<span class="comment">;    // 打乱原有分量顺序</span></span><br><span class="line">v4.xxyy<span class="comment">;    // 重复分量</span></span><br></pre></td></tr></table></figure>
+<p><br></p>
+<h4 id="原文地址：https-www-tuicool-com-articles-yEBFvmA"><a href="#原文地址：https-www-tuicool-com-articles-yEBFvmA" class="headerlink" title="原文地址：https://www.tuicool.com/articles/yEBFvmA"></a>原文地址：<a href="https://www.tuicool.com/articles/yEBFvmA" target="_blank" rel="noopener">https://www.tuicool.com/articles/yEBFvmA</a></h4></div><div class="post-copyright"><blockquote><p>原文作者: BiYJ</p><p>原文链接: <a href="http://yoursite.com/2019/04/23/GLSL/GLSL/">http://yoursite.com/2019/04/23/GLSL/GLSL/</a></p><p>版权声明: 转载请注明出处(必须保留原文作者署名原文链接)</p></blockquote></div><div class="tags"></div><div class="post-share"><div class="social-share"><span>分享到:</span></div></div><div class="post-nav"><a href="/2019/05/22/iOS/iOS原理/atomic/" class="pre">atomic</a></div><div id="comments"></div></div></div></div><div class="layout-r"><div id="sidebar"><div class="search-pla"></div><div id="toc" class="widget"><div class="widget-title"><i class="fa fa-fei">文章目录</i></div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#八、discard关键字"><span class="toc-text">八、discard关键字</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#九、函数"><span class="toc-text">九、函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#十、混合操作"><span class="toc-text">十、混合操作</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#原文地址：https-www-tuicool-com-articles-yEBFvmA"><span class="toc-text">原文地址：https://www.tuicool.com/articles/yEBFvmA</span></a></li></ol></li></ol></div><div class="widget"><div class="widget-title"><i class="fa fa-xie"> 最新文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaFramework/">iOS UmbrellaFramework</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS原理/iOS UmbrellaHeader/">iOS umbrella header</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/06/iOS/iOS媒体/iOS 图片/">iOS 图片</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS优化/iOS 优化实例/">iOS 优化实例</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/05/iOS/iOS原理/iOS 操作系统架构/">iOS 操作系统架构</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS架构/iOS 网络层设计/">iOS网络层设计</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS 类簇/">iOS 类簇</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS OCR/">iOS OCR</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/11/04/iOS/iOS原理/iOS IM/">iOS IM</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/10/30/iOS/iOS原理/iOS 推送/">iOS 推送</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-gui"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/C/">C</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/GLSL/">GLSL</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/IT/">IT</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/OpenGL/">OpenGL</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/algorithm/">algorithm</a><span class="category-list-count">21</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS/">iOS</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS优化/">iOS优化</a><span class="category-list-count">14</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS动画/">iOS动画</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS原理/">iOS原理</a><span class="category-list-count">42</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS多线程/">iOS多线程</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS媒体/">iOS媒体</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS安全/">iOS安全</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/iOS架构/">iOS架构</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/linux/">linux</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/工具/">工具</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据存储/">数据存储</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/数据结构/">数据结构</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/计算机网络/">计算机网络</a><span class="category-list-count">5</span></li></ul></div></div></div></div><a id="totop" href="#top"></a><div id="footer"><div class="footer-info"><p><a href="/baidusitemap.xml">网站地图</a> |  <a href="/atom.xml">订阅本站</a> |  <a href="/about/">联系博主</a></p><p> 
+京ICP备 - <a target="_blank" href="http://www.beian.miit.gov.cn">19039713号</a></p><p>本站总访问量：<i id="busuanzi_container_site_pv"><i id="busuanzi_value_site_pv"></i></i>次，本站总访客数:<i id="busuanzi_container_site_uv"><i id="busuanzi_value_site_uv"></i></i>人</p><p><span> Copyright &copy;<a href="/." rel="nofollow">BiYJ.</a></span><span> Theme by<a rel="nofollow" target="_blank" href="https://github.com/chaooo/hexo-theme-BlueLake"> BlueLake.</a></span><span> Count by<a href="http://busuanzi.ibruce.info/"> busuanzi.</a></span><span> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a></span></p></div></div></div><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><script type="text/javascript" src="/js/search.json.js?v=2.0.3"></script><script type="text/javascript" src="/js/toctotop.js?v=2.0.3" async></script><link rel="stylesheet" type="text/css" href="/share/css/share.css"><script type="text/javascript" src="/share/js/social-share.js" charset="utf-8"></script><script type="text/javascript" src="/share/js/qrcode.js" charset="utf-8"></script></body></html>
