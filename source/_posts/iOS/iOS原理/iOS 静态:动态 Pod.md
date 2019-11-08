@@ -68,7 +68,37 @@ categories : iOS原理
 
 #### 1.3 编译速度
 
-这个未验证。
+动态库 Pod 方式：
+
+```
+Total pre-main time: 819.46 milliseconds (100.0%)
+         dylib loading time: 542.43 milliseconds (66.1%)
+        rebase/binding time:  35.86 milliseconds (4.3%)
+            ObjC setup time:  57.79 milliseconds (7.0%)
+           initializer time: 183.27 milliseconds (22.3%)
+           slowest intializers :
+             libSystem.B.dylib :  10.33 milliseconds (1.2%)
+    libMainThreadChecker.dylib :  28.76 milliseconds (3.5%)
+                  AFNetworking :  83.46 milliseconds (10.1%)
+                         Realm :  27.37 milliseconds (3.3%)
+               CYKJBasicModule :  17.54 milliseconds (2.1%)
+```
+
+静态库 Pod 方式：
+
+```
+Total pre-main time: 591.00 milliseconds (100.0%)
+         dylib loading time: 447.06 milliseconds (75.6%)
+        rebase/binding time:  30.51 milliseconds (5.1%)
+            ObjC setup time:  20.26 milliseconds (3.4%)
+           initializer time:  93.04 milliseconds (15.7%)
+           slowest intializers :
+             libSystem.B.dylib :   7.67 milliseconds (1.2%)
+    libMainThreadChecker.dylib :  25.41 milliseconds (4.3%)
+                         Realm :  21.13 milliseconds (3.5%)
+                      CYKJMain :  57.87 milliseconds (9.7%)
+```
+
 
 #### 1.4 工程实例
 
@@ -237,8 +267,6 @@ runtime 替换 decodeObjectForKey 方法后，打印输出发现，UIButton、UI
     return instance;
 }
 ```
-
-更详细的代码：[ImageTool](https://github.com/BiYJ/ImageTool)
 
 如上可见，这种动态方式对于编码并不友好，资源必须要特定的 bundle，一旦资源路径出错，轻则图片未加载，重则程序崩溃。
 
