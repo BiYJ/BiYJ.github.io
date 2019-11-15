@@ -11,7 +11,7 @@ categories: iOS原理
 
 源码下载地址：[https://opensource.apple.com/tarballs/dyld/](https://opensource.apple.com/tarballs/dyld/)
 
-dyld 会将 App 依赖的动态库和 App 文件加载到内存以后执行，动态库不是可执行文件，无法独自执行。当点击 App 的时候，系统在内核态完成一些必要配置，从 App 的 MachO 文件解析出 dyld 的地址，这里会记录在 MachO 的 LC_LOAD_DYLINKER 命令中，内容参考如下：
+当点击 App 的时候，系统在内核态完成一些必要配置，从 App 的 MachO 文件解析出 dyld 的地址，这里会记录在 MachO 的 LC\_LOAD\_DYLINKER 命令中，内容参考如下：
 
 ```
           cmd LC_LOAD_DYLINKER
@@ -37,6 +37,8 @@ $ file dyld
 </center>
 
 dyld 是 <font color=#cc0000>Mach-O 类型的通用二进制文件</font>，支持 x86_64 和 i386 两种架构。iPhone 真机对应的 dyld 支持的为 arm 系列架构。
+
+在 xnu 内核为程序启动做好准备后，执行由内核态切换到用户态，由 dyld 完成后面的加载工作：dyld 会将 App 依赖的动态库和 App 文件加载到内存以后执行，动态库不是可执行文件，无法独自执行。
 
 
 ## 二、otool
@@ -469,7 +471,7 @@ uintptr_t start(const struct macho_header* appsMachHeader, int argc, const char*
 
 #### 3.3 slide、rebase
 
-由于 apple 采用了 [ASLR（Address space layout randomization）](https://baike.baidu.com/item/aslr/5779647?fr=aladdin)技术，所以 Mach-O 每次加载到内存中的<font color=#cc0000>首地址是变化的</font>，此时想找到代码在内存中对应的地址需要重定位 rebase。rebase 要用到 slide 值：
+由于 apple 采用了 [ASLR（Address space layout randomization）](https://baike.baidu.com/item/aslr/5779647?fr=aladdin)地址空间布局随机化技术。在 ASLR 技术出现之前，程序都是在固定的地址加载的，这样 hacker 可以知道程序里面某个函数的具体地址，植入某些恶意代码，修改函数的地址等，带来了很多的危险性。ASLR 就是为了解决这个的，程序每次启动后地址都会随机变化，这样程序里所有的代码地址都需要需要重新对进行计算修复才能正常访问。Mach-O 每次加载到内存中的<font color=#cc0000>首地址是变化的</font>，此时想找到代码在内存中对应的地址需要重定位 rebase。rebase 要用到 slide 值：
 
 ```
 //

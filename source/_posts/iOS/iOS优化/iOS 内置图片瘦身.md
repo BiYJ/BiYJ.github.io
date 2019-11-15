@@ -11,9 +11,9 @@ categories: iOS优化
 
 这种方式有比较明显的缺点：
 
-①、iOS 系统不会对其进行压缩存储，造成了应用体积的增大。
+1. iOS 系统不会对其进行压缩存储，造成了应用体积的增大。
 
-②、使用 bundle 存储图片放弃了 APP thinning。明显的表现是 2 倍屏手机和 3 倍屏手机下载的应用包大小一样。如果能够实现 APP thinning，那么往往 2 倍屏幕的手机包大小会小于 3 倍屏手机的，起到差异性优化的目的。
+2. 使用 bundle 存储图片放弃了 APP thinning。明显的表现是 2 倍屏手机和 3 倍屏手机下载的应用包大小一样。如果能够实现 APP thinning，那么往往 2 倍屏幕的手机包大小会小于 3 倍屏手机的，起到差异性优化的目的。
 
 在调研过程中发现，应用的体积与图片资源的数量密切相关。换句话说，iPhone 的 rom 存在 4K 对齐的情况，一张 498B 大小的图片在应用包中也要占据 4KB 大小。因此项目中每添加一张图片就至少增大了 4KB。
 
@@ -43,15 +43,13 @@ iconLabel.text = [NSString stringWithUTF8String:"\ue902"];
 
 优点：
 
-①、可以降低应用图片内置资源的体积。
-
-②、可以随意缩放和修改颜色。
+1. 可以降低应用图片内置资源的体积。
+2. 可以随意缩放和修改颜色。
 
 缺点：
 
-①、图标的查找和替换比较麻烦，不如直接使用图片那样简单。
-
-②、有些情况无法替换之前存在的图片，只能起到缩小增量的目的，无法减小全量。
+1. 图标的查找和替换比较麻烦，不如直接使用图片那样简单。
+2. 有些情况无法替换之前存在的图片，只能起到缩小增量的目的，无法减小全量。
 
 任何一种需要大刀阔斧改革的优化都是一种不明智的行为。
 
@@ -73,9 +71,8 @@ iconLabel.text = [NSString stringWithUTF8String:"\ue902"];
 
 先要抛出两个问题：
 
-&emsp;①、cocoapods 是否支持使用 Assets.xcassets。
-
-&emsp;②、各个 pod 维护自己的 Assets.xcassets 会不会造成资源冲突。
+1. cocoapods 是否支持使用 Assets.xcassets。
+2. 各个 pod 维护自己的 Assets.xcassets 会不会造成资源冲突。
 
 为了弄清楚上面两个问题，先要看下 podspec 的几个重要参数：
 
@@ -107,13 +104,10 @@ s.resource_bundles ：资源文件路径及类型，同时资源文件会被打�
 
 既然需要指定 bundle 加载图片，那么如何获取这个 bundle 呢？换句话说如何才能低成本的将项目中的图片放到特定 bundle 下的 Assets.car 文件中呢？对此我们提出了一个解决方案：
 
-①、在 pod 下新建一个空文件夹。找出该 pod 存放图片的所有 bundle，在新建文件夹下创建与 bundle 数量相等的 Asset。
-
-②、修改 podspec 文件，设置 resource_bundles 将 Asset 指定为资源，并指定 bundle 名称，如 A.bundle，其对应的 Asset 最终资源 bundle 为 A_Asset.bundle。
-
-③、新增方法 imageWithName:，从符合 xx.bundle/yy.png 特征的参数中获取 bundle 名和图片名 xx_Asset.bundle 和 yy.png，获取图片并返回。
-
-④、查找并全部替换 imageNamed: 和 imageWithContentOfFile: 为 imageWithName:。
+1. 在 pod 下新建一个空文件夹。找出该 pod 存放图片的所有 bundle，在新建文件夹下创建与 bundle 数量相等的 Asset。
+2. 修改 podspec 文件，设置 resource_bundles 将 Asset 指定为资源，并指定 bundle 名称，如 A.bundle，其对应的 Asset 最终资源 bundle 为 A\_Asset.bundle。
+3. 新增方法 imageWithName:，从符合 xx.bundle/yy.png 特征的参数中获取 bundle 名和图片名 xx\_Asset.bundle 和 yy.png，获取图片并返回。
+4. 查找并全部替换 imageNamed: 和 imageWithContentOfFile: 为 imageWithName:。
 
 只要能拿到原来代码中 imageNamed: 的参数就能知道现在图片存在哪个 bundle 下，这样就能通过 imageNamed:inBundle: 获取到图片，其思路如下图所示：
 
