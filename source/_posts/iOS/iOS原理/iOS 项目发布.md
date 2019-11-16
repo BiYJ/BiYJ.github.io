@@ -125,6 +125,11 @@ category: iOS原理
 
 手机安装 app 时，会先查找是否已有相同 App ID 的 app，如果没有，则直接进行安装；如果已有，则进行覆盖安装。
 
+* 测试接口 + 测试 bundleId(AppId) + 测试证书，适用真机调试、模拟器
+* 正式接口 + 测试 bundleId(AppId) + 测试证书，适用真机调试报错，可以打包提交到 fir.im
+* 正式接口 + 正式 bundleId(AppId) + 正式证书，适用不能真机调试、可以模拟器
+
+
 #### 2.3 CSR
 
 > 在苹果开发者中心生成证书时需要一个 CSR（证书签名请求）文件。
@@ -645,8 +650,45 @@ log 显示百度统计 sdk 中导入了 AdSupport.framework，百度搜索后跳
 
 考虑到上线紧迫，最后决策：<font color=#cc0000>移除百度统计相关代码，打包 upload</font>。
 
+## 六、app 审核状态
 
-## 六、文章
+#### 6.1 关于 app 状态
+
+无论 app 版本列于 iTunes Connect 中的哪个位置，您都可以看到版本的状态（如Waiting For Upload（正在等待上传）或Ready for Sale（可以销售））或状态指示器（如 ![](http://dzliving.com/GreenIcon.png)，![](http://dzliving.com/YellowIcon.png) 或 ![](http://dzliving.com/RedIcon.png) ）。状态会立即告知您是否需要关注您的 app：
+
+* 红色状态指示器表示您需要先执行某个操作，然后您的 app 才能在商店中提供。
+* 黄色状态指示器表示正在进行某个进程（由您或 Apple 控制）。
+* 绿色状态指示器表示 app 已在商店中提供。
+
+|状态|状态名称|说明|
+|:----:|:-----:|:------|
+|![](http://dzliving.com/YellowIcon.png)|Prepare for Submission(准备上传)|已为 app 创建了 iTunes Connect 记录，但是未准备好上传二进制文件。您可能仍要配置元数据、屏幕快照、价格、In-App Purchase、Game Center、iAd App Network 设置等等。|
+|![](http://dzliving.com/YellowIcon.png)|Waiting For Review(正在等待审核)|您已提交新的 app 或更新后的版本，而且 Apple 已收到，但是尚未开始审核该 app。在 app 正在等待审核时，您可以：1、拒绝您的二进制文件，以将其从 Apple 审核队列中移除。请参阅 拒绝您的二进制文件。2、编辑某些 app 信息。|
+|![](http://dzliving.com/YellowIcon.png)|In Review(审核中)|Apple 正在审核您的 app。由于提交的每个 app 都不相同，因此没有固定的审核时间。您可以通过拒绝二进制文件将您的二进制文件从审核队列中移除。请参阅 拒绝您的二进制文件。|
+|![](http://dzliving.com/YellowIcon.png)|Pending Contract(合同挂起)|您的 app 已通过审核，并可以销售，但是您的合同尚未生效。在“Contracts, Tax & Banking”（合同、税务和银行）模块中检查合同进度。请参阅 查看合同和合同状态。|
+|![](http://dzliving.com/YellowIcon.png)|Waiting For Export Compliance(等待出口合规)|您的 app 已通过审核，并可以销售，但正在审核您的 CCATS 文件的出口合规。|
+|![](http://dzliving.com/YellowIcon.png)|Pending Developer Release(等待开发者发布)|您的 app 版本已获得 Apple 批准，正在等待您进行发布。您可以选择手动控制发布或将发布日期定于将来的某个日期。当一切准备就绪时，将 app 版本发布到商店。请参阅 指定应用程序版本发布时间。|
+|![](http://dzliving.com/YellowIcon.png)|Processing for App Store(正在针对 App Store 进行处理)|正在处理您的二进制文件，并且可在 24 小时内准备销售。|
+|![](http://dzliving.com/YellowIcon.png)|Pending Apple Release(等待 Apple 发布)|Apple 保留您的 app 版本，直到相应的 Apple iOS 或 OS 版本公开发布。如果您认为 app 应在现有的 iOS 或 OS 版本上进行发布，则检查在您的 app 二进制文件中设置的部署目标。如果您使用不同的部署目标重建 app 二进制文件，则拒绝此版本的二进制文件，并提交新的版本。|
+|![](http://dzliving.com/GreenIcon.png)|Ready for Sale(可以销售)|Apple 已经批准该 app 版本，并将其发布到商店。在此状态下可进行的更改是：1、从商店中移除 app。请参阅 在商店中取消 app 销售的步骤。2、使用新版本更新 app。请参阅 将您的 app 替换为新版本。|
+|![](http://dzliving.com/RedIcon.png)|Rejected(已拒绝)|Apple 拒绝了二进制文件。具有管理员或技术人员角色的 iTunes Connect 用户会收到包含拒绝原因的通知。请参阅 使用解决方案中心。|
+|![](http://dzliving.com/RedIcon.png)|Metadata Rejected(已拒绝元数据)|元数据项目（除您的二进制文件外）未通过审核。请参阅 使用解决方案中心。要解决该问题，请编辑 iTunes Connect 中的元数据。当你解决这个问题,再次提交审查的程序。|
+|![](http://dzliving.com/RedIcon.png)|Removed From Sale(已取消销售)|您的 app 已从商店中移除。如果您的 app 存在从商店中移除的风险，则 Apple 会与您联系，以尽量在移除您的 app 前解决相关问题。|
+|![](http://dzliving.com/RedIcon.png)|Developer Rejected(开发者已拒绝)|您已拒绝审核流程中的二进制文件，并将其从审核队列中移除。当您准备就绪时，重新提交您的二进制文件或提交新的二进制文件。请参阅 拒绝您的二进制文件。|
+|![](http://dzliving.com/RedIcon.png)|Developer Removed From Sale(开发者已取消销售)|您已从商店中移除 app。请参阅 重新销售 app 的步骤。|
+|![](http://dzliving.com/RedIcon.png)|Invalid Binary(无效的二进制文件)|Apple 拒绝了您的二进制文件，因为它没有满足所有上传要求。解决二进制文件中的所有问题后，在构建版本模块中删除不符合的二进制文件，选择一个新的文件，然后保存提交审核。|
+
+#### 6.2 查看状态历史
+
+1. 进入 iTunes Connect
+2. 选择某一个app进入详情界面
+3. 依次选择 App Store Versions(App Store版本) — Activity(活动)
+
+<center>
+![](http://dzliving.com/iOSAppStatus.png)
+</center>
+
+## 七、文章
 
 [Benjamin丶](https://www.jianshu.com/u/fd1e679c3ac1) & [Apple开发者账号介绍及证书配置说明](https://www.jianshu.com/p/8190cf4a8172)
 [PersonChen_QJ](https://www.jianshu.com/u/80f9260b9fb7) & [iOS申请邓白氏编码图文流程](https://www.jianshu.com/p/da6663c8fd5f)
@@ -659,3 +701,4 @@ log 显示百度统计 sdk 中导入了 AdSupport.framework，百度搜索后跳
 [一键打包完整Shell脚本xcodebuild archive](https://www.jianshu.com/p/36d2c6d65aa7)
 [iOS 如何填App Store Connect信息](https://www.jianshu.com/p/1c9ad924c79b)
 [iOS提交审核：您的 App 正在使用广告标识符 (IDFA)](https://www.jianshu.com/p/56892880e003)
+[审核时各项展示的位置](https://www.qimai.cn/zhuanlan/article/id/299)
