@@ -153,3 +153,29 @@ categories: iOS优化
 	    return _imageCache;
 	}
 	```
+
+	
+## 四、启动速度优化
+
+```
+Total pre-main time: 617.58 milliseconds (100.0%)
+         dylib loading time: 472.75 milliseconds (76.5%)
+        rebase/binding time:  27.01 milliseconds (4.3%)
+            ObjC setup time:  28.90 milliseconds (4.6%)
+           initializer time:  88.76 milliseconds (14.3%)
+           slowest intializers :
+             libSystem.B.dylib :   8.81 milliseconds (1.4%)
+    libMainThreadChecker.dylib :  14.42 milliseconds (2.3%)
+                  AFNetworking :  18.43 milliseconds (2.9%)
+                         Realm :  20.98 milliseconds (3.3%)
+               CYKJBasicModule :  12.96 milliseconds (2.0%)
+```
+
+1. 删除不需要的三方库
+
+2. +load -> +initialize
+
+	注意有的功能需要写在 +load 方法。可以改为 +initialize 后，用断点看看是否被调用。	
+3. 动态库 -> 静态库
+
+	如果 Podfile 中使用 use_frameworks!，那么第三方库都是以动态库的方式添加到工程中，动态库在启动阶段由 dyld 加载，静态库是运行时加载，所以为了减少 dylib loading time，可以减少工程中的动态库。

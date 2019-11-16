@@ -66,6 +66,20 @@ categories : iOS原理
 
 在图中，上面的是使用 use\_frameworks! 的动态包， 下面的是默认（或使用 use\_modular\_headers!）的静态包，几次验证，都是<font color=#cc0000>动态的更小</font>。
 
+这里需要注意，不同的证书 ipa 的大小不同
+
+```
+动态 pod：adhoc  58.9M，pub  130.6M
+静态 pod：adhoc  58.3M，pub  131.6M
+```
+
+差别这么大的原因是：工程使用 swift 的代码。
+
+<center>
+![](http://dzliving.com/StaticModule4.png)
+</center>
+
+
 #### 1.3 编译速度
 
 动态库 Pod 方式：
@@ -281,6 +295,10 @@ runtime 替换 decodeObjectForKey 方法后，打印输出发现，UIButton、UI
 	不管通过修改 .h 为 .hpp，还是修改 build settings -> Compile Sources As -> Objectoive-C++ 都没有效果，无计可施之时想到了，可以将 use\_frameworks! 时 cocoapods 生成 的 Realm.framework 拷贝一份，拖入工程死马等活马医。
 	
 	编译运行，这个问题解决了~
+
+2. Library not loaded: @rpath/libswiftCore.dylib
+
+	Build Settings 中 `Aways Embed Swift Standard Libraries` 修改成 YES。
 
 2. Argument list too long: recursive header expansion failed
 
