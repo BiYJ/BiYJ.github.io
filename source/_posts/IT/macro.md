@@ -132,3 +132,5 @@ CPU 读取指令的时候并非一条一条的来读，而是多条一起加载�
         atomic_fetch_##o##_explicit(_os_atomic_c11_atomic(p), v, \
         memory_order_##m)
 ```
+
+[UNAVAILABLE\_ATTRIBUTE , \_\_has\_include](https://www.jianshu.com/p/3fb6033b06a4)

@@ -526,3 +526,4 @@ git reset --hard branch2
 [carway](https://www.jianshu.com/u/772b2edab0f4) - [Git Reset 三种模式](https://www.jianshu.com/p/c2ec5f06cf1a)
 [Git回滚Merge](https://www.jianshu.com/p/bb5b84c638f0)
 [Git远程操作详解](http://www.ruanyifeng.com/blog/2014/06/git_remote.html)
+[Git 常用命令](https://www.jianshu.com/p/933bc80647a1)

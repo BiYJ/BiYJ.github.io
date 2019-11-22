@@ -325,6 +325,66 @@ Hash 表的平均查找长度包括查找成功时的平均查找长度和查找
 1. 通过方法 `- (void)setObject:(id)anObject forKey:(id)aKey;` 可以看出key必须遵循 NSCopy 协议，也就是说 NSDictionary 的 key 是 copy 一份新的，而 value 是浅拷贝的（如果想深拷贝可以使用 NSMapTable）。
 2. key 还必须要继承 NSObject，并且重写 `-(NSUInteger)hash;` 和 `-(BOOL)isEqual:(id)object;` 两个方法。第一个函数用于计算 hash 值，第二个函数用来判断当哈希值相同的时候 value 是否相同（解决哈希冲突）。
 
+#### 2.13 字符串的 hash 方法
+
+>At least there are special circumstances for which this unreliability kicks in.
+>
+>Comparing [a hash] and [b hash] of two different NSString is safe when:
+>
+>the strings' length is shorter or equal to 96 characters.
+>[a length] is different to [b length].
+>the concatinated first, middle, and last 32 characters of a differ to the concatinated components of b.
+>Otherwise every difference between the first and the middle 32 chars, as well as every difference between the middle and the last 32 characters, are not used while producing the [NSString hash] value.
+
+`[NSString hash]` 这个方法对 `<=96` 个字符的字符串是安全的，如果比 96 个字符长，会大大增加碰撞的概率。
+
+```
+#define HashEverythingLimit 96
+
+#define HashNextFourUniChars(accessStart, accessEnd, pointer) \
+    {result = result * 67503105 + (accessStart 0 accessEnd) * 16974593  + (accessStart 1 accessEnd) * 66049  + (accessStart 2 accessEnd) * 257 + (accessStart 3 accessEnd); pointer += 4;}
+
+#define HashNextUniChar(accessStart, accessEnd, pointer) \
+    {result = result * 257 + (accessStart 0 accessEnd); pointer++;}
+
+
+CF_INLINE CFHashCode __CFStrHashCharacters(const UniChar *uContents, CFIndex len, CFIndex actualLen) {
+    CFHashCode result = actualLen;
+    // ****X 这里HashEverythingLimit = 96
+    if (len <= HashEverythingLimit) {
+        // ****X 若字符串长度在96以内，对所有的字符做hash运算得到一个结果
+        
+        const UniChar *end4 = uContents + (len & ~3);
+        const UniChar *end = uContents + len;
+        while (uContents < end4) HashNextFourUniChars(uContents[, ], uContents);    // First count in fours
+        while (uContents < end) HashNextUniChar(uContents[, ], uContents);      // Then for the last <4 chars, count in ones...
+    } else {
+        // ****X 若字符串长度超过96
+        
+        const UniChar *contents, *end;
+        // ****X 取前32个字符做hash运算
+    contents = uContents;
+        end = contents + 32;
+        while (contents < end) HashNextFourUniChars(contents[, ], contents);
+        // ****X 取中间32个字符做hash运算
+    contents = uContents + (len >> 1) - 16;
+        end = contents + 32;
+        while (contents < end) HashNextFourUniChars(contents[, ], contents);
+        // ****X 取最后32个字符做hash运算
+    end = uContents + len;
+        contents = end - 32;
+        while (contents < end) HashNextFourUniChars(contents[, ], contents);
+    }
+    return result + (result << (actualLen & 31));
+}
+```
+
+如果长度大于 96，只有前、中、后 32 个字符做了哈希运算，也就是说在这些字符相同的情况下，其他任意位置的字符发生改变，Hash 值都不会变。
+
+在工程中使用字符串的 hash 方法作为数据是否发生改变的依据，发现方法返回的 hash 值为一个很大的负数，这是因为数值大小超出了数据类型能够表达的范围了。
+
+可以使用 md5 算法代替系统的 hash 算法。
+
 
 ## 文章
 
