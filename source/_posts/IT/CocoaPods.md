@@ -73,6 +73,10 @@ pod install 执行流程可分为如下五个步骤
 * 不存在，输出 Setting up CocoaPods Master repo，并拉取[三方库信息库](https://link.jianshu.com/?t=https://github.com/cocoapods/Specs)到 ~/.cocoapods/repo/中
 * 使用 git 命令从 GitHub 上拉取 Podfile 中对应的三方库源码
 
+<center>
+![](http://dzliving.com/CocoaPods_8.png)
+</center>
+
 在终端中输入如下命令
 
 ```

@@ -3,6 +3,7 @@ title: 组件化方案
 categories: iOS架构
 ---
 
+>将一个工程分解成各个组件，然后按照某种方式任意组织成为一个拥有完整业务逻辑的工程。
 
 大致讨论组件化的三种方案：url-block、protocol-class（和 url-controller 类似)、target-action，以及应用这三种组件化方案的时机、步骤、利弊等。
 
