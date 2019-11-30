@@ -10,10 +10,20 @@ categories: 工具
 ![](http://dzliving.com/Git_0.png)
 </center>
 
+4 个区：
+
 - Workspace：工作区
 - Index / Stage：暂存区（和 git stash 命令暂存的地方不一样）
 - Repository：仓库区（或本地仓库）
 - Remote：远程仓库
+
+5 种状态：
+
+- 未修改 Origin
+- 已修改 Modified
+- 已暂存 Staged
+- 已提交 Committed
+- 已推送 Pushed
 
 #### 1.1 工作区
 
@@ -338,6 +348,8 @@ $ git pull origin next
 |git log|显示当前分支的版本历史|
 |git diff|显示暂存区和工作区的差异|
 |git diff HEAD|显示工作区与当前分支最新 commit 之间的差异|
+|git diff --cached|查看到暂存区和本地仓库之间的差异|
+|git diff master||
 |git cherry-pick \<commit\>|选择一个 commit，合并进当前分支|
 
 </center>
@@ -519,7 +531,67 @@ git reset --hard branch2
 		* 移除所有Index暂存区中准备要提交的文件(Staged files)，我们可以执行 git reset HEAD 来 Unstage 所有已列入 Index暂存区 的待提交的文件。(有时候发现add错文件到暂存区，就可以使用命令)。
 		* commit提交某些错误代码，或者没有必要的文件也被commit上去，不想再修改错误再commit（因为会留下一个错误commit点），可以回退到正确的commit点上，然后所有原节点和reset节点之间差异会返回工作目录，假如有个没必要的文件的话就可以直接删除了，再 commit 上去就 OK 了。
 
-## 四、文章
+## 四、撤销修改
+
+1. 已修改，未暂存
+
+	如果我们只是在编辑器里修改了文件，但还没有执行 git add .，这时候我们的文件还在工作区，并没有进入暂存区，我们可以用：
+	
+	> git checkout .
+	
+	或者
+	
+	> git reset --hard
+	
+	来进行撤销操作。
+
+	![](https://upload-images.jianshu.io/upload_images/5294842-d664865cd642e8a6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+	![](https://upload-images.jianshu.io/upload_images/5294842-9bfc11b3d3eec4f5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+	可以看到，在执行完 git checkout . 之后，修改已被撤销，git diff 没有任何内容了。
+	
+	> git add . 的反义词是 git checkout .。做完修改之后，如果你想向前走一步，让修改进入暂存区，就执行git add .，如果你想向后退一步，撤销刚才的修改，就执行 git checkout .。
+
+2. 已暂存，未提交
+
+	已经执行 git add .，但还没有执行 git commit -m "comment"。
+	
+	```
+	git reset   // 退回到 git add . 之前，即本地文件处于已修改未暂存状态
+	
+	git checkout .   // 撤销修改
+	```
+	
+	或者
+	
+	```
+	git reset --hard
+	```
+	
+	可以发现 1、2 两种情况都可以用同一个命令 git reset --hard 来完成。这个强大的命令，可以一步到位地把你的修改完全恢复到未修改的状态。
+
+3. 已提交，未推送
+
+	执行 git commit 后，代码已经进入了本地仓库
+	
+	```
+	git reset --hard origin/master
+	```
+	
+	还是这个 git reset --hard 命令，只不过这次多了一个参数 origin/master，正如我们上面讲过的，origin/master 代表远程仓库，既然你已经污染了你的本地仓库，那么就从远程仓库把代码取回来吧。
+
+4. 已推送
+
+	如果执行了 git add -》git commit -》git push 了，这时你的代码已经进入远程仓库。如果想恢复的话，只需要先撤销本地修改，再强制 push 到远程仓库：
+	
+	```
+	git reset --hard HEAD^
+	
+	git push -f
+	```
+
+
+## 五、文章
 
 [Git](https://git-scm.com/docs)
 [Ruheng](https://www.jianshu.com/u/0fa6f5d09040) - [一篇文章，教你学会Git](https://www.jianshu.com/p/072587b47515)

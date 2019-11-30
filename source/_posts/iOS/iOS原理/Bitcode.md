@@ -1005,3 +1005,4 @@ LLVM 官方文档介绍的 bitcode 文件的格式：[LLVM Bitcode File Format](
 [Troubleshooting App Thinning and Bitcode Build Failures](https://developer.apple.com/library/archive/technotes/tn2432/_index.html)
 [http://xelz.info/blog/2018/11/24/all-you-need-to-know-about-bitcode/](http://xelz.info/blog/2018/11/24/all-you-need-to-know-about-bitcode/)
 [iOS 打包上线 bitcode问题](https://blog.csdn.net/u012198553/article/details/54380856)
+[判断一个库是否包含 bitcode](https://www.tuicool.com/articles/nMzABvM)

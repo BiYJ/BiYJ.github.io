@@ -318,6 +318,14 @@ watchOS Simulator SDKs:
 	Simulator - watchOS 5.1       	-sdk watchsimulator5.1
 ```
 
+指定 framework
+
+```
+$ xcrun -sdk iphonesimulator clang -rewrite-objc -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/UIKit.framework MyObject.m
+
+$ xcrun -sdk iphonesos clang -arch arm64 -framework Foundation main.m -o main.cpp
+```
+
 ## 六、Clang Attributes
 
 Clang Attributes 是 Clang 提供的一种<font color=#cc0000>源码注解</font>，方便开发者向编译器表达某种要求，参与控制如 Static Analyzer、Name Mangling、Code Generation 等过程，一般以 \_\_attribute\_\_(xxx) 的形式出现在代码中；为方便使用，一些常用属性也被 Cocoa 定义成宏，比如在系统头文件中经常出现的 NS\_CLASS\_AVAILABLE\_IOS(9\_0) 就是 \_\_attribute\_\_(availability(...)) 这个属性的简单写法。

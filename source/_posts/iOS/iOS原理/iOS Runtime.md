@@ -1123,3 +1123,5 @@ void sayFunction(id self, SEL _cmd, id param) {
 [iOS RunTime 之数据结构](https://www.jianshu.com/p/26c41f48267d)
 [iOS 模块分解—「Runtime面试、工作」](https://www.jianshu.com/p/19f280afcb24)
 [Runtime 源码](http://www.opensource.apple.com/source/objc4/)
+[iOS开发业界毒瘤 Hook](https://blog.csdn.net/qq_34047841/article/details/78467477)
+[Objective-C 黑魔法如何hook系统私有类？实现真正的Method Swizzling！](https://blog.csdn.net/qinqi376990311/article/details/80076919)
