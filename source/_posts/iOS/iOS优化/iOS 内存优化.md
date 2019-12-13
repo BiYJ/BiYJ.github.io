@@ -21,3 +21,7 @@ http://www.cocoachina.com/cms/wap.php?action=article&id=15605
 
 2、引用库的升级及替换
 【极光】、pod 库升级
+
+[iOS性能优化系列篇之“优化总体原则”](http://www.cocoachina.com/articles/22940)
+[iOS性能优化系列篇之“列表流畅度优化”](http://www.cocoachina.com/articles/24599)
+[iOS视图成像理论及性能优化](https://www.jianshu.com/p/c7869be4ab56)

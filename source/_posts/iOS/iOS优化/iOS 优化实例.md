@@ -179,3 +179,22 @@ Total pre-main time: 617.58 milliseconds (100.0%)
 3. 动态库 -> 静态库
 
 	如果 Podfile 中使用 use_frameworks!，那么第三方库都是以动态库的方式添加到工程中，动态库在启动阶段由 dyld 加载，静态库是运行时加载，所以为了减少 dylib loading time，可以减少工程中的动态库。
+	
+	
+## 内存
+
+#### [iOS微信内存监控](https://cloud.tencent.com/developer/article/1048715)
+
+
+## 包体积
+
+1. 删除无用代码和资源文件
+2. 压缩资源文件
+3. 动态下发 zip 包
+4. 内置 zip 压缩包
+	* 首次启动需要解压，会牺牲首次使用的启动速度
+	
+	32 位、64 位双架构问题
+	
+	* 将引擎 zip 包置于 app 动态库内来规避这个问题，因为 AppStore 会针对动态库自动实现分架构下发
+	* 需要注意下载失败、解压失败的问题。

@@ -3,6 +3,8 @@ title: iOS 推送
 categories: iOS原理
 ---
 
+![](http://dzliving.com/iOS远程推送.png)
+
 
 ## 一、推送原理
 
@@ -561,3 +563,4 @@ UNTextInputNotificationAction 的样式如下：
 [iOS 推送通知及通知扩展](https://www.jianshu.com/p/4ffb56716a5c)
 [iOS10 推送通知 UserNotifications](https://www.jianshu.com/p/bb89d636f989)
 [iOS 推送全解析，你不可不知的所有 Tips！](https://www.jianshu.com/p/e9c313df746f)
+[iOS推送之远程推送（iOS Notification Of Remote Notification）](https://www.jianshu.com/p/4b947569a548)
